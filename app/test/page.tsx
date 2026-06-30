@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { SAMPLE_QUESTIONS, SECTION_TRANSITIONS } from '@/lib/questions'
 import { Answer, SectionId } from '@/types'
-import { initSession, startTestSession, saveAnswer, trackEvent } from '@/lib/analytics'
+import { initSession, startTestSession, saveAnswer, trackEvent, sendAbandonBeacon } from '@/lib/analytics'
 
 const TOTAL = SAMPLE_QUESTIONS.length
 
@@ -44,6 +44,19 @@ export default function TestPage() {
     return () => window.removeEventListener('keydown', onKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, selected, animating, sectionCard])
+
+  // 이탈 추적
+  useEffect(() => {
+    sessionStorage.setItem('pp_free_current_idx', '0')
+    const handleUnload = () => {
+      const idx = parseInt(sessionStorage.getItem('pp_free_current_idx') ?? '0')
+      if (!sessionStorage.getItem('pp_free_completed')) {
+        sendAbandonBeacon(idx, TOTAL)
+      }
+    }
+    window.addEventListener('beforeunload', handleUnload)
+    return () => window.removeEventListener('beforeunload', handleUnload)
+  }, [])
 
   useEffect(() => {
     if (testStarted.current) return
@@ -87,10 +100,12 @@ export default function TestPage() {
       if (isLast) {
         const orderedAnswers = SAMPLE_QUESTIONS.map((_, i) => newMap[i]).filter(Boolean) as Answer[]
         sessionStorage.setItem('test_answers', JSON.stringify(orderedAnswers))
+        sessionStorage.setItem('pp_free_completed', '1')
         await trackEvent('test_last_answer', { total: orderedAnswers.length })
         router.push('/result')
       } else {
         const next = current + 1
+        sessionStorage.setItem('pp_free_current_idx', String(next))
         const nextSection = SAMPLE_QUESTIONS[next].section
         setCurrent(next)
         setSelected(newMap[next]?.value ?? null)

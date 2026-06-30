@@ -176,24 +176,23 @@ export async function trackPaidAnswer(
 }
 
 // ── 이탈 추적 (beforeunload) ──────────────────
-export function sendAbandonBeacon(questionIndex: number, total: number) {
+export function sendAbandonBeacon(questionIndex: number, total: number, source: 'free' | 'paid' = 'paid') {
   const sessionId =
     typeof window !== 'undefined' ? sessionStorage.getItem('pp_session_id') : null
   if (!supabase || !sessionId) return
 
-  // sendBeacon은 async 미지원 — 단순 이벤트 insert URL 직접 호출
   const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/events`
   const body = JSON.stringify({
     session_id: sessionId,
-    event_type: 'paid_test_abandon',
-    metadata: { question_index: questionIndex, total, pct: Math.round(questionIndex / total * 100) },
+    event_type: `${source}_test_abandon`,
+    metadata: { question_index: questionIndex, total, pct: Math.round(questionIndex / total * 100), source },
   })
   navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }))
 }
 
 // ── 결과 페이지 스크롤 깊이 ──────────────────
 const _firedDepths = new Set<number>()
-export function initScrollDepthTracking() {
+export function initScrollDepthTracking(page: 'free-result' | 'paid-result' = 'paid-result') {
   if (typeof window === 'undefined') return
   _firedDepths.clear()
 
@@ -203,7 +202,7 @@ export function initScrollDepthTracking() {
     for (const threshold of [25, 50, 75, 100]) {
       if (pct >= threshold && !_firedDepths.has(threshold)) {
         _firedDepths.add(threshold)
-        trackEvent('result_scroll_depth', { page: 'paid-result', depth: threshold })
+        trackEvent('result_scroll_depth', { page, depth: threshold })
       }
     }
   }

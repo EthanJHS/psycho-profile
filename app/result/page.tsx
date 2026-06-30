@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { scoreAnswers, ScoringOutput } from '@/lib/scoring'
-import { completeTestSession, trackResultView, trackUpgradeClick } from '@/lib/analytics'
+import { completeTestSession, trackResultView, trackUpgradeClick, initScrollDepthTracking } from '@/lib/analytics'
 import { Answer } from '@/types'
 import ShareButtons from '@/components/ShareButtons'
 import ScientificDisclaimer from '@/components/ScientificDisclaimer'
@@ -197,6 +197,7 @@ export default function ResultPage() {
     const scored = scoreAnswers(answers)
     completeTestSession(scored.result, scored.facets, scored.cogScore, scored.life).catch(() => {})
     trackResultView(scored.result.profileId).catch(() => {})
+    initScrollDepthTracking('free-result')
 
     setTimeout(() => {
       setOutput(scored)

@@ -33,8 +33,12 @@ export async function GET(req: NextRequest) {
     paidCount,
     // 행동분석
     paidAnswersRaw,
-    abandonEvents,
+    abandonEvents,        // paid_test_abandon
     scrollDepthEvents,
+    // 무료 행동분석
+    freeAnswersRaw,
+    freeAbandonEvents,    // free_test_abandon
+    freeScrollDepthEvents,
   ] = await Promise.all([
     sb.from('sessions').select('id', { count: 'exact', head: true }),
     sb.from('test_sessions').select('id', { count: 'exact', head: true }),
@@ -76,12 +80,28 @@ export async function GET(req: NextRequest) {
       .eq('event_type', 'paid_test_abandon')
       .order('created_at', { ascending: false })
       .limit(500),
-    // 스크롤 깊이
+    // 스크롤 깊이 (유료)
     sb.from('events')
       .select('metadata')
       .eq('event_type', 'result_scroll_depth')
+      .not('metadata->>page', 'eq', 'free-result')
       .limit(2000),
     sb.from('paid_results').select('id', { count: 'exact', head: true }),
+    // 무료 행동분석
+    sb.from('test_answers')
+      .select('question_id,answer_value,time_spent_ms')
+      .order('created_at', { ascending: false })
+      .limit(5000),
+    sb.from('events')
+      .select('metadata')
+      .eq('event_type', 'free_test_abandon')
+      .order('created_at', { ascending: false })
+      .limit(500),
+    sb.from('events')
+      .select('metadata')
+      .eq('event_type', 'result_scroll_depth')
+      .eq('metadata->>page', 'free-result')
+      .limit(2000),
   ])
 
   // ── 프로파일 분포 집계 ─────────────────────────────────────────────
@@ -261,6 +281,67 @@ export async function GET(req: NextRequest) {
     dist: qDistMap[qid] ?? [0, 0, 0, 0, 0],
   }))
 
+  // ── 무료 행동분석 집계 ──────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const freeAns = (freeAnswersRaw.data ?? []) as any[]
+
+  const fqReachMap: Record<string, number> = {}
+  const fqTimeMap:  Record<string, number[]> = {}
+  const fqDistMap:  Record<string, number[]> = {}
+
+  for (const row of freeAns) {
+    const qid = row.question_id as string
+    fqReachMap[qid] = (fqReachMap[qid] ?? 0) + 1
+    if (row.time_spent_ms != null && row.time_spent_ms > 200 && row.time_spent_ms < 120000) {
+      if (!fqTimeMap[qid]) fqTimeMap[qid] = []
+      fqTimeMap[qid].push(row.time_spent_ms as number)
+    }
+    if (row.answer_value != null) {
+      if (!fqDistMap[qid]) fqDistMap[qid] = [0, 0, 0, 0, 0]
+      const v = Math.min(5, Math.max(1, Number(row.answer_value)))
+      fqDistMap[qid][v - 1]++
+    }
+  }
+
+  const allFreeQids = [...new Set(freeAns.map(r => r.question_id as string))]
+  const freeQuestionFunnel = allFreeQids.map((qid, i) => ({
+    qid, index: i, reach: fqReachMap[qid] ?? 0,
+  }))
+
+  const freeSlowQuestions = Object.entries(fqTimeMap)
+    .map(([qid, times]) => ({
+      qid,
+      avg_ms: Math.round(times.reduce((a, b) => a + b, 0) / times.length),
+      count: times.length,
+    }))
+    .sort((a, b) => b.avg_ms - a.avg_ms)
+    .slice(0, 10)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const freeAbandonData = (freeAbandonEvents.data ?? []) as any[]
+  const freeAbandonByBucket = Array.from({ length: 5 }, (_, b) => {
+    const start = b * 9, end = Math.min(41, start + 8)
+    const count = freeAbandonData.filter(ev => {
+      const idx = (ev.metadata as { question_index?: number })?.question_index ?? -1
+      return idx >= start && idx <= end
+    }).length
+    return { label: `Q${start + 1}~${end + 1}`, count }
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const freeScrollData = (freeScrollDepthEvents.data ?? []) as any[]
+  const freeScrollDist: Record<string, number> = { '25%': 0, '50%': 0, '75%': 0, '100%': 0 }
+  for (const ev of freeScrollData) {
+    const d = (ev.metadata as { depth?: number })?.depth
+    if (d) freeScrollDist[`${d}%`] = (freeScrollDist[`${d}%`] ?? 0) + 1
+  }
+
+  const freeDistSampleQids = allFreeQids.slice(0, 5)
+  const freeAnswerDistSample = freeDistSampleQids.map(qid => ({
+    qid,
+    dist: fqDistMap[qid] ?? [0, 0, 0, 0, 0],
+  }))
+
   return NextResponse.json({
     overview: {
       total_sessions: totalSessions.count ?? 0,
@@ -287,11 +368,20 @@ export async function GET(req: NextRequest) {
     },
     // 행동분석
     behavior: {
-      question_funnel: questionFunnel,
-      slow_questions_paid: paidSlowQuestions,
-      abandon_by_bucket: abandonByBucket,
-      scroll_depth: scrollDist,
-      answer_dist_sample: answerDistSample,
+      paid: {
+        question_funnel: questionFunnel,
+        slow_questions: paidSlowQuestions,
+        abandon_by_bucket: abandonByBucket,
+        scroll_depth: scrollDist,
+        answer_dist_sample: answerDistSample,
+      },
+      free: {
+        question_funnel: freeQuestionFunnel,
+        slow_questions: freeSlowQuestions,
+        abandon_by_bucket: freeAbandonByBucket,
+        scroll_depth: freeScrollDist,
+        answer_dist_sample: freeAnswerDistSample,
+      },
     },
   })
 }
