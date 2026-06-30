@@ -8,6 +8,7 @@ interface Stats {
     total_test_sessions: number
     completed_sessions: number
     full_completes: number
+    paid_completes: number
     completion_rate_14d: number
     upgrade_rate_14d: number
   }
@@ -16,6 +17,14 @@ interface Stats {
   slow_questions: { qid: string; avg_ms: number; count: number }[]
   device_distribution: Record<string, number>
   recent_events: { event_type: string; created_at: string; metadata?: Record<string, unknown> }[]
+  paid: {
+    hexaco_avg: Record<string, number>
+    pattern_distribution: { key: string; count: number }[]
+    riasec_distribution: { code: string; count: number }[]
+    aptitude_distribution: { profile: string; count: number }[]
+    avg_completion_ms: number | null
+    device_distribution: Record<string, number>
+  }
 }
 
 const PROFILE_LABELS: Record<string, string> = {
@@ -131,9 +140,23 @@ export default function AdminPage() {
 
   if (!stats) return null
 
-  const { overview, profile_distribution, daily_funnel, slow_questions, device_distribution, recent_events } = stats
+  const { overview, profile_distribution, daily_funnel, slow_questions, device_distribution, recent_events, paid } = stats
   const maxProfile = profile_distribution[0]?.count ?? 1
   const totalDevices = Object.values(device_distribution).reduce((a, b) => a + b, 0)
+
+  const HEXACO_LABELS: Record<string, string> = { H: '겸손·윤리', E: '감수성', X: '대담성', A: '원만성', C: '성실성', O: '개방성' }
+  const HEXACO_COLORS: Record<string, string> = { H: '#a78bfa', E: '#60a5fa', X: '#34d399', A: '#f472b6', C: '#fbbf24', O: '#fb923c' }
+  const PATTERN_NAMES: Record<string, string> = {
+    HO:'가치 기반 탐구자', HC:'신뢰할 수 있는 완벽주의자', HA:'공감적 도덕주의자',
+    HX:'진정성 있는 설득자', HE:'섬세한 양심', OC:'지적 완벽주의자',
+    OX:'창의적 혁신가', OA:'이상적 공감자', OE:'감수성 풍부한 탐구자',
+    CX:'주도적 실행가', CA:'책임감 있는 조력자', CE:'꼼꼼한 공감자',
+    XA:'사람 중심 리더', XE:'열정적 공감자', AE:'온화한 감수성인',
+  }
+  const maxPattern = paid?.pattern_distribution?.[0]?.count ?? 1
+  const maxRiasec  = paid?.riasec_distribution?.[0]?.count ?? 1
+  const maxApt     = paid?.aptitude_distribution?.[0]?.count ?? 1
+  const paidTotal  = paid?.pattern_distribution?.reduce((a, b) => a + b.count, 0) ?? 0
 
   return (
     <main className="min-h-screen px-6 py-10" style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -151,13 +174,13 @@ export default function AdminPage() {
       </div>
 
       {/* ── 개요 지표 ── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard label="총 방문 세션" value={overview.total_sessions.toLocaleString()} />
-        <StatCard label="테스트 시작" value={overview.total_test_sessions.toLocaleString()} />
-        <StatCard label="샘플 완료" value={overview.completed_sessions.toLocaleString()} />
-        <StatCard label="풀버전 완료" value={overview.full_completes.toLocaleString()} color="#e879f9" />
+        <StatCard label="무료 검사 시작" value={overview.total_test_sessions.toLocaleString()} />
+        <StatCard label="무료 검사 완료" value={overview.completed_sessions.toLocaleString()} />
+        <StatCard label="유료 검사 완료" value={overview.paid_completes.toLocaleString()} color="#f472b6" />
         <StatCard
-          label="완료율 (14일)"
+          label="무료 완료율 (14일)"
           value={`${overview.completion_rate_14d}%`}
           sub="시작→완료"
           color={overview.completion_rate_14d >= 60 ? '#34d399' : '#f59e0b'}
@@ -168,6 +191,12 @@ export default function AdminPage() {
           sub="완료→업그레이드 클릭"
           color={overview.upgrade_rate_14d >= 20 ? '#34d399' : '#f59e0b'}
         />
+        <StatCard
+          label="유료 평균 완료 시간"
+          value={paid?.avg_completion_ms ? `${Math.round(paid.avg_completion_ms / 60000)}분` : '—'}
+          sub="검사 시작→결과 화면"
+        />
+        <StatCard label="유료 누적 N" value={paidTotal.toLocaleString()} sub="포트폴리오 표기용" color="#a78bfa" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -307,6 +336,102 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* ── 유료 검사 심층 분석 ── */}
+      {paid && (
+        <>
+          <h2 className="text-lg font-bold mb-4 mt-2" style={{ color: 'var(--text)' }}>
+            유료 검사 심층 분석
+            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--muted)' }}>포트폴리오 표기용 데이터</span>
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+            {/* HEXACO 요인별 평균 */}
+            <div className="glass rounded-2xl p-6">
+              <h3 className="font-semibold mb-1 text-sm">HEXACO 요인별 평균 점수</h3>
+              <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>1~5 척도 · 정규분포에 가까울수록 변별력 높음</p>
+              <div className="space-y-3">
+                {Object.entries(paid.hexaco_avg).map(([f, avg]) => (
+                  <div key={f}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span style={{ color: HEXACO_COLORS[f] }}>{f} <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>{HEXACO_LABELS[f]}</span></span>
+                      <span style={{ color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{avg.toFixed(2)}</span>
+                    </div>
+                    <MiniBar value={avg - 1} max={4} color={HEXACO_COLORS[f]} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 패턴 분포 */}
+            <div className="glass rounded-2xl p-6">
+              <h3 className="font-semibold mb-1 text-sm">HEXACO 패턴 분포</h3>
+              <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>15개 패턴이 고루 분포할수록 분류 타당성 높음</p>
+              {paid.pattern_distribution.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+              ) : (
+                <div className="space-y-2">
+                  {paid.pattern_distribution.map(p => (
+                    <div key={p.key}>
+                      <div className="flex justify-between text-xs mb-0.5">
+                        <span>
+                          <span className="font-mono font-bold" style={{ color: '#a78bfa' }}>{p.key}</span>
+                          <span style={{ color: 'var(--muted)', marginLeft: 6 }}>{PATTERN_NAMES[p.key] ?? ''}</span>
+                        </span>
+                        <span style={{ color: 'var(--text)' }}>{p.count}명 ({paidTotal > 0 ? Math.round(p.count / paidTotal * 100) : 0}%)</span>
+                      </div>
+                      <MiniBar value={p.count} max={maxPattern} color="#a78bfa" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* RIASEC + 적성 */}
+            <div className="space-y-4">
+              <div className="glass rounded-2xl p-5">
+                <h3 className="font-semibold mb-1 text-sm">Holland Code 분포</h3>
+                <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>RIASEC 상위 3자리 조합</p>
+                {paid.riasec_distribution.length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+                ) : (
+                  <div className="space-y-2">
+                    {paid.riasec_distribution.slice(0, 8).map(r => (
+                      <div key={r.code}>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="font-mono font-bold" style={{ color: '#67e8f9' }}>{r.code}</span>
+                          <span style={{ color: 'var(--muted)' }}>{r.count}명</span>
+                        </div>
+                        <MiniBar value={r.count} max={maxRiasec} color="#67e8f9" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h3 className="font-semibold mb-1 text-sm">적성 프로파일 분포</h3>
+                {paid.aptitude_distribution.length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+                ) : (
+                  <div className="space-y-2">
+                    {paid.aptitude_distribution.map(a => (
+                      <div key={a.profile}>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span style={{ color: 'var(--text)' }}>{a.profile}</span>
+                          <span style={{ color: 'var(--muted)' }}>{a.count}명 ({paidTotal > 0 ? Math.round(a.count / paidTotal * 100) : 0}%)</span>
+                        </div>
+                        <MiniBar value={a.count} max={maxApt} color="#fbbf24" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 푸터 */}
       <div className="text-center py-6">

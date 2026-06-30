@@ -52,6 +52,14 @@ export default function PaidTestPage() {
   const [sectionIntro, setSectionIntro] = useState<SectionKey | null>('hexaco')
   const shownSections  = useRef<Set<string>>(new Set(['hexaco']))
 
+  // 시작 시간 기록 (완료 시간 측정용)
+  useEffect(() => {
+    if (!sessionStorage.getItem('pp_paid_start_ms')) {
+      sessionStorage.setItem('pp_paid_start_ms', Date.now().toString())
+    }
+    sessionStorage.removeItem('pp_paid_saved')
+  }, [])
+
   const q       = PAID_QUESTIONS[current]
   const section = getSectionKey(current)
   const meta    = SECTION_META[section]

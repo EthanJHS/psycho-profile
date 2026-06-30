@@ -19,6 +19,7 @@ import { FacetMap } from '@/lib/profiles'
 import { SUB_FACET_LABELS, SubFacet } from '@/lib/paid-questions'
 import Link from 'next/link'
 import PatternIllustration from '@/components/PatternIllustration'
+import { savePaidResult, initSession } from '@/lib/analytics'
 
 // ── 색상 팔레트 ──────────────────────────────────────────────────────────────
 const FACTOR_COLORS: Record<string, string> = {
@@ -168,6 +169,21 @@ export default function PaidResultPage() {
     setValues(computeValuesProfile(fm, undefined))
     setLifeBalance(computeLifeBalance(fm, {}, undefined))
     setCareers(computeCareers(fm, estCog))
+
+    // 결과 저장 (이미 저장됐으면 skip)
+    if (!sessionStorage.getItem('pp_paid_saved')) {
+      initSession().then(() =>
+        savePaidResult(
+          scored.hexaco,
+          scored.subFacets,
+          scored.riasec,
+          scored.riasecTop3,
+          scored.aptitude,
+          scored.aptitudeProfile,
+          interpreted.patternKey,
+        )
+      ).then(() => sessionStorage.setItem('pp_paid_saved', '1'))
+    }
   }, [router])
 
   if (!data || !interp) {

@@ -161,11 +161,17 @@ export async function trackUpgradeClick(source: string) {
 export async function savePaidResult(
   hexaco: Record<string, number>,
   subFacets: Record<string, number>,
+  riasec: Record<string, number>,
   riasecTop3: string[],
+  aptitude: Record<string, number>,
   aptitudeProfile: string,
+  patternKey: string,
 ) {
   const sessionId = getOrCreateSessionId()
   if (!supabase) return
+
+  const startedAt = sessionStorage.getItem('pp_paid_start_ms')
+  const completionMs = startedAt ? Date.now() - parseInt(startedAt) : null
 
   await supabase.from('paid_results').insert({
     session_id: sessionId || null,
@@ -175,11 +181,25 @@ export async function savePaidResult(
     hexaco_a: hexaco['A'] ?? null,
     hexaco_c: hexaco['C'] ?? null,
     hexaco_o: hexaco['O'] ?? null,
+    riasec_r: riasec['R'] ?? null,
+    riasec_i: riasec['I'] ?? null,
+    riasec_a: riasec['A'] ?? null,
+    riasec_s: riasec['S'] ?? null,
+    riasec_e: riasec['E'] ?? null,
+    riasec_c: riasec['C'] ?? null,
     riasec_top3: riasecTop3.join(''),
     aptitude_profile: aptitudeProfile,
+    aptitude_scores: aptitude,
     subfacets: subFacets,
+    pattern_key: patternKey,
+    completion_ms: completionMs,
+    device: getDevice(),
     created_at: new Date().toISOString(),
   })
 
-  await trackEvent('paid_test_complete', { riasec_top3: riasecTop3.join(''), aptitude_profile: aptitudeProfile })
+  await trackEvent('paid_test_complete', {
+    riasec_top3: riasecTop3.join(''),
+    aptitude_profile: aptitudeProfile,
+    pattern_key: patternKey,
+  })
 }
