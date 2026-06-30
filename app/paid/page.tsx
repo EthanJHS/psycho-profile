@@ -54,19 +54,34 @@ export default function PaidLandingPage() {
           진실성과 공정성은 같은 '겸손성'이지만 다른 윤리 패턴을 드러냅니다.
           더 작은 단위로 쪼갤수록, 당신을 더 정확하게 봅니다.
         </p>
+        {/* 베타 안내 배너 */}
+        <div className="mt-2 mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
+          style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}>
+          <span>🧪</span>
+          <span>현재 무료 체험 기간 · 정식 출시 전 미리 경험해보세요</span>
+        </div>
+
         <button
           onClick={handleStart}
           className="btn-primary text-base"
           style={{ padding: '16px 40px', background: 'linear-gradient(135deg, #be185d, #7c3aed)', fontSize: '1rem', borderRadius: '14px' }}
         >
-          검사 시작하기 →
+          무료로 체험하기 →
         </button>
-        <p className="mt-3 text-xs" style={{ color: 'var(--muted2)' }}>82문항 · 약 15분 · 즉시 결과</p>
+        <p className="mt-3 text-xs" style={{ color: 'var(--muted2)' }}>82문항 · 약 15분 · 즉시 결과 · 체험 기간 무료</p>
 
         {/* 가격 */}
-        <div className="mt-8 inline-flex items-baseline gap-2 px-5 py-3 rounded-2xl glass">
-          <span className="text-3xl font-extrabold" style={{ color: 'var(--text)', letterSpacing: '-0.03em' }}>9,900원</span>
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>1회</span>
+        <div className="mt-8 inline-flex items-center gap-3 px-5 py-3 rounded-2xl glass">
+          <div className="text-left">
+            <div className="text-xs mb-0.5" style={{ color: 'var(--muted)' }}>정식 출시 예정가</div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-extrabold" style={{ color: 'var(--text)', letterSpacing: '-0.03em' }}>9,900원</span>
+              <span className="text-sm" style={{ color: 'var(--muted)' }}>1회</span>
+            </div>
+          </div>
+          <span className="text-xs px-2 py-1 rounded-lg font-bold" style={{ background: '#fbbf2420', color: '#fbbf24' }}>
+            지금 무료
+          </span>
         </div>
       </section>
 
@@ -123,15 +138,15 @@ export default function PaidLandingPage() {
       <div className="fixed bottom-0 left-0 right-0 px-5 py-4" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', borderTop: '1px solid var(--border)' }}>
         <div className="max-w-2xl mx-auto flex items-center gap-4">
           <div>
-            <div className="text-xs" style={{ color: 'var(--muted)' }}>1회 결제</div>
-            <div className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>9,900원</div>
+            <div className="text-xs" style={{ color: '#fbbf24' }}>지금 무료 체험</div>
+            <div className="text-xs line-through" style={{ color: 'var(--muted)' }}>9,900원</div>
           </div>
           <button
             onClick={handleStart}
             className="btn-primary flex-1"
             style={{ padding: '14px', background: 'linear-gradient(135deg, #be185d, #7c3aed)', justifyContent: 'center', fontSize: '0.9rem' }}
           >
-            검사 시작하기 →
+            무료로 체험하기 →
           </button>
         </div>
       </div>

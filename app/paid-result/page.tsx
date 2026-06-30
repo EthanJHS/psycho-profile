@@ -1182,6 +1182,28 @@ export default function PaidResultPage() {
           </div>
         </section>
 
+        {/* ── 정식 출시 예정 안내 ── */}
+        <div className="rounded-2xl p-6 text-center space-y-3"
+          style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)' }}>
+          <div className="text-xs font-bold tracking-widest" style={{ color: '#fbbf24' }}>🧪 베타 체험 중</div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            지금은 무료로 체험하실 수 있습니다
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
+            정식 출시 후에는 9,900원에 제공될 예정입니다.<br />
+            피드백을 남겨주시면 출시 알림을 드릴게요.
+          </p>
+          <a
+            href="https://forms.gle/placeholder"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary w-full flex items-center justify-center"
+            style={{ padding: '13px', background: 'linear-gradient(135deg,#92400e,#b45309)', boxShadow: 'none' }}
+          >
+            피드백 남기고 출시 알림 받기 →
+          </a>
+        </div>
+
         {/* ── 하단 액션 ── */}
         <div className="space-y-3">
           <button
