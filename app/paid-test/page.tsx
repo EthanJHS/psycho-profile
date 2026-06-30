@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { PAID_QUESTIONS } from '@/lib/paid-questions'
+import { trackPaidAnswer, sendAbandonBeacon } from '@/lib/analytics'
 import { PaidAnswer } from '@/lib/paid-scoring'
 
 const TOTAL = PAID_QUESTIONS.length
@@ -52,12 +53,22 @@ export default function PaidTestPage() {
   const [sectionIntro, setSectionIntro] = useState<SectionKey | null>('hexaco')
   const shownSections  = useRef<Set<string>>(new Set(['hexaco']))
 
-  // 시작 시간 기록 (완료 시간 측정용)
+  // 시작 시간 기록 + 이탈 추적
   useEffect(() => {
     if (!sessionStorage.getItem('pp_paid_start_ms')) {
       sessionStorage.setItem('pp_paid_start_ms', Date.now().toString())
     }
     sessionStorage.removeItem('pp_paid_saved')
+    sessionStorage.setItem('pp_paid_q_start', Date.now().toString())
+
+    const handleUnload = () => {
+      const idx = parseInt(sessionStorage.getItem('pp_paid_current_idx') ?? '0')
+      if (!sessionStorage.getItem('pp_paid_saved')) {
+        sendAbandonBeacon(idx, TOTAL)
+      }
+    }
+    window.addEventListener('beforeunload', handleUnload)
+    return () => window.removeEventListener('beforeunload', handleUnload)
   }, [])
 
   const q       = PAID_QUESTIONS[current]
@@ -75,6 +86,13 @@ export default function PaidTestPage() {
     const newAnswers = { ...currentAnswers, [PAID_QUESTIONS[currentIdx].id]: val }
     setAnswers(newAnswers)
     setAnimating(true)
+
+    // 문항별 소요 시간 측정 + 응답 추적
+    const qStart = parseInt(sessionStorage.getItem('pp_paid_q_start') ?? '0')
+    const timeMs = qStart ? Date.now() - qStart : null
+    trackPaidAnswer(PAID_QUESTIONS[currentIdx].id, currentIdx, val, timeMs)
+    sessionStorage.setItem('pp_paid_q_start', Date.now().toString())
+    sessionStorage.setItem('pp_paid_current_idx', String(currentIdx + 1))
 
     setTimeout(() => {
       setAnimating(false)

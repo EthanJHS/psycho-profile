@@ -157,6 +157,60 @@ export async function trackUpgradeClick(source: string) {
   await trackEvent('upgrade_click', { source })
 }
 
+// ── 유료 검사 문항별 응답 추적 ────────────────
+export async function trackPaidAnswer(
+  questionId: string,
+  questionIndex: number,
+  value: number,
+  timeSpentMs: number | null,
+) {
+  const sessionId = getOrCreateSessionId()
+  if (!supabase) return
+  await supabase.from('paid_answers').insert({
+    session_id: sessionId || null,
+    question_id: questionId,
+    question_index: questionIndex,
+    answer_value: value,
+    time_spent_ms: timeSpentMs,
+  })
+}
+
+// ── 이탈 추적 (beforeunload) ──────────────────
+export function sendAbandonBeacon(questionIndex: number, total: number) {
+  const sessionId =
+    typeof window !== 'undefined' ? sessionStorage.getItem('pp_session_id') : null
+  if (!supabase || !sessionId) return
+
+  // sendBeacon은 async 미지원 — 단순 이벤트 insert URL 직접 호출
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/events`
+  const body = JSON.stringify({
+    session_id: sessionId,
+    event_type: 'paid_test_abandon',
+    metadata: { question_index: questionIndex, total, pct: Math.round(questionIndex / total * 100) },
+  })
+  navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }))
+}
+
+// ── 결과 페이지 스크롤 깊이 ──────────────────
+const _firedDepths = new Set<number>()
+export function initScrollDepthTracking() {
+  if (typeof window === 'undefined') return
+  _firedDepths.clear()
+
+  const fire = () => {
+    const el = document.documentElement
+    const pct = Math.round((el.scrollTop + window.innerHeight) / el.scrollHeight * 100)
+    for (const threshold of [25, 50, 75, 100]) {
+      if (pct >= threshold && !_firedDepths.has(threshold)) {
+        _firedDepths.add(threshold)
+        trackEvent('result_scroll_depth', { page: 'paid-result', depth: threshold })
+      }
+    }
+  }
+  window.addEventListener('scroll', fire, { passive: true })
+  return () => window.removeEventListener('scroll', fire)
+}
+
 // ── 유료 검사 결과 저장 ───────────────────────
 export async function savePaidResult(
   hexaco: Record<string, number>,

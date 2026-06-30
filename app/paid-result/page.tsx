@@ -19,7 +19,7 @@ import { FacetMap } from '@/lib/profiles'
 import { SUB_FACET_LABELS, SubFacet } from '@/lib/paid-questions'
 import Link from 'next/link'
 import PatternIllustration from '@/components/PatternIllustration'
-import { savePaidResult, initSession } from '@/lib/analytics'
+import { savePaidResult, initSession, initScrollDepthTracking } from '@/lib/analytics'
 
 // ── 색상 팔레트 ──────────────────────────────────────────────────────────────
 const FACTOR_COLORS: Record<string, string> = {
@@ -169,6 +169,9 @@ export default function PaidResultPage() {
     setValues(computeValuesProfile(fm, undefined))
     setLifeBalance(computeLifeBalance(fm, {}, undefined))
     setCareers(computeCareers(fm, estCog))
+
+    // 스크롤 깊이 추적 시작
+    initScrollDepthTracking()
 
     // 결과 저장 (이미 저장됐으면 skip)
     if (!sessionStorage.getItem('pp_paid_saved')) {

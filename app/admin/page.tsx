@@ -25,6 +25,13 @@ interface Stats {
     avg_completion_ms: number | null
     device_distribution: Record<string, number>
   }
+  behavior: {
+    question_funnel: { qid: string; index: number; reach: number }[]
+    slow_questions_paid: { qid: string; avg_ms: number; count: number }[]
+    abandon_by_bucket: { label: string; count: number }[]
+    scroll_depth: Record<string, number>
+    answer_dist_sample: { qid: string; dist: number[] }[]
+  }
 }
 
 const PROFILE_LABELS: Record<string, string> = {
@@ -140,7 +147,7 @@ export default function AdminPage() {
 
   if (!stats) return null
 
-  const { overview, profile_distribution, daily_funnel, slow_questions, device_distribution, recent_events, paid } = stats
+  const { overview, profile_distribution, daily_funnel, slow_questions, device_distribution, recent_events, paid, behavior } = stats
   const maxProfile = profile_distribution[0]?.count ?? 1
   const totalDevices = Object.values(device_distribution).reduce((a, b) => a + b, 0)
 
@@ -336,6 +343,179 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* ── 행동분석 ── */}
+      {behavior && (
+        <>
+          <h2 className="text-lg font-bold mb-4 mt-2" style={{ color: 'var(--text)' }}>유저 행동분석</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+            {/* 문항 퍼널 (82문항 도달 수) */}
+            <div className="glass rounded-2xl p-6">
+              <h3 className="font-semibold text-sm mb-1">문항별 도달 수 (퍼널)</h3>
+              <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
+                어느 문항에서 이탈이 발생하는지 — 급격히 줄어드는 구간이 마찰 지점
+              </p>
+              {behavior.question_funnel.every(q => q.reach === 0) ? (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+              ) : (() => {
+                const maxReach = Math.max(...behavior.question_funnel.map(q => q.reach), 1)
+                // 10문항 단위 구간 집계
+                const buckets = Array.from({ length: 9 }, (_, b) => {
+                  const slice = behavior.question_funnel.slice(b * 10, b * 10 + 10)
+                  return {
+                    label: `Q${b * 10 + 1}–${Math.min(82, b * 10 + 10)}`,
+                    avg: slice.length ? Math.round(slice.reduce((s, q) => s + q.reach, 0) / slice.length) : 0,
+                  }
+                })
+                const maxBucket = Math.max(...buckets.map(b => b.avg), 1)
+                return (
+                  <div className="space-y-2">
+                    {buckets.map(b => (
+                      <div key={b.label}>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span style={{ color: 'var(--muted)', fontFamily: 'monospace' }}>{b.label}</span>
+                          <span style={{ color: 'var(--text)' }}>{b.avg}명</span>
+                        </div>
+                        <MiniBar value={b.avg} max={maxBucket}
+                          color={`hsl(${260 - Math.round(b.avg / maxBucket * 80)}, 70%, 65%)`} />
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* 이탈 구간 + 스크롤 깊이 */}
+            <div className="space-y-4">
+              <div className="glass rounded-2xl p-5">
+                <h3 className="font-semibold text-sm mb-1">이탈 구간 분포</h3>
+                <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>검사 중 페이지를 닫은 시점</p>
+                {behavior.abandon_by_bucket.every(b => b.count === 0) ? (
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+                ) : (() => {
+                  const maxAb = Math.max(...behavior.abandon_by_bucket.map(b => b.count), 1)
+                  return (
+                    <div className="space-y-2">
+                      {behavior.abandon_by_bucket.map(b => (
+                        <div key={b.label}>
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span style={{ color: 'var(--muted)' }}>{b.label}</span>
+                            <span style={{ color: '#f87171' }}>{b.count}명</span>
+                          </div>
+                          <MiniBar value={b.count} max={maxAb} color="#f87171" />
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h3 className="font-semibold text-sm mb-1">결과 페이지 읽기 깊이</h3>
+                <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>스크롤 도달 비율 (유료 결과 페이지)</p>
+                {Object.values(behavior.scroll_depth).every(v => v === 0) ? (
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(['25%', '50%', '75%', '100%'] as const).map((d, i) => {
+                      const count = behavior.scroll_depth[d] ?? 0
+                      const max25 = behavior.scroll_depth['25%'] ?? 1
+                      const pct = max25 > 0 ? Math.round(count / max25 * 100) : 0
+                      const colors = ['#34d399', '#67e8f9', '#a78bfa', '#f472b6']
+                      return (
+                        <div key={d}>
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span style={{ color: colors[i] }}>{d} 도달</span>
+                            <span style={{ color: 'var(--text)' }}>{count}명
+                              {i > 0 && <span style={{ color: 'var(--muted)', marginLeft: 4 }}>({pct}%)</span>}
+                            </span>
+                          </div>
+                          <MiniBar value={count} max={Math.max(max25, 1)} color={colors[i]} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+            {/* 느린 문항 TOP 10 (유료) */}
+            <div className="glass rounded-2xl p-6">
+              <h3 className="font-semibold text-sm mb-1">응답 시간이 긴 문항 TOP 10 (유료)</h3>
+              <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>오래 고민하는 문항 = 문구 개선 또는 인지 부하 지점</p>
+              {behavior.slow_questions_paid.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+              ) : (
+                <table className="admin-table">
+                  <thead>
+                    <tr><th>문항</th><th>평균 시간</th><th>응답 수</th></tr>
+                  </thead>
+                  <tbody>
+                    {behavior.slow_questions_paid.map(q => (
+                      <tr key={q.qid}>
+                        <td style={{ fontFamily: 'monospace', color: '#f472b6' }}>{q.qid}</td>
+                        <td style={{ color: q.avg_ms > 15000 ? '#f87171' : q.avg_ms > 8000 ? '#f59e0b' : 'var(--text)' }}>
+                          {(q.avg_ms / 1000).toFixed(1)}s
+                        </td>
+                        <td style={{ color: 'var(--muted)' }}>{q.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* 답변 분포 샘플 */}
+            <div className="glass rounded-2xl p-6">
+              <h3 className="font-semibold text-sm mb-1">답변 분포 샘플 (섹션 대표 문항)</h3>
+              <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
+                1~5 선택 비율 — 한 값에 쏠리면 문항 편향 의심
+              </p>
+              {behavior.answer_dist_sample.every(s => s.dist.every(v => v === 0)) ? (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>데이터 없음</p>
+              ) : (
+                <div className="space-y-4">
+                  {behavior.answer_dist_sample.map(({ qid, dist }) => {
+                    const total = dist.reduce((a, b) => a + b, 0) || 1
+                    return (
+                      <div key={qid}>
+                        <p className="text-xs font-mono mb-1" style={{ color: '#a78bfa' }}>{qid}</p>
+                        <div className="flex gap-0.5 h-8 items-end">
+                          {dist.map((cnt, i) => (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                              <div
+                                style={{
+                                  width: '100%',
+                                  height: `${Math.round(cnt / total * 100)}%`,
+                                  minHeight: cnt > 0 ? 2 : 0,
+                                  background: `hsl(${260 + i * 30}, 70%, 65%)`,
+                                  borderRadius: 2,
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-0.5 mt-0.5">
+                          {dist.map((cnt, i) => (
+                            <div key={i} className="flex-1 text-center" style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>
+                              {total > 1 ? `${Math.round(cnt / total * 100)}%` : '—'}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── 유료 검사 심층 분석 ── */}
       {paid && (

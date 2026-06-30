@@ -31,6 +31,10 @@ export async function GET(req: NextRequest) {
     // 유료 검사 전용
     paidResults,
     paidCount,
+    // 행동분석
+    paidAnswersRaw,
+    abandonEvents,
+    scrollDepthEvents,
   ] = await Promise.all([
     sb.from('sessions').select('id', { count: 'exact', head: true }),
     sb.from('test_sessions').select('id', { count: 'exact', head: true }),
@@ -60,6 +64,23 @@ export async function GET(req: NextRequest) {
       'hexaco_h,hexaco_e,hexaco_x,hexaco_a,hexaco_c,hexaco_o,' +
       'riasec_top3,aptitude_profile,pattern_key,completion_ms,device'
     ),
+    sb.from('paid_results').select('id', { count: 'exact', head: true }),
+    // 행동분석: 유료 문항 응답 (최근 5000개)
+    sb.from('paid_answers')
+      .select('question_id,question_index,answer_value,time_spent_ms')
+      .order('created_at', { ascending: false })
+      .limit(5000),
+    // 이탈 이벤트
+    sb.from('events')
+      .select('metadata')
+      .eq('event_type', 'paid_test_abandon')
+      .order('created_at', { ascending: false })
+      .limit(500),
+    // 스크롤 깊이
+    sb.from('events')
+      .select('metadata')
+      .eq('event_type', 'result_scroll_depth')
+      .limit(2000),
     sb.from('paid_results').select('id', { count: 'exact', head: true }),
   ])
 
@@ -168,6 +189,78 @@ export async function GET(req: NextRequest) {
     paidDeviceMap[d] = (paidDeviceMap[d] ?? 0) + 1
   }
 
+  // ── 행동분석 집계 ────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const paidAns = (paidAnswersRaw.data ?? []) as any[]
+
+  // 문항별 응답 수 (몇 명이 각 문항에 도달했는지)
+  const qReachMap: Record<string, number> = {}
+  const qTimeMap:  Record<string, number[]> = {}
+  // 문항별 답변 분포 (1~5 각 몇 명)
+  const qDistMap:  Record<string, number[]> = {}  // [1,2,3,4,5] counts
+
+  for (const row of paidAns) {
+    const qid = row.question_id as string
+    qReachMap[qid] = (qReachMap[qid] ?? 0) + 1
+    if (row.time_spent_ms != null && row.time_spent_ms > 200 && row.time_spent_ms < 120000) {
+      if (!qTimeMap[qid]) qTimeMap[qid] = []
+      qTimeMap[qid].push(row.time_spent_ms as number)
+    }
+    if (row.answer_value != null) {
+      if (!qDistMap[qid]) qDistMap[qid] = [0, 0, 0, 0, 0]
+      const v = Math.min(5, Math.max(1, row.answer_value as number))
+      qDistMap[qid][v - 1]++
+    }
+  }
+
+  // 문항 퍼널: index 0~81 순서대로 도달 수
+  const questionFunnel = Array.from({ length: 82 }, (_, i) => {
+    const qid = `PQ${i + 1}`
+    return { qid, index: i, reach: qReachMap[qid] ?? 0 }
+  })
+
+  // 느린 문항 TOP 10 (유료)
+  const paidSlowQuestions = Object.entries(qTimeMap)
+    .map(([qid, times]) => ({
+      qid,
+      avg_ms: Math.round(times.reduce((a, b) => a + b, 0) / times.length),
+      count: times.length,
+    }))
+    .sort((a, b) => b.avg_ms - a.avg_ms)
+    .slice(0, 10)
+
+  // 이탈 지점 분포
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const abandonData = (abandonEvents.data ?? []) as any[]
+  const abandonByIdx: Record<number, number> = {}
+  for (const ev of abandonData) {
+    const idx = (ev.metadata as { question_index?: number })?.question_index ?? -1
+    if (idx >= 0) abandonByIdx[idx] = (abandonByIdx[idx] ?? 0) + 1
+  }
+  // 구간(10문항)으로 묶기
+  const abandonByBucket = Array.from({ length: 9 }, (_, b) => {
+    const start = b * 10, end = Math.min(81, start + 9)
+    const count = Object.entries(abandonByIdx)
+      .filter(([i]) => Number(i) >= start && Number(i) <= end)
+      .reduce((s, [, c]) => s + c, 0)
+    return { label: `Q${start + 1}~${end + 1}`, count }
+  })
+
+  // 스크롤 깊이 분포
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scrollData = (scrollDepthEvents.data ?? []) as any[]
+  const scrollDist: Record<string, number> = { '25%': 0, '50%': 0, '75%': 0, '100%': 0 }
+  for (const ev of scrollData) {
+    const d = (ev.metadata as { depth?: number })?.depth
+    if (d) scrollDist[`${d}%`] = (scrollDist[`${d}%`] ?? 0) + 1
+  }
+
+  // 답변 분포 샘플 (HEXACO 섹션 대표 문항 PQ1~PQ12)
+  const answerDistSample = ['PQ1','PQ13','PQ25','PQ37','PQ49','PQ67'].map(qid => ({
+    qid,
+    dist: qDistMap[qid] ?? [0, 0, 0, 0, 0],
+  }))
+
   return NextResponse.json({
     overview: {
       total_sessions: totalSessions.count ?? 0,
@@ -191,6 +284,14 @@ export async function GET(req: NextRequest) {
       aptitude_distribution: aptDist,
       avg_completion_ms: avgCompletionMs,
       device_distribution: paidDeviceMap,
+    },
+    // 행동분석
+    behavior: {
+      question_funnel: questionFunnel,
+      slow_questions_paid: paidSlowQuestions,
+      abandon_by_bucket: abandonByBucket,
+      scroll_depth: scrollDist,
+      answer_dist_sample: answerDistSample,
     },
   })
 }

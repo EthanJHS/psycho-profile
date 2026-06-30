@@ -106,7 +106,23 @@ CREATE INDEX IF NOT EXISTS idx_paid_aptitude   ON paid_results(aptitude_profile)
 CREATE INDEX IF NOT EXISTS idx_paid_pattern    ON paid_results(pattern_key);
 CREATE INDEX IF NOT EXISTS idx_paid_created_at ON paid_results(created_at DESC);
 
--- ── 6. RLS 정책 ────────────────────────────────────────────────────────
+-- ── 6. 유료 검사 문항별 응답 ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS paid_answers (
+  id              BIGSERIAL PRIMARY KEY,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  session_id      TEXT,
+  question_id     TEXT NOT NULL,   -- PQ1 ~ PQ82
+  question_index  INTEGER,         -- 0-based 순서 (이탈 분석용)
+  answer_value    SMALLINT,        -- 1~5
+  time_spent_ms   INTEGER          -- 해당 문항에 머문 시간
+);
+
+CREATE INDEX IF NOT EXISTS idx_paid_answers_session  ON paid_answers(session_id);
+CREATE INDEX IF NOT EXISTS idx_paid_answers_question ON paid_answers(question_id);
+CREATE INDEX IF NOT EXISTS idx_paid_answers_created  ON paid_answers(created_at DESC);
+
+-- ── 7. RLS 정책 ────────────────────────────────────────────────────────
+ALTER TABLE paid_answers  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE test_sessions ENABLE ROW LEVEL SECURITY;
@@ -114,6 +130,8 @@ ALTER TABLE test_answers  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE paid_results  ENABLE ROW LEVEL SECURITY;
 
 -- 익명 사용자: 삽입만 허용
+CREATE POLICY "anon_insert_paid_answers"  ON paid_answers  FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "service_all_paid_answers"  ON paid_answers  FOR ALL TO service_role USING (true);
 CREATE POLICY "anon_insert_sessions"      ON sessions      FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "anon_insert_events"        ON events        FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "anon_insert_test_sessions" ON test_sessions FOR INSERT TO anon WITH CHECK (true);
