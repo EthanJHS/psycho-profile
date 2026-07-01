@@ -194,7 +194,7 @@ export default function PaidResultPage() {
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 rounded-full animate-spin mx-auto" style={{ border: '2px solid var(--border)', borderTopColor: '#a78bfa' }} />
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>74개 응답을 정밀 분석하는 중...</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>82개 응답을 정밀 분석하는 중...</p>
         </div>
       </main>
     )
