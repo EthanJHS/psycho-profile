@@ -1194,7 +1194,7 @@ export default function PaidResultPage() {
             피드백을 남겨주시면 출시 알림을 드릴게요.
           </p>
           <a
-            href="https://forms.gle/placeholder"
+            href="https://docs.google.com/forms/d/e/1FAIpQLSfkiZOUy56PQ4gC_V7OjT7hP4NclDGFGOVnjIyVax7SfUwvKg/viewform?usp=publish-editor"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary w-full flex items-center justify-center"
