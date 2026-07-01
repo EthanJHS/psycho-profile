@@ -569,7 +569,7 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#60a5fa"
               title="업무 스타일 영역 결론"
-              text="업무 스타일은 바꾸는 것이 아니라 활용하는 것입니다. 위에 나온 최적 환경이 현재 직장과 얼마나 일치하는지 확인하세요. 불일치가 클수록 에너지 소모가 크고 성과도 낮아집니다. 환경을 바꾸거나 현재 환경 안에서 자신의 방식을 허용하는 범위를 넓히는 것이 핵심 전략입니다."
+              text={workStyle ? `당신의 가장 큰 업무 강점은 "${workStyle.strengths[0]}"입니다. 반면 "${workStyle.watchouts[0]}"는 의식적으로 관리해야 할 지점입니다. 최적 환경인 "${workStyle.environment}"와 현재 환경이 얼마나 일치하는지 점검해보세요. 불일치가 클수록 에너지 소모가 크고 지속 가능성이 낮아집니다.` : ''}
             />
           </section>
         )}
@@ -885,7 +885,7 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#fbbf24"
               title="투자 성향 영역 결론"
-              text="투자 성향은 바꿀 수 없지만 인식할 수는 있습니다. 위에 나온 행동 편향을 알고 있는 것만으로도 충동적 결정을 피하는 데 도움이 됩니다. 당신의 성격에 맞는 투자 방식이 가장 지속 가능한 부의 축적 방법입니다."
+              text={investment ? `${investment.riskLabel} 성향인 당신의 핵심 편향은 "${investment.behavioralBias}"입니다. 이 패턴을 인식하는 것만으로도 충동적 결정을 피할 수 있습니다. 당신에게 가장 맞는 원칙은 "${investment.principle}" — 성격에 맞는 투자 방식이 억지로 바꾼 방식보다 항상 오래 지속됩니다.` : ''}
             />
           </section>
         )}
@@ -937,7 +937,7 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#818cf8"
               title="리더십 영역 결론"
-              text="리더십 스타일은 공식적인 리더 역할에만 해당되지 않습니다. 프로젝트를 이끌거나 팀원을 돕거나 의견을 내는 모든 순간에 나타납니다. 위에 나온 사각지대를 인식하는 것이 리더십의 첫 번째 성장 단계입니다."
+              text={leadership ? `"${leadership.style}" 스타일의 가장 큰 맹점은 "${leadership.blindspots[0]}"입니다. 지금 당장의 성장 과제는 "${leadership.growthEdge}" 리더십은 공식적 역할이 아니라 의견을 내고 방향을 제안하는 모든 순간에 나타납니다.` : ''}
             />
           </section>
         )}
@@ -996,7 +996,7 @@ export default function PaidResultPage() {
             <SectionConclusion
               color={burnout.color}
               title="번아웃 영역 결론"
-              text="번아웃은 갑자기 오지 않습니다. 위에 나온 위험 요인 중 하나라도 지금 진행 중이라면, 예방보다 회복이 훨씬 어렵고 오래 걸립니다. 예방 전략을 이번 주 안에 하나 실천하는 것이 가장 효과적입니다."
+              text={burnout ? `번아웃 리스크 ${burnout.level} — ${burnout.summary} 가장 먼저 챙겨야 할 예방 행동은 "${burnout.prevention[0]}"입니다. 번아웃은 갑자기 오지 않고, 위험 신호를 인식하는 것이 회복보다 훨씬 쉽습니다.` : ''}
             />
           </section>
         )}
@@ -1033,7 +1033,7 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#a78bfa"
               title="가치관 영역 결론"
-              text="가치관은 삶의 방향키입니다. 현재의 커리어, 관계, 일상이 위에 나온 핵심 가치와 얼마나 일치하는지 점검해보세요. 불일치가 클수록 의미 없음과 번아웃이 동시에 찾아올 수 있습니다."
+              text={values ? `핵심 가치 "${values.primary}"와 "${values.secondary}"의 조합에서 주의할 긴장: ${values.tension} 지금의 커리어와 관계가 이 두 가치를 얼마나 충족하고 있는지가 삶의 만족도를 가르는 핵심 변수입니다.` : ''}
             />
           </section>
         )}
@@ -1079,7 +1079,11 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#a78bfa"
               title="삶의 균형 영역 결론"
-              text="위 영역별 점수는 당신의 성격 패턴에 기반한 추정치입니다. 현재 점수가 낮은 영역이 실제로 부족하게 느껴진다면, 성격이 그 방향을 예측하고 있는 것입니다. 가장 낮은 영역 하나에 집중해 작은 변화를 시작하는 것이 전체 균형을 회복하는 가장 빠른 경로입니다."
+              text={lifeBalance ? (() => {
+                const lowest = [...lifeBalance.domains].sort((a, b) => a.score - b.score)[0]
+                const highest = [...lifeBalance.domains].sort((a, b) => b.score - a.score)[0]
+                return `전반적 균형 상태는 "${lifeBalance.overallBalance}"입니다. 가장 충전이 잘 되는 영역은 ${highest.name}(${highest.score}점)이며, 가장 주의가 필요한 영역은 ${lowest.name}(${lowest.score}점)입니다. ${lowest.insight} 균형 회복의 출발점은 가장 낮은 영역 하나에 이번 주 작은 변화 하나를 더하는 것입니다.`
+              })() : ''}
             />
           </section>
         )}
