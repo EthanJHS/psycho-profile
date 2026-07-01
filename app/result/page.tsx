@@ -1061,6 +1061,22 @@ export default function ResultPage() {
           </a>
         </div>
 
+        {/* 설문 링크 */}
+        <div className="rounded-2xl p-5 text-center space-y-2"
+          style={{ background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.2)' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>검사 후기를 남겨주세요</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>피드백은 서비스 개선에 직접 반영됩니다.</p>
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSfkiZOUy56PQ4gC_V7OjT7hP4NclDGFGOVnjIyVax7SfUwvKg/viewform?usp=publish-editor"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:opacity-80"
+            style={{ background: 'rgba(167,139,250,0.15)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }}
+          >
+            피드백 남기기 →
+          </a>
+        </div>
+
         {/* 과학적 면책 문구 */}
         <ScientificDisclaimer profileLabel={result.profileLabel} />
 
