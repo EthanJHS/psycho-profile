@@ -1215,7 +1215,7 @@ export default function PaidResultPage() {
         {/* ── 하단 액션 ── */}
         <div className="space-y-3">
           <button
-            onClick={() => window.print()}
+            onClick={() => window.open('/paid-result/print', '_blank')}
             className="btn-secondary w-full"
             style={{ justifyContent: 'center', padding: '13px' }}
           >
