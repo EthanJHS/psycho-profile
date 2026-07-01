@@ -506,7 +506,11 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#34d399"
               title="성격 강점 영역 결론"
-              text="강점은 상황에 따라 그림자도 있습니다. TOP 1 강점이 과도하게 발휘될 때 어떤 문제가 생기는지 인식하는 것이 성숙의 핵심입니다. 위에 나열된 강점들이 서로 상호작용하는 방식을 아래 교차 패턴 인사이트와 함께 읽으면 더 입체적으로 이해할 수 있습니다."
+              text={(() => {
+                const top = charStrengths[0]
+                if (!top) return ''
+                return `핵심 강점 "${top.name}"이 과도하게 발휘될 때: ${top.shadow} 강점은 맥락을 가릴 때 비로소 진짜 강점이 됩니다.`
+              })()}
             />
           </section>
         )}
