@@ -6,7 +6,7 @@ import {
   scorePaidAnswers, PaidScoringOutput,
   HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS,
 } from '@/lib/paid-scoring'
-import { interpretPaidResult, PaidInterpretation } from '@/lib/paid-interpretation'
+import { interpretPaidResult, PaidInterpretation, computeTripleConflict, TripleConflict } from '@/lib/paid-interpretation'
 import {
   computeNarrative, computeWorkStyle, computeInvestmentProfile,
   computeCharacterStrengths, computeLeadershipStyle, computeBurnoutRisk,
@@ -129,6 +129,7 @@ export default function PaidResultPage() {
   const [values,    setValues]    = useState<ValuesProfile | null>(null)
   const [lifeBalance, setLifeBalance] = useState<LifeBalanceProfile | null>(null)
   const [careers,   setCareers]   = useState<CareerScore[]>([])
+  const [tripleConflict, setTripleConflict] = useState<TripleConflict | null>(null)
 
   useEffect(() => {
     const raw = sessionStorage.getItem('paid_answers')
@@ -168,7 +169,19 @@ export default function PaidResultPage() {
     setBurnout(computeBurnoutRisk(fm, {}, undefined))
     setValues(computeValuesProfile(fm, undefined))
     setLifeBalance(computeLifeBalance(fm, {}, undefined))
-    setCareers(computeCareers(fm, estCog))
+    const computedCareers = computeCareers(fm, estCog)
+    setCareers(computedCareers)
+
+    // 세 나침반 충돌 분석
+    const top5Riasec = computedCareers.slice(0, 5).map(c => c.riasecPrimary)
+    const riasecCount: Record<string, number> = {}
+    for (const r of top5Riasec) riasecCount[r] = (riasecCount[r] ?? 0) + 1
+    const personalityRiasec = (Object.entries(riasecCount).sort((a, b) => b[1] - a[1])[0][0]) as typeof scored.riasecTop3[0]
+    setTripleConflict(computeTripleConflict(
+      personalityRiasec,
+      scored.riasecTop3[0],
+      interpreted.aptitudeBreakdown.dominant,
+    ))
 
     // 스크롤 깊이 추적 시작
     initScrollDepthTracking()
@@ -652,6 +665,74 @@ export default function PaidResultPage() {
               title="진로 영역 결론"
               text={`Holland 코드 ${interp.riasecProfile.hollandCode}(${interp.riasecProfile.title})과 위 진로 추천을 함께 보세요. 두 결과가 겹치는 직업이 가장 강력한 후보입니다. 진로는 적합도 점수가 높은 것만이 아니라, 당신이 실제로 의미를 느끼는 일과의 교차점에서 찾아야 합니다.`}
             />
+          </section>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════
+            세 나침반 충돌 분석
+        ═══════════════════════════════════════════════════════ */}
+        {tripleConflict && (
+          <section className="glass rounded-2xl p-6 space-y-5">
+            <SectionHeader
+              icon="🧭"
+              badge="진로 심층 해석"
+              badgeColor="#a78bfa"
+              title="세 나침반이 가리키는 방향"
+            />
+
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              진로를 결정하는 힘은 하나가 아닙니다. <strong style={{ color: 'var(--text)' }}>성격(어떤 환경에서 잘 사는가)</strong>,{' '}
+              <strong style={{ color: 'var(--text)' }}>흥미(무엇에 끌리는가)</strong>,{' '}
+              <strong style={{ color: 'var(--text)' }}>적성(어떤 능력이 높은가)</strong> — 세 나침반이 같은 방향이면 이상적이지만, 달라도 그 자체가 당신에 대한 중요한 정보입니다.
+            </p>
+
+            {/* 세 나침반 시각화 */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: '성격이 끌리는 방향', value: tripleConflict.personalityRiasec, color: '#a78bfa', desc: '상위 직업들의 공통 유형' },
+                { label: '흥미가 끌리는 방향', value: tripleConflict.interestRiasec, color: '#34d399', desc: '직접 측정 흥미 1위' },
+                { label: '적성이 가리키는 방향', value: tripleConflict.aptitudeDominant, color: '#60a5fa', desc: '학문 계열 우세' },
+              ].map(({ label, value, color, desc }) => (
+                <div key={label} className="rounded-2xl p-4 text-center space-y-1"
+                  style={{ background: `${color}10`, border: `1px solid ${color}30` }}>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{label}</p>
+                  <p className="text-xl font-black" style={{ color }}>{value}</p>
+                  <p className="text-xs" style={{ color: 'var(--muted2)', fontSize: 10 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* 일치/충돌 배지 */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-3 py-1 rounded-full font-semibold"
+                style={{
+                  background: tripleConflict.aligned ? '#34d39920' : '#fb923c20',
+                  color: tripleConflict.aligned ? '#34d399' : '#fb923c',
+                  border: `1px solid ${tripleConflict.aligned ? '#34d39940' : '#fb923c40'}`,
+                }}>
+                {tripleConflict.aligned ? '✓ 세 방향 일치' : '⚡ 방향 불일치 — 이 갈등에 주목하세요'}
+              </span>
+            </div>
+
+            {/* 해석 텍스트 */}
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
+              {tripleConflict.narrative}
+            </p>
+
+            {/* 교차점 역할 */}
+            {tripleConflict.bridgeRoles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>두 성향을 동시에 살리는 역할</p>
+                <div className="flex flex-wrap gap-2">
+                  {tripleConflict.bridgeRoles.map(role => (
+                    <span key={role} className="text-xs px-3 py-1.5 rounded-full"
+                      style={{ background: '#a78bfa15', color: '#a78bfa', border: '1px solid #a78bfa30' }}>
+                      {role}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
 

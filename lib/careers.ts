@@ -1,5 +1,6 @@
 // 성격 프로파일 기반 진로 적합도 동적 산출
 import { FacetMap } from './profiles'
+import { RiasecType } from './paid-scoring'
 
 export interface CareerScore {
   title: string
@@ -9,6 +10,7 @@ export interface CareerScore {
   detail: string
   growthNote: string
   subRoles: string[]
+  riasecPrimary: RiasecType
 }
 
 const FACET_LABELS: Record<string, string> = {
@@ -23,6 +25,7 @@ const FACET_LABELS: Record<string, string> = {
 
 interface CareerDef {
   title: string
+  riasecPrimary: RiasecType
   // w:            높을수록 적합도 상승 — score += val * w
   w: Partial<Record<string, number>> & { cog?: number }
   // contra:       낮을수록 감점 — score -= (1 - val) * w  (필수 조건: 없으면 큰 불이익)
@@ -40,6 +43,7 @@ const CAREERS: CareerDef[] = [
   // ── 연구·학술 계열 ─────────────────────────────────────────────────────
   {
     title: '인문·사회과학 연구자',
+    riasecPrimary: 'I',
     // O·H·cog 주도 + anxiety(인간 행동 이해에 감수성 기여)
     w:      { curiosity: 0.38, humility: 0.18, cog: 0.14, diligence: 0.10, patience: 0.10, anxiety: 0.10 },
     contra: { curiosity: 0.20, diligence: 0.10, anxiety: 0.08 },
@@ -51,6 +55,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '연구원·과학자',
+    riasecPrimary: 'I',
     // O·cog·C 핵심 삼각형, patience 불필요
     w:      { curiosity: 0.35, cog: 0.35, diligence: 0.25, humility: 0.05 },
     contra: { curiosity: 0.20, cog: 0.15, diligence: 0.15 },
@@ -62,6 +67,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '철학·심리 연구자',
+    riasecPrimary: 'I',
     // O·H 핵심 + anxiety(인간 내면 탐구에 감수성이 기여), patience는 보조
     w:      { curiosity: 0.38, humility: 0.24, cog: 0.14, diligence: 0.10, anxiety: 0.10, patience: 0.04 },
     contra: { curiosity: 0.20, humility: 0.12, anxiety: 0.10 },
@@ -73,6 +79,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '교수·학자',
+    riasecPrimary: 'I',
     // patience + curiosity 필수, boldness도 강의에 필요, anxiety(학생 감정 읽기)
     w:      { patience: 0.30, curiosity: 0.26, boldness: 0.14, humility: 0.10, cog: 0.10, anxiety: 0.10 },
     contra: { patience: 0.22, curiosity: 0.15, anxiety: 0.08 },
@@ -86,6 +93,7 @@ const CAREERS: CareerDef[] = [
   // ── 사람 중심 계열 ─────────────────────────────────────────────────────
   {
     title: '상담심리사·심리치료사',
+    riasecPrimary: 'S',
     // patience 최우선, humility 필수, anxiety(감정 공명 능력 — 낮으면 공감 불가)
     w:      { patience: 0.45, humility: 0.18, curiosity: 0.15, anxiety: 0.22 },
     contra: { patience: 0.30, humility: 0.10, anxiety: 0.20 },
@@ -97,6 +105,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '사회복지사·NGO 기획',
+    riasecPrimary: 'S',
     // patience + humility 필수, anxiety(취약계층 공감 — 낮으면 감정 연결 불가)
     w:      { patience: 0.38, humility: 0.26, diligence: 0.13, curiosity: 0.08, anxiety: 0.15 },
     contra: { patience: 0.22, humility: 0.18, anxiety: 0.15 },
@@ -108,6 +117,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '간호사·의료지원직',
+    riasecPrimary: 'S',
     // patience + diligence 필수, humility(팀 내 협업), anxiety(환자 정서 케어 — 낮으면 기계적 처치에 그침)
     w:      { patience: 0.38, diligence: 0.28, humility: 0.18, anxiety: 0.16 },
     contra: { patience: 0.22, diligence: 0.13, humility: 0.10, anxiety: 0.14 },
@@ -119,6 +129,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: 'UX 리서처·서비스 기획',
+    riasecPrimary: 'I',
     // curiosity + patience + anxiety(사용자 감정 이해 — 공감 없이는 표면적 기획에 그침)
     w:      { curiosity: 0.28, patience: 0.25, cog: 0.17, anxiety: 0.18, diligence: 0.12 },
     contra: { patience: 0.18, curiosity: 0.13, cog: 0.10, anxiety: 0.15 },
@@ -132,6 +143,7 @@ const CAREERS: CareerDef[] = [
   // ── 의료 계열 ──────────────────────────────────────────────────────────
   {
     title: '의사·의학직',
+    riasecPrimary: 'S',
     // diligence + cog 핵심, patience + humility 보조, anxiety 미약 / 고불안 = 응급 판단 마비
     w:           { diligence: 0.33, cog: 0.28, patience: 0.18, humility: 0.14, anxiety: 0.07 },
     contra:      { diligence: 0.20, cog: 0.15, patience: 0.10 },
@@ -146,6 +158,7 @@ const CAREERS: CareerDef[] = [
   // ── 콘텐츠·창작 계열 ──────────────────────────────────────────────────
   {
     title: '작가·저널리스트',
+    riasecPrimary: 'A',
     // O + H + cog — 탐구·정직이 핵심, anxiety는 글의 감정적 깊이에 기여
     w:      { curiosity: 0.38, humility: 0.20, diligence: 0.18, cog: 0.14, anxiety: 0.10 },
     contra: { curiosity: 0.20, diligence: 0.10, anxiety: 0.10 },
@@ -157,6 +170,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '예술가·창작자',
+    riasecPrimary: 'A',
     // O + anxiety(감수성이 창작 에너지), anxiety 낮으면 감수성 부족 → 창작 동력 약화
     w:      { curiosity: 0.40, anxiety: 0.25, humility: 0.15, diligence: 0.15, patience: 0.05 },
     contra: { curiosity: 0.25, boldness: 0.10, anxiety: 0.15 },
@@ -170,6 +184,7 @@ const CAREERS: CareerDef[] = [
   // ── 데이터·기술 계열 ──────────────────────────────────────────────────
   {
     title: '소프트웨어 엔지니어',
+    riasecPrimary: 'I',
     // cog + curiosity + diligence 삼각형, boldness 불필요
     w:      { cog: 0.35, curiosity: 0.30, diligence: 0.30, humility: 0.05 },
     contra: { cog: 0.20, diligence: 0.20, curiosity: 0.10 },
@@ -181,6 +196,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '데이터 사이언티스트',
+    riasecPrimary: 'I',
     // cog 최우선, curiosity 필수 / 고대담성 = 분석보다 행동 선호, 정밀 작업 기피
     w:           { cog: 0.40, curiosity: 0.35, diligence: 0.25 },
     contra:      { cog: 0.25, curiosity: 0.15, diligence: 0.10 },
@@ -193,6 +209,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '공학자·기술직',
+    riasecPrimary: 'R',
     // diligence + cog 핵심, curiosity는 소량(설계 흥미) — 매우 높으면 반복 적용 업무에 답답함
     w:           { diligence: 0.42, cog: 0.32, curiosity: 0.16, boldness: 0.10 },
     contra:      { diligence: 0.25, cog: 0.15 },
@@ -207,6 +224,7 @@ const CAREERS: CareerDef[] = [
   // ── 리더십·비즈니스 계열 ──────────────────────────────────────────────
   {
     title: '경영자·임원',
+    riasecPrimary: 'E',
     // boldness 최우선, 높은 겸손함·높은 불안감은 경쟁적 리더십 문화와 불일치
     w:           { boldness: 0.45, diligence: 0.25, cog: 0.20, curiosity: 0.10 },
     contra:      { boldness: 0.30, diligence: 0.10 },
@@ -219,6 +237,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '창업가·스타트업',
+    riasecPrimary: 'E',
     // boldness + curiosity 필수, 높은 겸손함·높은 불안감은 피칭·도전에 방해
     w:           { boldness: 0.35, curiosity: 0.30, diligence: 0.25, cog: 0.10 },
     contra:      { boldness: 0.25, curiosity: 0.15 },
@@ -231,6 +250,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '마케팅·광고 기획',
+    riasecPrimary: 'E',
     // boldness + curiosity + anxiety(트렌드·감성 민감성), 높은 겸손함 = 자기주장 약화
     w:           { boldness: 0.28, curiosity: 0.26, diligence: 0.16, patience: 0.10, anxiety: 0.20 },
     contra:      { boldness: 0.18, curiosity: 0.10, anxiety: 0.15 },
@@ -245,6 +265,7 @@ const CAREERS: CareerDef[] = [
   // ── 공공·행정 계열 ────────────────────────────────────────────────────
   {
     title: '공무원·행정직',
+    riasecPrimary: 'C',
     // 고호기심 = 관료 속도에 답답함, 고대담성 = 기존 질서에 반발 경향
     w:           { diligence: 0.40, humility: 0.25, patience: 0.20, cog: 0.15 },
     contra:      { diligence: 0.20, humility: 0.15 },
@@ -259,6 +280,7 @@ const CAREERS: CareerDef[] = [
   // ── 교육 계열 (교수와 구분) ───────────────────────────────────────────
   {
     title: '교사·교육자',
+    riasecPrimary: 'S',
     // patience↑↑ + boldness(교실 통솔) + anxiety(학생 감정 상태 읽기 — 낮으면 일방 전달)
     w:      { patience: 0.34, diligence: 0.22, boldness: 0.18, curiosity: 0.13, anxiety: 0.13 },
     contra: { patience: 0.26, boldness: 0.12, anxiety: 0.12 },
@@ -272,6 +294,7 @@ const CAREERS: CareerDef[] = [
   // ── 법률 계열 ─────────────────────────────────────────────────────────
   {
     title: '변호사·법조인',
+    riasecPrimary: 'E',
     // cog + boldness 핵심, 높은 불안감·높은 겸손함은 법정 대립에서 약점
     w:           { cog: 0.35, boldness: 0.30, diligence: 0.25, curiosity: 0.10 },
     contra:      { cog: 0.20, boldness: 0.20, diligence: 0.10 },
@@ -286,6 +309,7 @@ const CAREERS: CareerDef[] = [
   // ── 금융·회계 계열 ────────────────────────────────────────────────────
   {
     title: '금융 전문가·투자 분석가',
+    riasecPrimary: 'E',
     // cog↑↑ + diligence + boldness, 높은 겸손함·높은 불안감은 투자 확신·경쟁에 방해
     w:           { cog: 0.40, diligence: 0.30, boldness: 0.20, curiosity: 0.10 },
     contra:      { cog: 0.25, diligence: 0.15 },
@@ -298,6 +322,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '회계사·세무사',
+    riasecPrimary: 'C',
     // 고호기심·고대담성 = 혼자 수치 반복 검증하는 루틴을 못 견딤
     w:           { diligence: 0.50, cog: 0.25, humility: 0.15, patience: 0.10 },
     contra:      { diligence: 0.30, cog: 0.15 },
@@ -312,6 +337,7 @@ const CAREERS: CareerDef[] = [
   // ── 의료 확장 계열 ────────────────────────────────────────────────────
   {
     title: '약사·임상병리사',
+    riasecPrimary: 'R',
     // diligence + cog 핵심, anxiety 소량 / 높은 호기심 = 루틴 프로토콜 반복에 답답함
     w:           { diligence: 0.38, cog: 0.28, humility: 0.15, patience: 0.13, anxiety: 0.06 },
     contra:      { diligence: 0.25, cog: 0.15 },
@@ -324,6 +350,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '물리치료사·작업치료사',
+    riasecPrimary: 'S',
     // patience + diligence + anxiety(환자 심리적 회복 지지 — 낮으면 기계적 재활에 그침)
     w:      { patience: 0.34, diligence: 0.30, humility: 0.13, curiosity: 0.09, anxiety: 0.14 },
     contra: { patience: 0.22, diligence: 0.13, anxiety: 0.13 },
@@ -337,6 +364,7 @@ const CAREERS: CareerDef[] = [
   // ── 공공 안전·봉사 계열 ───────────────────────────────────────────────
   {
     title: '경찰·소방·군인',
+    riasecPrimary: 'R',
     // 고불안 = 위험 판단 저하, 고호기심 = 위계적 규율 구조 반발 경향
     w:           { boldness: 0.50, diligence: 0.30, patience: 0.10, curiosity: 0.10 },
     contra:      { boldness: 0.35, diligence: 0.15 },
@@ -351,6 +379,7 @@ const CAREERS: CareerDef[] = [
   // ── 종교·가치 계열 ────────────────────────────────────────────────────
   {
     title: '성직자·종교지도자',
+    riasecPrimary: 'S',
     // humility↑↑ + patience + anxiety(교인 고통에 깊이 공명 — 낮으면 형식적 위로에 그침)
     w:      { humility: 0.34, patience: 0.26, curiosity: 0.18, boldness: 0.09, anxiety: 0.13 },
     contra: { humility: 0.22, patience: 0.13, anxiety: 0.12 },
@@ -364,6 +393,7 @@ const CAREERS: CareerDef[] = [
   // ── 컨설팅·전략 계열 ──────────────────────────────────────────────────
   {
     title: '경영 컨설턴트·전략기획',
+    riasecPrimary: 'E',
     // cog + boldness 핵심, 고겸손·고불안 = 클라이언트 앞 설득력·확신 약화
     w:           { cog: 0.35, boldness: 0.30, curiosity: 0.20, diligence: 0.15 },
     contra:      { cog: 0.20, boldness: 0.20 },
@@ -376,6 +406,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: 'HR·조직개발·코치',
+    riasecPrimary: 'S',
     // patience + anxiety(구성원 감정·동기 읽기 — 낮으면 형식적 HR에 그침) + boldness + curiosity
     w:      { patience: 0.26, anxiety: 0.22, boldness: 0.22, curiosity: 0.18, diligence: 0.12 },
     contra: { patience: 0.17, boldness: 0.12, anxiety: 0.18 },
@@ -389,6 +420,7 @@ const CAREERS: CareerDef[] = [
   // ── 디자인·미디어 계열 ────────────────────────────────────────────────
   {
     title: '그래픽·제품 디자이너',
+    riasecPrimary: 'A',
     // curiosity + anxiety(미적 감수성 필수) + diligence(완성도) + humility(피드백 수용)
     // anxiety 낮으면 시각 언어 직관이 부족해 기능 위주 결과물에 그치기 쉬움
     w:      { curiosity: 0.30, anxiety: 0.25, diligence: 0.25, humility: 0.15, cog: 0.05 },
@@ -401,6 +433,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: 'PD·영상 크리에이터',
+    riasecPrimary: 'A',
     // curiosity + boldness(팀 리드·방향 제시) + diligence(프로덕션) + anxiety(감성적 스토리 감각)
     w:      { curiosity: 0.30, boldness: 0.25, diligence: 0.22, anxiety: 0.18, cog: 0.05 },
     contra: { curiosity: 0.15, boldness: 0.15, anxiety: 0.18 },
@@ -412,6 +445,7 @@ const CAREERS: CareerDef[] = [
   },
   {
     title: '건축가·인테리어 디자이너',
+    riasecPrimary: 'A',
     // curiosity + cog(구조·법규) + diligence(설계 완성도) + anxiety(공간 미적 감수성)
     // 기술·논리만으론 부족 — 공간의 감각적 완성도는 anxiety(감수성)가 받쳐줘야 함
     w:      { curiosity: 0.28, cog: 0.28, diligence: 0.24, anxiety: 0.15, humility: 0.05 },
@@ -426,6 +460,7 @@ const CAREERS: CareerDef[] = [
   // ── 퍼포먼스·엔터테인먼트 계열 ───────────────────────────────────────
   {
     title: '연예인·배우·뮤지션',
+    riasecPrimary: 'A',
     // boldness↑↑ (무대·카메라) + anxiety(감정 표현력 — 낮으면 감정 없는 퍼포먼스)
     w:      { boldness: 0.42, anxiety: 0.28, curiosity: 0.20, diligence: 0.10 },
     contra: { boldness: 0.32, curiosity: 0.10, anxiety: 0.18 },
@@ -439,6 +474,7 @@ const CAREERS: CareerDef[] = [
   // ── 식음료·라이프스타일 계열 ──────────────────────────────────────────
   {
     title: '셰프·요리 전문가',
+    riasecPrimary: 'R',
     // diligence + curiosity + anxiety(맛·감각 민감성 — 낮으면 레시피 기계 실행에 그침) + boldness(주방 리더십)
     w:      { diligence: 0.34, curiosity: 0.26, boldness: 0.16, patience: 0.08, anxiety: 0.16 },
     contra: { diligence: 0.22, curiosity: 0.13, anxiety: 0.12 },
@@ -452,6 +488,7 @@ const CAREERS: CareerDef[] = [
   // ── 스포츠·신체 계열 ──────────────────────────────────────────────────
   {
     title: '스포츠·피트니스 전문가',
+    riasecPrimary: 'R',
     // 고호기심 = 반복 훈련에 지적 자극 부족, 고겸손 = 경쟁·자기확신 약화
     w:           { boldness: 0.45, diligence: 0.40, curiosity: 0.10, patience: 0.05 },
     contra:      { boldness: 0.30, diligence: 0.20 },
@@ -466,6 +503,7 @@ const CAREERS: CareerDef[] = [
   // ── 항공·우주 계열 ────────────────────────────────────────────────────
   {
     title: '파일럿·항공우주 전문가',
+    riasecPrimary: 'R',
     // boldness + diligence + cog, 높은 불안감 = 비상상황 판단 저하 → 안전 리스크
     w:           { boldness: 0.35, diligence: 0.40, cog: 0.25 },
     contra:      { boldness: 0.25, diligence: 0.30 },
@@ -535,6 +573,7 @@ export function computeCareers(facets: FacetMap, cogScore: number): CareerScore[
     const top = topTwoContributors(career, facets, cogScore)
     return {
       title: career.title,
+      riasecPrimary: career.riasecPrimary,
       fit: toFit(Math.max(0, raw)),
       reason: career.descFn(top),
       contraReason: career.contraReason,

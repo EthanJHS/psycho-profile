@@ -22,6 +22,15 @@ export interface SituationalPrediction {
   watchout: string    // 이 상황에서 특히 주의할 점
 }
 
+export interface TripleConflict {
+  personalityRiasec: RiasecType   // 성격 기반 진로 TOP5의 지배적 RIASEC
+  interestRiasec: RiasecType      // Holland 흥미 검사 1위
+  aptitudeDominant: string        // 학문 적성 계열
+  aligned: boolean                // 세 나침반이 같은 방향이면 true
+  narrative: string               // 충돌 또는 일치 해석 텍스트
+  bridgeRoles: string[]           // 두 성향을 동시에 살리는 역할 예시
+}
+
 export interface PaidInterpretation {
   // 핵심 정체성 한 줄
   headline: string
@@ -1063,6 +1072,180 @@ function generateSynthesis(
   }
 
   return lines.join('\n\n')
+}
+
+// ── 세 나침반 충돌 분석 ───────────────────────────────────────────────
+
+type AptDomain = '이과형' | '공학형' | '문과형' | '경상형' | '균형형'
+
+// 적성 계열 → RIASEC 친화 클러스터 매핑
+const APT_RIASEC_CLUSTER: Record<AptDomain, RiasecType[]> = {
+  '이과형':  ['I', 'R'],
+  '공학형':  ['R', 'I'],
+  '문과형':  ['I', 'S', 'A'],
+  '경상형':  ['E', 'C'],
+  '균형형':  ['I', 'S', 'E', 'A', 'R', 'C'],
+}
+
+const RIASEC_KO: Record<RiasecType, string> = {
+  R: '현실형(R)', I: '탐구형(I)', A: '예술형(A)',
+  S: '사회형(S)', E: '진취형(E)', C: '관습형(C)',
+}
+
+// 충돌 패턴별 해석 텍스트
+// key = `{성격RIASEC}-{흥미RIASEC}` 또는 `{흥미RIASEC}@{aptDomain}`
+const PERSONALITY_INTEREST_CONFLICT: Record<string, { narrative: string; bridges: string[] }> = {
+  'I-S': {
+    narrative: '성격은 데이터와 개념을 분석하도록 설계돼 있지만, 흥미는 사람을 향합니다. 이 긴장은 약점이 아니라 희소한 조합입니다. "탐구를 통해 사람을 돕는" 역할 — 임상 연구, 교육심리, 사용자 리서치, 사회조사 — 에서 두 나침반이 같은 방향을 가리킵니다.',
+    bridges: ['임상심리 연구원', 'UX 리서처', '사회조사 연구원', '교육평가 전문가'],
+  },
+  'I-E': {
+    narrative: '분석적으로 사고하는 성격이지만 흥미는 주도하고 실현하는 방향을 향합니다. 전문성을 앞세운 리더십 — 기술 PM, 리서치 기반 창업, 컨설팅 — 이 두 에너지를 동시에 쓸 수 있는 경로입니다.',
+    bridges: ['기술 PM', '리서치 기반 컨설턴트', '스타트업 창업(기술 분야)', '데이터 기반 전략기획'],
+  },
+  'I-A': {
+    narrative: '분석적 성격이지만 창의적 표현에 강하게 끌립니다. 과학적 일러스트레이션, 데이터 시각화, 과학 저술처럼 "지식을 아름답게 전달하는" 역할에서 두 성향이 만납니다.',
+    bridges: ['데이터 시각화 전문가', '과학 커뮤니케이터', 'UX 라이터', '인포그래픽 디자이너'],
+  },
+  'S-I': {
+    narrative: '사람과 함께할 때 최고 성과를 내는 성격이지만, 탐구에 대한 진짜 욕구가 내면에 있습니다. "사람을 위한 탐구" — 임상심리, 교육연구, 사회과학 — 가 두 에너지를 이어주는 연결점입니다.',
+    bridges: ['임상심리사', '교육 연구원', '사회과학 연구원', 'HR 애널리스트'],
+  },
+  'S-E': {
+    narrative: '사람 중심 성격이지만 흥미는 이끌고 추진하는 방향에 있습니다. 코칭, 조직개발, 사회적 기업 창업처럼 사람을 돕는 동시에 주도적으로 이끄는 역할이 자연스러운 접점입니다.',
+    bridges: ['임원 코치', '조직개발(OD) 전문가', '사회적기업 창업', '교육 스타트업 대표'],
+  },
+  'S-A': {
+    narrative: '사람을 돌보는 성격이지만 창의적 표현에도 끌립니다. 예술치료, 교육 콘텐츠 기획, 스토리텔링 기반 교육처럼 돌봄과 창의성이 결합되는 영역이 가장 자연스럽습니다.',
+    bridges: ['예술치료사', '교육 콘텐츠 크리에이터', '아동·청소년 상담사(표현치료)', '스토리텔링 교육 기획'],
+  },
+  'E-I': {
+    narrative: '주도하고 행동하는 성격이지만, 지적 탐구에 끌립니다. 연구만 하거나 이끌기만 하는 것보다, 리서치 기반 의사결정·기술 창업·전략 컨설팅이 두 에너지가 교차하는 지점입니다.',
+    bridges: ['전략 컨설턴트', '기술 스타트업 창업', '리서치 기반 투자 분석', 'BD(사업개발) 전문가'],
+  },
+  'E-S': {
+    narrative: '추진력이 강한 성격이지만 흥미는 돕고 지지하는 방향에 있습니다. 영업·리더십 역할에서 사람 중심 접근이 오히려 강점이 될 수 있으며, 코칭 리더십이나 사회적 영향력을 추구하는 경로가 맞습니다.',
+    bridges: ['코칭 리더십 관리자', 'HR 비즈니스 파트너', '사회적 임팩트 투자', '교육 기업 창업'],
+  },
+  'E-A': {
+    narrative: '추진력과 창의성이 결합된 성격과 흥미가 이미 상당히 가깝습니다. 크리에이티브 디렉팅, 브랜드 창업, 광고 기획처럼 아이디어를 현실로 밀어붙이는 역할이 최적점입니다.',
+    bridges: ['크리에이티브 디렉터', '브랜드 창업', '광고·콘텐츠 기획', '엔터테인먼트 프로듀서'],
+  },
+  'A-I': {
+    narrative: '창의적으로 표현하는 성격이지만, 탐구 욕구도 강합니다. 과학 커뮤니케이션, 데이터 스토리텔링, 디자인 리서치처럼 "지식을 아름답게 전달하는" 역할에서 두 성향이 완벽하게 만납니다.',
+    bridges: ['과학 커뮤니케이터', '데이터 스토리텔러', '디자인 리서처', '다큐멘터리 감독'],
+  },
+  'A-E': {
+    narrative: '창의적 성격이지만 추진력과 리더십에도 끌립니다. 아이디어를 팀과 함께 실현하는 크리에이티브 디렉터나 콘텐츠 스타트업 창업이 자연스러운 합류 지점입니다.',
+    bridges: ['크리에이티브 디렉터', '콘텐츠 스타트업 창업', 'PD·영상 제작 대표', '광고 크리에이티브'],
+  },
+  'R-I': {
+    narrative: '실용적·기술적 성격이지만 지적 탐구에 끌립니다. 응용과학, 엔지니어링 R&D, 의공학처럼 이론과 실제를 잇는 영역이 두 성향을 동시에 충족합니다.',
+    bridges: ['R&D 엔지니어', '의공학 연구원', '항공우주 연구원', '응용과학 연구원'],
+  },
+  'C-I': {
+    narrative: '체계와 규칙을 중시하는 성격이지만 탐구에 끌립니다. 데이터 분석, 금융공학, 감사·리스크 분석처럼 정밀성과 탐구가 함께 필요한 역할이 맞습니다.',
+    bridges: ['퀀트 애널리스트', '데이터 감사 전문가', '리스크 분석가', '금융 리서처'],
+  },
+}
+
+const APT_INTEREST_CONFLICT: Record<string, { narrative: string; bridges: string[] }> = {
+  'A-이과형': {
+    narrative: '예술적 흥미가 강하지만 이공계 적성이 높습니다. 순수예술보다 게임 디자인, 건축, 디지털 미디어아트, UX처럼 기술과 창의성이 교차하는 영역에서 더 넓은 가능성이 열립니다.',
+    bridges: ['게임 아트 디렉터', 'UX 디자이너', '건축 설계', '디지털 미디어아트'],
+  },
+  'A-공학형': {
+    narrative: '예술적 흥미와 공학 적성의 조합은 제품 디자인, 건축, 디지털 제작처럼 창의성과 기술이 교차하는 영역에서 희소한 강점이 됩니다.',
+    bridges: ['제품(산업) 디자이너', '건축사', '인터랙션 디자이너', '게임 개발자'],
+  },
+  'I-문과형': {
+    narrative: '과학적 탐구에 흥미를 느끼지만 언어·인문계 적성이 높습니다. 과학 저술, 과학사·철학, 사회과학, 바이오윤리처럼 "탐구"와 "표현"이 모두 필요한 영역이 두 강점을 동시에 살립니다.',
+    bridges: ['과학 저술가', '과학사·과학철학 연구자', '사회과학 연구원', '바이오윤리 전문가'],
+  },
+  'I-경상형': {
+    narrative: '탐구 지향 흥미지만 경상계열 적성이 높습니다. 금융 퀀트, 마케팅 리서치, 투자 리서치 애널리스트처럼 수치와 시장 통찰을 탐구하는 역할이 이 조합의 최적점입니다.',
+    bridges: ['투자 리서치 애널리스트', '마케팅 리서처', '퀀트 펀드 매니저', '소비자 행동 연구원'],
+  },
+  'E-이과형': {
+    narrative: '주도·설득에 흥미가 있지만 이과 적성이 높습니다. 기술 스타트업 창업, CTO, 기술 영업, 의공학 비즈니스처럼 전문성 위에 리더십을 얹는 경로가 잘 맞습니다.',
+    bridges: ['기술 스타트업 창업', 'CTO', '기술 영업 전문가', '의료기기 비즈니스 개발'],
+  },
+  'E-공학형': {
+    narrative: '리더십과 추진력에 흥미가 있고 공학 적성도 높습니다. 기술 창업, 엔지니어링 PM, 기술 영업처럼 전문 기술을 이끄는 역할이 강점을 발휘합니다.',
+    bridges: ['기술 PM', '엔지니어링 스타트업 창업', '기술 컨설턴트', 'CTO'],
+  },
+  'S-이과형': {
+    narrative: '사람을 돕는 흥미가 강하지만 이과 적성이 높습니다. 임상 연구, 의약품 개발, 재활 공학처럼 과학 지식으로 사람을 돕는 경로가 이 조합을 가장 잘 활용합니다.',
+    bridges: ['임상 연구원', '의공학 전문가', '재활 공학 연구원', '보건 데이터 분석가'],
+  },
+  'R-문과형': {
+    narrative: '실용적·기술 지향 흥미지만 언어·인문계 적성이 높습니다. 기술 문서 작성, 제품 관리, 기술 교육처럼 실용 기술과 커뮤니케이션을 잇는 역할이 강점입니다.',
+    bridges: ['기술 문서 전문가', '프로덕트 매니저', '기술 교육 강사', '제조 품질 컨설턴트'],
+  },
+}
+
+export function computeTripleConflict(
+  personalityRiasec: RiasecType,
+  interestRiasec: RiasecType,
+  aptDominant: AptDomain,
+): TripleConflict {
+  const aptCluster = APT_RIASEC_CLUSTER[aptDominant]
+  const aptAligned = aptCluster.includes(interestRiasec)
+  const personalityInterestAligned = personalityRiasec === interestRiasec
+
+  if (personalityInterestAligned && aptAligned) {
+    return {
+      personalityRiasec,
+      interestRiasec,
+      aptitudeDominant: aptDominant,
+      aligned: true,
+      narrative: `성격(${RIASEC_KO[personalityRiasec]}), 흥미(${RIASEC_KO[interestRiasec]}), 적성(${aptDominant}) — 세 나침반이 같은 방향을 가리킵니다. 이 일관성은 강점입니다. 진로 선택에서 내·외적 갈등이 적고, 에너지가 한 방향으로 집중됩니다. 이 조합이 가장 강하게 빛나는 경로를 깊이 파고드는 것이 최선의 전략입니다.`,
+      bridgeRoles: [],
+    }
+  }
+
+  // 성격 vs 흥미 충돌이 더 중요한 갈등
+  const piKey = `${personalityRiasec}-${interestRiasec}`
+  const reverseKey = `${interestRiasec}-${personalityRiasec}`
+  const piConflict = PERSONALITY_INTEREST_CONFLICT[piKey] ?? PERSONALITY_INTEREST_CONFLICT[reverseKey]
+
+  if (!personalityInterestAligned && piConflict) {
+    const aptNote = !aptAligned
+      ? ` 학문 적성(${aptDominant})까지 고려하면 선택지가 더 좁혀집니다 — 세 조건을 모두 충족하는 '교차점'을 찾는 것이 핵심 전략입니다.`
+      : ''
+    return {
+      personalityRiasec,
+      interestRiasec,
+      aptitudeDominant: aptDominant,
+      aligned: false,
+      narrative: piConflict.narrative + aptNote,
+      bridgeRoles: piConflict.bridges,
+    }
+  }
+
+  // 흥미 vs 적성 충돌
+  const aiKey = `${interestRiasec}-${aptDominant}`
+  const aiConflict = APT_INTEREST_CONFLICT[aiKey]
+  if (!aptAligned && aiConflict) {
+    return {
+      personalityRiasec,
+      interestRiasec,
+      aptitudeDominant: aptDominant,
+      aligned: false,
+      narrative: aiConflict.narrative,
+      bridgeRoles: aiConflict.bridges,
+    }
+  }
+
+  // 충돌 패턴이 없거나 경미한 경우 — 대체 텍스트
+  return {
+    personalityRiasec,
+    interestRiasec,
+    aptitudeDominant: aptDominant,
+    aligned: true,
+    narrative: `성격(${RIASEC_KO[personalityRiasec]})과 흥미(${RIASEC_KO[interestRiasec]})가 유사한 방향을 가리키며, 적성(${aptDominant})과도 큰 충돌이 없습니다. 세 영역이 대체로 일관성 있게 정렬되어 있어 진로 선택 시 내적 갈등이 적을 것입니다.`,
+    bridgeRoles: [],
+  }
 }
 
 // ── 메인 해석 함수 ────────────────────────────────────────────────────
