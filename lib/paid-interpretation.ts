@@ -431,7 +431,8 @@ export function computeAptitudeRatio(a: AptitudeScores): AptitudeRatio {
   // 페어 키 생성 (알파벳 순 정렬로 양방향 통일)
   const pairKey = [top1Key, top2Key].sort().join('-')
   // 3계열 융합이 있으면 2계열 융합은 표시하지 않음
-  const fusionPath = (!fusionPath3 && gap <= 12) ? (FUSION_PATHS[pairKey] ?? undefined) : undefined
+  // 2계열 융합: 3계열이 있어도 독립적으로 표시 (임계값 20%로 확대)
+  const fusionPath = gap <= 20 ? (FUSION_PATHS[pairKey] ?? undefined) : undefined
 
   return { stem, engineering, liberal, business, dominant, portrait: PORTRAITS[dominant], recommended: RECOMMENDED[dominant], fusionPath, fusionPath3 }
 }

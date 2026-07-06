@@ -895,14 +895,57 @@ export default function PaidResultPage() {
             </div>
           </div>
 
+          {/* 3계열 융합 경로 */}
+          {interp.aptitudeBreakdown.fusionPath3 && (
+            <div className="rounded-xl p-5 space-y-4" style={{ background: 'linear-gradient(135deg, #a78bfa18, #34d39918, #60a5fa18)', border: '1px solid #a78bfa50' }}>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#a78bfa,#34d399)', color: '#fff' }}>
+                    3계열 융합 경로
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--muted2)' }}>상위 세 계열이 고르게 분포된 희소한 프로필</span>
+                </div>
+                <h4 className="text-base font-bold mt-2" style={{ color: 'var(--text)' }}>
+                  {interp.aptitudeBreakdown.fusionPath3.label}
+                </h4>
+              </div>
+              <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.85 }}>
+                {interp.aptitudeBreakdown.fusionPath3.description}
+              </p>
+              <div>
+                <div className="text-xs font-bold mb-2" style={{ color: '#a78bfa' }}>융합 추천 전공</div>
+                <div className="flex flex-wrap gap-2">
+                  {interp.aptitudeBreakdown.fusionPath3.majors.map((m, i) => (
+                    <span key={i} className="text-xs px-3 py-1.5 rounded-full font-medium" style={{ background: '#a78bfa18', color: '#a78bfa', border: '1px solid #a78bfa40' }}>
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-bold mb-2" style={{ color: '#34d399' }}>대표 직업·역할</div>
+                <div className="flex flex-wrap gap-2">
+                  {interp.aptitudeBreakdown.fusionPath3.careers.map((c, i) => (
+                    <span key={i} className="text-xs px-3 py-1.5 rounded-full font-medium" style={{ background: '#34d39915', color: '#34d399', border: '1px solid #34d39930' }}>
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2계열 융합 경로 */}
           {interp.aptitudeBreakdown.fusionPath && (
             <div className="rounded-xl p-5 space-y-4" style={{ background: 'linear-gradient(135deg, #818cf818, #34d39918)', border: '1px solid #818cf840' }}>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#818cf8', color: '#fff' }}>
-                    융합 경로 추천
+                    {interp.aptitudeBreakdown.fusionPath3 ? '핵심 2계열 융합' : '융합 경로 추천'}
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--muted2)' }}>상위 두 계열의 차이가 크지 않습니다</span>
+                  <span className="text-xs" style={{ color: 'var(--muted2)' }}>
+                    {interp.aptitudeBreakdown.fusionPath3 ? '상위 두 계열의 교차점' : '상위 두 계열의 차이가 크지 않습니다'}
+                  </span>
                 </div>
                 <h4 className="text-base font-bold mt-2" style={{ color: 'var(--text)' }}>
                   {interp.aptitudeBreakdown.fusionPath.label}
@@ -941,11 +984,11 @@ export default function PaidResultPage() {
               const apt = interp.aptitudeBreakdown
               const aptSorted = (Object.entries(aptitude) as [string, number][]).sort(([,a],[,b]) => b-a)
               const topDimLabel = aptSorted[0]?.[0] ? (APTITUDE_DIM_LABELS[aptSorted[0][0] as keyof typeof APTITUDE_DIM_LABELS] ?? aptSorted[0][0]) : ''
-              const fusion = apt.fusionPath
+              const fusion = apt.fusionPath3 ?? apt.fusionPath
               const riasecCode = interp.riasecProfile.hollandCode[0]
               return apt.portrait +
                 (fusion
-                  ? ` 융합 경로 "${fusion.label}" — 단일 계열보다 교차점에서 희소한 강점이 생깁니다. 추천 전공: ${fusion.majors.slice(0,3).join(', ')}.`
+                  ? ` 융합 경로 "${fusion.label}" — 단일 계열보다 두 계열 이상의 교차점에서 희소한 강점이 생깁니다. 추천 전공: ${fusion.majors.slice(0,3).join(', ')}.`
                   : ` ${apt.dominant} 계열 내에서 "${topDimLabel}"이 가장 두드러집니다. 같은 계열이라도 세부 분야 선택이 적합도를 크게 좌우합니다.`) +
                 ` Holland ${riasecCode} 흥미와 ${apt.dominant} 적성이 어떻게 교차하는지는 "세 나침반" 섹션에서 확인하세요.`
             })()}
@@ -1070,7 +1113,7 @@ export default function PaidResultPage() {
               title="리더십 영역 결론"
               text={leadership ? (() => {
                 const workEnvNote = workStyle
-                  ? ` 업무 스타일 "${workStyle.decisionMaking.slice(0,40)}..."과 리더십 스타일의 교차가 실제 의사결정 방식을 결정합니다.`
+                  ? ` 업무 의사결정 방식("${workStyle.decisionMaking.slice(0,30).trimEnd()}...")과 리더십 스타일이 실제로 어떻게 교차하는지 주목하세요.`
                   : ''
                 const burnoutNote = burnout && burnout.level !== '낮음'
                   ? ` 번아웃 리스크 ${burnout.level} 상태에서는 리더십 강점이 오히려 과부하로 연결될 수 있습니다.`
