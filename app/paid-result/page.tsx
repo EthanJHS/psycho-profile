@@ -284,7 +284,15 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#c084fc"
               title="서사 영역 결론"
-              text={`위 두 서술은 각각 6요인 기반 '전체상'과 24 하위 요인 기반 '패턴 초상화'입니다. 무료 검사는 전체상만 제공하지만, 정밀 검사는 그 안의 세부 역학까지 분해합니다. "${interp.hexacoPattern.title}"이라는 패턴 명칭 하나에 담긴 구체적 의미가 아래 각 섹션에서 펼쳐집니다.`}
+              text={(() => {
+                const top3 = interp.hexacoPattern.topFacets.slice(0,3).map(f => f.label).join(', ')
+                const strengthInsight = interp.hexacoPattern.crossInsights.find(c => c.type === 'strength')
+                const tensionInsight  = interp.hexacoPattern.crossInsights.find(c => c.type === 'tension')
+                return `"${interp.hexacoPattern.title}" 패턴의 엔진은 ${top3}의 결합입니다. ` +
+                  (strengthInsight ? `이 조합이 만드는 강점: "${strengthInsight.title}" — ${strengthInsight.body.slice(0,80)}... ` : '') +
+                  (tensionInsight  ? `동시에 "${tensionInsight.title}"라는 긴장도 내포합니다. ` : '') +
+                  `아래 각 섹션은 이 패턴이 업무·진로·관계에서 어떻게 구체적으로 작동하는지를 분해해 보여줍니다.`
+              })()}
             />
           </section>
         )}
@@ -408,7 +416,16 @@ export default function PaidResultPage() {
           <SectionConclusion
             color="#a78bfa"
             title="성격 프로파일 영역 결론"
-            text={`주의할 맹점: ${interp.hexacoPattern.shadow} 무료 검사는 6개 요인만 보여주지만, 이 분석은 24 하위 요인까지 분해해 어느 요소가 점수를 끌어올리거나 낮추는지 정확히 짚어냅니다. 이 세밀함이 진로와 관계에서의 예측력을 높입니다.`}
+            text={(() => {
+              const topF = interp.hexacoPattern.topFacets
+              const lowF = interp.hexacoPattern.lowFacets
+              const tensionInsight = interp.hexacoPattern.crossInsights.find(c => c.type === 'tension')
+              return `가장 두드러진 하위 요인: "${topF[0]?.label}"(${topF[0]?.score.toFixed(1)}/5) — ${topF[0]?.insight} ` +
+                `반면 "${lowF[0]?.label}"(${lowF[0]?.score.toFixed(1)}/5)이 낮다는 것은, ${lowF[0]?.insight} ` +
+                (tensionInsight
+                  ? `⚡ 핵심 긴장: "${tensionInsight.title}" — ${tensionInsight.body}`
+                  : `패턴 맹점: ${interp.hexacoPattern.shadow}`)
+            })()}
           />
         </section>
 
@@ -520,9 +537,12 @@ export default function PaidResultPage() {
               color="#34d399"
               title="성격 강점 영역 결론"
               text={(() => {
-                const top = charStrengths[0]
-                if (!top) return ''
-                return `핵심 강점 "${top.name}"이 과도하게 발휘될 때: ${top.shadow} 강점은 맥락을 가릴 때 비로소 진짜 강점이 됩니다.`
+                const cs = charStrengths
+                if (cs.length < 2) return cs[0] ? `핵심 강점 "${cs[0].name}": 과도할 때 나타나는 그림자 — ${cs[0].shadow}` : ''
+                return `최상위 강점 "${cs[0].name}" × "${cs[1].name}" — 이 두 강점이 시너지를 낼 때 가장 강력합니다. ` +
+                  `그러나 "${cs[0].name}"이 과도할 때: ${cs[0].shadow} ` +
+                  `"${cs[1].name}"이 과도할 때: ${cs[1].shadow} ` +
+                  `강점의 그림자를 인식하는 것이 맹목적 발휘보다 훨씬 강력한 자기인식입니다.`
               })()}
             />
           </section>
@@ -582,7 +602,12 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#60a5fa"
               title="업무 스타일 영역 결론"
-              text={workStyle ? `당신의 가장 큰 업무 강점은 "${workStyle.strengths[0]}"입니다. 반면 "${workStyle.watchouts[0]}"는 의식적으로 관리해야 할 지점입니다. 최적 환경인 "${workStyle.environment}"와 현재 환경이 얼마나 일치하는지 점검해보세요. 불일치가 클수록 에너지 소모가 크고 지속 가능성이 낮아집니다.` : ''}
+              text={workStyle ? (() => {
+                const burnoutWarning = burnout && (burnout.level === '주의' || burnout.level === '높음')
+                  ? ` ⚠ 번아웃 리스크(${burnout.level}) 주의: 이 강점이 경계 없이 발현되면 과부하로 이어질 수 있습니다.`
+                  : ''
+                return `핵심 강점: "${workStyle.strengths[0]}". 관리 지점: "${workStyle.watchouts[0]}".${burnoutWarning} 최적 환경 "${workStyle.environment}"와 현재 환경의 일치 여부가 지속 가능성을 결정합니다.`
+              })() : ''}
             />
           </section>
         )}
@@ -663,7 +688,15 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#fb923c"
               title="진로 영역 결론"
-              text={`Holland 코드 ${interp.riasecProfile.hollandCode}(${interp.riasecProfile.title})과 위 진로 추천을 함께 보세요. 두 결과가 겹치는 직업이 가장 강력한 후보입니다. 진로는 적합도 점수가 높은 것만이 아니라, 당신이 실제로 의미를 느끼는 일과의 교차점에서 찾아야 합니다.`}
+              text={topCareers.length > 0 ? (() => {
+                const top1 = topCareers[0]
+                const riasecMatch = topCareers.slice(0,5).some(c => c.riasecPrimary === riasecTop3[0])
+                const alignNote = riasecMatch
+                  ? `상위 추천 직업과 Holland 코드 ${interp.riasecProfile.hollandCode}(${interp.riasecProfile.title})이 일치합니다 — 강력한 신호.`
+                  : `상위 추천 직업과 Holland 코드 ${interp.riasecProfile.hollandCode}가 다소 다릅니다. "세 나침반" 섹션에서 교차점 역할을 확인하세요.`
+                const valueNote = values ? ` 핵심 가치 "${values.primary}"가 "${top1.title}"에서 충족되는지가 장기 만족도의 핵심입니다.` : ''
+                return `성격 기반 1순위: "${top1.title}"(${top1.fit}%). ${alignNote}${valueNote} 적합도 점수만이 아니라 "${top1.title}"이 실제로 의미 있는지를 검증하는 것이 다음 단계입니다.`
+              })() : ''}
             />
           </section>
         )}
@@ -810,7 +843,13 @@ export default function PaidResultPage() {
           <SectionConclusion
             color="#34d399"
             title="직업 흥미 영역 결론"
-            text={`Holland 코드 ${interp.riasecProfile.hollandCode}(${interp.riasecProfile.title})은 당신이 어떤 환경에서 자연스럽게 에너지를 얻는지를 보여줍니다. 잘 맞는 환경에서는 일 자체가 보상이 되고, 맞지 않는 환경에서는 능력이 아무리 뛰어나도 지속하기 어렵습니다. 직업 선택뿐 아니라 현재 직장 안에서의 역할 설계에도 이 코드를 활용하세요.`}
+            text={(() => {
+              const matchedCareers = topCareers.filter(c => c.riasecPrimary === riasecTop3[0]).slice(0,3)
+              const matchNote = matchedCareers.length > 0
+                ? ` 성격 기반 추천 중 이 흥미 유형과 일치: ${matchedCareers.map(c => c.title).join(', ')}.`
+                : ` 성격 기반 추천 직업과 흥미 유형이 다릅니다 — "세 나침반" 섹션의 교차점 역할이 실질적 해결책입니다.`
+              return `Holland ${interp.riasecProfile.hollandCode}(${interp.riasecProfile.title}) — 자연스럽게 에너지를 얻는 환경 유형.${matchNote} 흥미("하고 싶은 것")와 성격 기반 추천("잘할 수 있는 것")이 겹치는 지점이 최적 진로입니다.`
+            })()}
           />
         </section>
 
@@ -898,7 +937,18 @@ export default function PaidResultPage() {
           <SectionConclusion
             color="#f472b6"
             title="학문 적성 영역 결론"
-            text={`${interp.aptitudeBreakdown.portrait} ${interp.aptitudeBreakdown.fusionPath ? `특히 ${interp.aptitudeBreakdown.fusionPath.label}의 관점에서, 단일 계열보다 두 계열이 교차하는 융합 분야에서 더 독창적인 강점을 발휘할 가능성이 높습니다.` : '계열 비율 분포를 통해 본인의 지적 스타일에 가장 자연스럽게 맞는 방향을 우선 고려하시기 바랍니다.'}`}
+            text={(() => {
+              const apt = interp.aptitudeBreakdown
+              const aptSorted = (Object.entries(aptitude) as [string, number][]).sort(([,a],[,b]) => b-a)
+              const topDimLabel = aptSorted[0]?.[0] ? (APTITUDE_DIM_LABELS[aptSorted[0][0] as keyof typeof APTITUDE_DIM_LABELS] ?? aptSorted[0][0]) : ''
+              const fusion = apt.fusionPath
+              const riasecCode = interp.riasecProfile.hollandCode[0]
+              return apt.portrait +
+                (fusion
+                  ? ` 융합 경로 "${fusion.label}" — 단일 계열보다 교차점에서 희소한 강점이 생깁니다. 추천 전공: ${fusion.majors.slice(0,3).join(', ')}.`
+                  : ` ${apt.dominant} 계열 내에서 "${topDimLabel}"이 가장 두드러집니다. 같은 계열이라도 세부 분야 선택이 적합도를 크게 좌우합니다.`) +
+                ` Holland ${riasecCode} 흥미와 ${apt.dominant} 적성이 어떻게 교차하는지는 "세 나침반" 섹션에서 확인하세요.`
+            })()}
           />
         </section>
 
@@ -1018,7 +1068,15 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#818cf8"
               title="리더십 영역 결론"
-              text={leadership ? `"${leadership.style}" 스타일의 가장 큰 맹점은 "${leadership.blindspots[0]}"입니다. 지금 당장의 성장 과제는 "${leadership.growthEdge}" 리더십은 공식적 역할이 아니라 의견을 내고 방향을 제안하는 모든 순간에 나타납니다.` : ''}
+              text={leadership ? (() => {
+                const workEnvNote = workStyle
+                  ? ` 업무 스타일 "${workStyle.decisionMaking.slice(0,40)}..."과 리더십 스타일의 교차가 실제 의사결정 방식을 결정합니다.`
+                  : ''
+                const burnoutNote = burnout && burnout.level !== '낮음'
+                  ? ` 번아웃 리스크 ${burnout.level} 상태에서는 리더십 강점이 오히려 과부하로 연결될 수 있습니다.`
+                  : ''
+                return `"${leadership.style}" — 강점: ${leadership.strengths.slice(0,2).join(', ')}. 사각지대: "${leadership.blindspots[0]}". 성장 과제: "${leadership.growthEdge}".${workEnvNote}${burnoutNote} 리더십은 공식 직위가 아니라, 의견을 내고 방향을 제안하는 모든 순간에 드러납니다.`
+              })() : ''}
             />
           </section>
         )}
@@ -1077,7 +1135,16 @@ export default function PaidResultPage() {
             <SectionConclusion
               color={burnout.color}
               title="번아웃 영역 결론"
-              text={burnout ? `번아웃 리스크 ${burnout.level} — ${burnout.summary} 가장 먼저 챙겨야 할 예방 행동은 "${burnout.prevention[0]}"입니다. 번아웃은 갑자기 오지 않고, 위험 신호를 인식하는 것이 회복보다 훨씬 쉽습니다.` : ''}
+              text={burnout ? (() => {
+                const lifeBalanceLow = lifeBalance && lifeBalance.domains.filter(d => d.score < 45).length >= 3
+                const urgentFlag = (burnout.level === '높음' || burnout.level === '주의') && lifeBalanceLow
+                  ? ' 🚨 번아웃 고위험 + 삶의 균형 저하 동시 감지 — 즉각적인 환경 변화 또는 외부 지원이 필요한 상태입니다.'
+                  : ''
+                const riskNote = burnout.riskFactors[0] && !burnout.riskFactors[0].includes('감지되지 않')
+                  ? ` 핵심 위험 요인: "${burnout.riskFactors[0]}". `
+                  : ' '
+                return `번아웃 리스크 ${burnout.level}(${burnout.score}점). ${burnout.summary}${urgentFlag}${riskNote}지금 당장 시작할 예방 행동: ${burnout.prevention[0]}`
+              })() : ''}
             />
           </section>
         )}
@@ -1114,7 +1181,16 @@ export default function PaidResultPage() {
             <SectionConclusion
               color="#a78bfa"
               title="가치관 영역 결론"
-              text={values ? `핵심 가치 "${values.primary}"와 "${values.secondary}"의 조합에서 주의할 긴장: ${values.tension} 지금의 커리어와 관계가 이 두 가치를 얼마나 충족하고 있는지가 삶의 만족도를 가르는 핵심 변수입니다.` : ''}
+              text={values ? (() => {
+                const top1career = topCareers[0]
+                const careerNote = top1career
+                  ? ` 1순위 진로 추천 "${top1career.title}"이 핵심 가치 "${values.primary}"를 충족하는지가 장기 만족도를 결정합니다.`
+                  : ''
+                const burnoutNote = burnout && burnout.level !== '낮음'
+                  ? ` 번아웃 리스크 ${burnout.level} 상태는 현재 가치가 충족되지 않고 있다는 신호일 수 있습니다.`
+                  : ''
+                return `핵심 가치 "${values.primary}" × "${values.secondary}". ${values.tension}${careerNote}${burnoutNote} 커리어와 관계가 이 두 가치를 동시에 얼마나 충족하는지 정기적으로 점검하는 것이 번아웃 예방의 핵심입니다.`
+              })() : ''}
             />
           </section>
         )}
@@ -1161,9 +1237,17 @@ export default function PaidResultPage() {
               color="#a78bfa"
               title="삶의 균형 영역 결론"
               text={lifeBalance ? (() => {
+                const scores = lifeBalance.domains.map(d => d.score)
+                const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
                 const lowest = [...lifeBalance.domains].sort((a, b) => a.score - b.score)[0]
                 const highest = [...lifeBalance.domains].sort((a, b) => b.score - a.score)[0]
-                return `전반적 균형 상태는 "${lifeBalance.overallBalance}"입니다. 가장 충전이 잘 되는 영역은 ${highest.name}(${highest.score}점)이며, 가장 주의가 필요한 영역은 ${lowest.name}(${lowest.score}점)입니다. ${lowest.insight} 균형 회복의 출발점은 가장 낮은 영역 하나에 이번 주 작은 변화 하나를 더하는 것입니다.`
+                const burnoutConcern = burnout && burnout.level !== '낮음'
+                  ? ` 번아웃 리스크 ${burnout.level}와 함께 고려하면, 이 균형 상태는 심각성이 높아집니다.`
+                  : ''
+                if (avg < 42) {
+                  return `⚠ 전 영역 평균 ${avg}점 — 충전 자체가 부족한 위험한 상태입니다.${burnoutConcern} 균형보다 에너지 총량 회복이 먼저입니다. ${lowest.name}(${lowest.score}점) 영역에 지금 당장 가장 작은 변화 하나를 시작하세요.`
+                }
+                return `${lifeBalance.overallBalance} 상태(평균 ${avg}점). 가장 충전되는 영역: ${highest.name}(${highest.score}점) / 가장 주의할 영역: ${lowest.name}(${lowest.score}점).${burnoutConcern} ${lifeBalance.recommendation}`
               })() : ''}
             />
           </section>
@@ -1255,12 +1339,36 @@ export default function PaidResultPage() {
 
           <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div className="text-xs font-bold mb-2" style={{ color: '#34d399' }}>커리어 방향성</div>
-            <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.85 }}>{interp.synthesis.careerCompass}</p>
+            <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.85 }}>{(() => {
+              const top1 = topCareers[0]
+              const tc = tripleConflict
+              const apt = interp.aptitudeBreakdown
+              const fusion = apt.fusionPath
+              const base = top1
+                ? `성격 기반 1순위 "${top1.title}"(${top1.fit}%) + Holland ${interp.riasecProfile.hollandCode}(${interp.riasecProfile.title}) + 적성 ${apt.dominant}`
+                : `Holland ${interp.riasecProfile.hollandCode}(${interp.riasecProfile.title}) + 적성 ${apt.dominant}`
+              const alignment = tc?.aligned
+                ? ` — 세 나침반이 일치합니다. 이 방향에 자원을 집중하세요.`
+                : tc ? ` — 세 나침반이 불일치합니다. 교차점 역할: ${tc.bridgeRoles.slice(0,2).join(', ')}가 실질적 해결책입니다.` : ''
+              const fusionNote = fusion ? ` 융합 경로 "${fusion.label}"에서 가장 독창적인 강점이 발현됩니다.` : ''
+              const valNote = values ? ` 핵심 가치 "${values.primary}"가 충족되는 방향인지를 기준으로 최종 선택을 검증하세요.` : ''
+              return base + alignment + fusionNote + valNote
+            })()}</p>
           </div>
 
           <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div className="text-xs font-bold mb-2" style={{ color: '#fbbf24' }}>성장 과제 — 당신의 맹점</div>
-            <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.85 }}>{interp.synthesis.growthEdge}</p>
+            <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.85 }}>{(() => {
+              const lowF = interp.hexacoPattern.lowFacets[0]
+              const shadow = interp.hexacoPattern.shadow
+              const burnoutNote = burnout && burnout.level !== '낮음'
+                ? ` ⚠ 번아웃 리스크 ${burnout.level} 상태에서 성장 노력은 역효과를 낼 수 있습니다 — 회복이 성장보다 먼저입니다.`
+                : ''
+              const lifeNote = lifeBalance && lifeBalance.overallBalance === '불균형'
+                ? ` 삶의 균형 ${lifeBalance.overallBalance} 상태이므로 에너지 회복 기반을 먼저 만드세요.`
+                : ''
+              return `${shadow} 가장 낮은 하위 요인 "${lowF?.label}"(${lowF?.score.toFixed(1)}/5) 개선이 현재 가장 큰 성장 레버입니다.${burnoutNote}${lifeNote}`
+            })()}</p>
           </div>
 
           <div className="text-center py-4">

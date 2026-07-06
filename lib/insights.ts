@@ -617,11 +617,21 @@ export function computeBurnoutRisk(facets: FacetMap, life: Record<string, string
   const pct = Math.round(totalScore * 100)
 
   const riskFactors: string[] = []
-  if (dil >= 0.65 && anx >= 0.55) riskFactors.push('높은 기준+불안 조합 — 완벽하지 않으면 쉬지 못하는 패턴')
+  if (dil >= 0.68) riskFactors.push('높은 성실성 — 스스로 과업을 늘리는 경향이 있어 경계 없이는 과부하로 이어집니다')
+  if (anx >= 0.60) riskFactors.push('높은 정서적 민감성 — 부정적 피드백과 환경 변화에 민감하게 반응해 에너지 소모가 큽니다')
+  if (dil >= 0.55 && anx >= 0.50) {
+    if (!riskFactors.some(r => r.startsWith('높은 성실성') || r.startsWith('높은 정서적')))
+      riskFactors.push('높은 기준 + 불안 조합 — 완벽하지 않으면 쉬지 못하는 패턴이 번아웃을 가속합니다')
+    else if (dil >= 0.65 && anx >= 0.55)
+      riskFactors.push('완벽주의 패턴 — 높은 기준과 불안이 함께 작동해 "이 정도면 됐다"는 감각이 약해집니다')
+  }
+  if (bol <= 0.35 && dil >= 0.55) riskFactors.push('"No"라고 말하기 어려운 성향 — 낮은 자기주장과 높은 성실성의 조합은 업무 과부하가 쌓이기 쉽습니다')
+  if ((1 - pat) >= 0.50) riskFactors.push('낮은 공감·인내 — 팀·관계 마찰이 감정 에너지를 소모하는 패턴입니다')
+  if (anx >= 0.55 && (1 - hum) >= 0.55) riskFactors.push('높은 감수성 + 낮은 겸손 — 인정 욕구와 정서적 취약성이 결합해 비판에 과잉 반응하는 패턴이 생깁니다')
   if (life?.recovery_speed === 'very_slow' || life?.recovery_speed === 'slow') riskFactors.push('느린 스트레스 회복 속도 — 소진이 축적되기 쉬움')
   if (deepAnswers?.burnout_meaning && Number(deepAnswers.burnout_meaning) >= 4) riskFactors.push('업무에서의 의미 감소 — 동기 저하의 핵심 신호')
   if (deepAnswers?.burnout_detachment && Number(deepAnswers.burnout_detachment) >= 4) riskFactors.push('퇴근 후 분리 어려움 — 심리적 경계 약화')
-  if (riskFactors.length === 0) riskFactors.push('현재 주요 번아웃 위험 요인이 감지되지 않음')
+  if (riskFactors.length === 0) riskFactors.push('현재 성격 패턴에서 주요 번아웃 위험 요인이 감지되지 않습니다')
 
   const protectiveFactors: string[] = []
   if (dil < 0.5) protectiveFactors.push('완벽주의 성향이 낮아 "충분히 좋은 것"에 만족하는 경향')
@@ -641,10 +651,10 @@ export function computeBurnoutRisk(facets: FacetMap, life: Record<string, string
   const color = level === '높음' ? '#f87171' : level === '주의' ? '#f59e0b' : level === '보통' ? '#60a5fa' : '#34d399'
 
   const summaryMap: Record<string, string> = {
-    '높음': '현재 번아웃의 주요 신호가 감지됩니다. 즉각적인 회복 조치와 환경 변화를 진지하게 고려하세요.',
-    '주의': '아직 번아웃 수준은 아니지만, 몇 가지 위험 신호가 있습니다. 예방적 조치를 지금 시작하는 것이 중요합니다.',
-    '보통': '전반적으로 관리 가능한 수준입니다. 보호 요인을 의식적으로 강화하면 더 지속 가능해집니다.',
-    '낮음': '번아웃 리스크가 낮습니다. 현재 에너지 관리 방식이 효과적으로 작동하고 있습니다.',
+    '높음': `번아웃의 주요 신호가 복수로 감지됩니다. 지금 당장 회복 조치와 환경 변화를 진지하게 고려해야 합니다.`,
+    '주의': `아직 임계치는 아니지만 ${riskFactors[0]?.split(' — ')[0] ?? '위험 패턴'}이 감지됩니다. 지금 예방적 조치를 시작하는 것이 중요합니다.`,
+    '보통': `전반적으로 관리 가능한 수준이지만, 보호 요인을 의식적으로 강화하면 더 지속 가능해집니다.`,
+    '낮음': `현재 에너지 관리 방식이 효과적으로 작동하고 있습니다. 이 상태를 유지하는 루틴을 명시적으로 기록해두세요.`,
   }
 
   return { level, color, score: pct, summary: summaryMap[level], riskFactors, protectiveFactors, prevention }
@@ -764,13 +774,18 @@ export function computeLifeBalance(facets: FacetMap, life: Record<string, string
   const variance = scores.reduce((a, b) => a + Math.abs(b - avg), 0) / scores.length
 
   const overallBalance: LifeBalanceProfile['overallBalance'] =
-    variance > 25 ? '불균형' : variance > 15 ? '보통' : '양호'
+    avg < 42          ? '불균형'
+    : variance > 25   ? '불균형'
+    : (avg < 52 || variance > 15) ? '보통'
+    : '양호'
 
   const lowestDomain = domains.reduce((a, b) => a.score < b.score ? a : b)
   const priority = lowestDomain.name
 
   const recommendation =
-    overallBalance === '불균형'
+    avg < 42
+      ? `전 영역 평균 ${Math.round(avg)}점 — 균형 이전에 에너지 총량 자체가 부족한 위험한 상태입니다. 완벽한 균형보다 가장 낮은 ${priority} 영역에 즉시 개입하는 것이 우선입니다.`
+      : overallBalance === '불균형'
       ? `삶의 여러 영역 간 편차가 큽니다. 특히 ${priority} 영역이 가장 주의가 필요합니다. 완벽한 균형보다 "가장 부족한 한 영역에 의도적 투자"가 현실적인 시작점입니다.`
       : overallBalance === '보통'
       ? `전반적으로 무난하지만 ${priority} 영역에서 개선 여지가 있습니다. 다른 영역을 해치지 않는 범위에서 이 영역에 작은 투자를 시작해보세요.`
