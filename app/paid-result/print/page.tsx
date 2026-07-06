@@ -54,7 +54,7 @@ export default function PrintPage() {
   const [careers, setCareers] = useState<CareerScore[]>([])
 
   useEffect(() => {
-    const raw = sessionStorage.getItem('paid_answers')
+    const raw = localStorage.getItem('paid_answers')
     if (!raw) { router.push('/paid-test'); return }
     const answers = JSON.parse(raw)
     const scored = scorePaidAnswers(answers)

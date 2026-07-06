@@ -103,7 +103,7 @@ export default function PaidTestPage() {
           id: pq.id,
           score: newAnswers[pq.id] ?? 3,
         }))
-        sessionStorage.setItem('paid_answers', JSON.stringify(result))
+        localStorage.setItem('paid_answers', JSON.stringify(result))
         router.push('/paid-result')
         return
       }
