@@ -1194,14 +1194,43 @@ export function computeTripleConflict(
   const aptAligned = aptCluster.includes(interestRiasec)
   const personalityInterestAligned = personalityRiasec === interestRiasec
 
+  // RIASEC 유형별 일치 해석 — 성격·흥미·적성이 모두 같은 방향일 때
+  const ALIGNED_NARRATIVES: Record<RiasecType, { narrative: string; roles: string[] }> = {
+    I: {
+      narrative: `세 나침반이 모두 탐구형(I)을 가리킵니다. 성격적으로 분석과 개념 탐색을 즐기고, 흥미도 같은 방향이며, ${aptDominant} 적성이 지적 역량을 뒷받침합니다. 이 일관성은 드문 강점입니다. "무언가를 깊이 파고들어 이해하는 것" 자체에서 에너지를 얻는 사람에게 가장 지속 가능한 경력은 그 탐구 대상을 직업으로 만드는 것입니다. 지금 당장 가장 궁금한 질문 하나를 찾아내는 것이 진로 탐색의 출발점입니다. 적성(${aptDominant})을 살려 탐구 방법론의 강점을 최대화하세요.`,
+      roles: ['연구원·과학자', '데이터 사이언티스트', 'UX 리서처', '교수·학자', '철학·심리 연구자'],
+    },
+    S: {
+      narrative: `세 나침반이 모두 사회형(S)을 가리킵니다. 성격적으로 사람에게 에너지를 주고, 흥미도 돕는 것을 향하며, ${aptDominant} 적성이 그 역량을 지지합니다. 이 조합은 "사람과 함께할 때 가장 강해지는" 직업에서 내적 갈등 없이 장기 지속 가능한 경력을 만들 수 있음을 의미합니다. 같은 사회형이라도 직접 돕는 역할(상담, 교육)과 시스템으로 돕는 역할(복지 기획, 정책)이 다릅니다 — 어느 방식이 더 당신에게 맞는지 좁혀보세요.`,
+      roles: ['상담심리사·심리치료사', '교사·교육자', '사회복지사·NGO 기획', '간호사·의료지원직', 'HR·조직개발·코치'],
+    },
+    E: {
+      narrative: `세 나침반이 모두 진취형(E)을 가리킵니다. 성격적으로 이끌고 추진하는 것이 자연스럽고, 흥미도 같은 방향이며, ${aptDominant} 적성이 비즈니스·전략 역량을 지지합니다. 이 일치는 강력한 신호입니다. 다만 "이끌기"와 "소유하기"는 다릅니다 — 조직 내 리더 경로(관리자, 임원)와 자기 사업 경로(창업, 프리랜서) 중 어느 쪽이 더 맞는지를 초기에 검증하는 것이 중요합니다. 지금 당장의 첫 행동: 소규모 프로젝트에서 직접 주도권을 가져보세요.`,
+      roles: ['창업가·스타트업', '경영자·임원', '마케팅·광고 기획', '경영 컨설턴트·전략기획', '변호사·법조인'],
+    },
+    A: {
+      narrative: `세 나침반이 모두 예술형(A)을 가리킵니다. 성격적으로 창의적 표현이 자연스럽고, 흥미도 같은 방향이며, ${aptDominant} 적성이 표현 역량을 뒷받침합니다. 이 조합은 창의 산업에서 내·외적 일관성이 높다는 의미입니다. 예술형이 가장 위험에 처하는 순간은 "표현"과 "생계"가 충돌할 때입니다 — 이 갈등을 줄이는 방법은 순수 창작 + 적성 기반 응용(디자인, 기획, 콘텐츠)을 전략적으로 조합하는 것입니다.`,
+      roles: ['작가·저널리스트', '그래픽·제품 디자이너', '예술가·창작자', 'PD·영상 크리에이터', '건축가·인테리어 디자이너'],
+    },
+    R: {
+      narrative: `세 나침반이 모두 현실형(R)을 가리킵니다. 성격적으로 실용·구체적 작업을 좋아하고, 흥미도 같은 방향이며, ${aptDominant} 적성이 기술·공학 역량을 지지합니다. 이 일치는 드뭅니다. "손으로 만들거나, 시스템을 구축하거나, 기술을 다루는" 역할에서 오래 지치지 않고 일할 수 있는 구조를 갖추었습니다. 현실형이 가장 강력해지는 순간은 구체적 전문성을 좁고 깊게 파고들 때입니다 — 한 분야의 최고 전문가를 목표로 설정하세요.`,
+      roles: ['공학자·기술직', '소프트웨어 엔지니어', '의사·의학직', '파일럿·항공우주 전문가', '스포츠·피트니스 전문가'],
+    },
+    C: {
+      narrative: `세 나침반이 모두 관습형(C)을 가리킵니다. 성격적으로 체계와 정확성을 중시하고, 흥미도 같은 방향이며, ${aptDominant} 적성이 분석·수리 역량을 지지합니다. 이 조합은 "복잡한 데이터·규정·절차를 정확하게 다루는" 역할에서 내적 갈등 없이 장기 성과를 낼 수 있음을 의미합니다. 관습형은 안정성을 주지만, 변화 속도가 빠른 환경에서 적응 유연성을 함께 키우는 것이 장기적으로 중요합니다.`,
+      roles: ['데이터 사이언티스트', '회계사·세무사', '공무원·행정직', '금융 전문가·투자 분석가', '약사·임상병리사'],
+    },
+  }
+
   if (personalityInterestAligned && aptAligned) {
+    const aligned = ALIGNED_NARRATIVES[personalityRiasec]
     return {
       personalityRiasec,
       interestRiasec,
       aptitudeDominant: aptDominant,
       aligned: true,
-      narrative: `성격(${RIASEC_KO[personalityRiasec]}), 흥미(${RIASEC_KO[interestRiasec]}), 적성(${aptDominant}) — 세 나침반이 같은 방향을 가리킵니다. 이 일관성은 강점입니다. 진로 선택에서 내·외적 갈등이 적고, 에너지가 한 방향으로 집중됩니다. 이 조합이 가장 강하게 빛나는 경로를 깊이 파고드는 것이 최선의 전략입니다.`,
-      bridgeRoles: [],
+      narrative: aligned.narrative,
+      bridgeRoles: aligned.roles,
     }
   }
 
@@ -1238,13 +1267,16 @@ export function computeTripleConflict(
     }
   }
 
-  // 충돌 패턴이 없거나 경미한 경우 — 대체 텍스트
+  // 충돌 패턴이 없거나 경미한 경우 — 부분 일치 해석
+  const softNote = personalityInterestAligned
+    ? `성격과 흥미가 모두 ${RIASEC_KO[personalityRiasec]}을 가리켜 방향이 일치합니다. 적성(${aptDominant})도 큰 충돌 없이 보완적으로 작용합니다.`
+    : `성격(${RIASEC_KO[personalityRiasec]})과 흥미(${RIASEC_KO[interestRiasec]})가 완전히 겹치지는 않지만, 가까운 유형입니다. 적성(${aptDominant})이 두 방향 중 어느 쪽에 더 가깝게 보완되는지가 최종 진로를 좁히는 기준이 됩니다.`
   return {
     personalityRiasec,
     interestRiasec,
     aptitudeDominant: aptDominant,
-    aligned: true,
-    narrative: `성격(${RIASEC_KO[personalityRiasec]})과 흥미(${RIASEC_KO[interestRiasec]})가 유사한 방향을 가리키며, 적성(${aptDominant})과도 큰 충돌이 없습니다. 세 영역이 대체로 일관성 있게 정렬되어 있어 진로 선택 시 내적 갈등이 적을 것입니다.`,
+    aligned: personalityInterestAligned,
+    narrative: softNote + ` 세 영역이 대체로 일관성 있게 정렬되어 있어, 적성(${aptDominant})이 강점이 되는 구체적 직업을 진로의 중심에 두는 전략이 유효합니다.`,
     bridgeRoles: [],
   }
 }
