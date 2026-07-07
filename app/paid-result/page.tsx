@@ -721,18 +721,35 @@ export default function PaidResultPage() {
 
             {/* 세 나침반 시각화 */}
             <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: '성격이 끌리는 방향', value: tripleConflict.personalityRiasec, color: '#a78bfa', desc: '상위 직업들의 공통 유형' },
-                { label: '흥미가 끌리는 방향', value: tripleConflict.interestRiasec, color: '#34d399', desc: '직접 측정 흥미 1위' },
-                { label: '적성이 가리키는 방향', value: tripleConflict.aptitudeDominant, color: '#60a5fa', desc: '학문 계열 우세' },
-              ].map(({ label, value, color, desc }) => (
-                <div key={label} className="rounded-2xl p-4 text-center space-y-1"
-                  style={{ background: `${color}10`, border: `1px solid ${color}30` }}>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{label}</p>
-                  <p className="text-xl font-black" style={{ color }}>{value}</p>
-                  <p className="text-xs" style={{ color: 'var(--muted2)', fontSize: 10 }}>{desc}</p>
-                </div>
-              ))}
+              {(() => {
+                const RIASEC_KO: Record<string, string> = { R: '현실형', I: '탐구형', A: '예술형', S: '사회형', E: '진취형', C: '관습형' }
+                const RIASEC_SUB: Record<string, string> = {
+                  R: '기계·신체·자연 활동',
+                  I: '분석·연구·이론 탐구',
+                  A: '창작·표현·자유로운 작업',
+                  S: '교육·돌봄·사람 중심',
+                  E: '설득·리더십·경쟁',
+                  C: '절차·정확·데이터 관리',
+                }
+                const cards = [
+                  { label: '성격 나침반', sublabel: 'HEXACO 성격 → 직업 태그 분석', code: tripleConflict.personalityRiasec, color: '#a78bfa', isApt: false },
+                  { label: '흥미 나침반', sublabel: '직업흥미 직접 측정 1위', code: tripleConflict.interestRiasec, color: '#34d399', isApt: false },
+                  { label: '적성 나침반', sublabel: '인지 역량 우세 계열', code: tripleConflict.aptitudeDominant, color: '#60a5fa', isApt: true },
+                ]
+                return cards.map(({ label, sublabel, code, color, isApt }) => (
+                  <div key={label} className="rounded-2xl p-4 text-center space-y-1"
+                    style={{ background: `${color}10`, border: `1px solid ${color}30` }}>
+                    <p className="text-xs font-semibold" style={{ color }}>{label}</p>
+                    <p className="text-lg font-black" style={{ color }}>
+                      {isApt ? code : `${code} · ${RIASEC_KO[code] ?? code}`}
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--muted)', fontSize: 10 }}>
+                      {isApt ? '' : (RIASEC_SUB[code] ?? '')}
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--muted2)', fontSize: 10, opacity: 0.7 }}>{sublabel}</p>
+                  </div>
+                ))
+              })()}
             </div>
 
             {/* 일치/충돌 배지 */}
