@@ -1,6 +1,109 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+// ─── 테스트 시나리오 (결과 페이지 즉시 확인용) ───────────────────────────────
+type Scenario = { label: string; desc: string; scores: Record<string, number> }
+
+function makeAll(v: number): Record<string, number> {
+  const ids = Array.from({ length: 82 }, (_, i) => `PQ${i + 1}`)
+  return Object.fromEntries(ids.map(id => [id, v]))
+}
+
+const SCENARIOS: Scenario[] = [
+  {
+    label: '기본 중간값',
+    desc: '전 문항 3점 — 특징 없는 중립 케이스',
+    scores: makeAll(3),
+  },
+  {
+    label: '번아웃 위험형',
+    desc: '성실성·불안 높음, 경계심 낮음',
+    scores: {
+      ...makeAll(3),
+      // C 성실성 높음 (PQ33~40 정방향↑, 역채점↓)
+      PQ33: 5, PQ34: 1, PQ35: 5, PQ36: 1, PQ37: 5, PQ38: 1, PQ39: 5, PQ40: 1,
+      // E2 불안 높음 (PQ11 정방향↑, PQ12 역채점↓)
+      PQ11: 5, PQ12: 1,
+      // A 경계심 낮음 (PQ29↑ 유연, PQ30↓)
+      PQ29: 5, PQ30: 1,
+    },
+  },
+  {
+    label: '탐구형 I 일치',
+    desc: '성격·흥미·적성 모두 탐구형 — 세 축 일치 케이스',
+    scores: {
+      ...makeAll(3),
+      // O 개방성 높음
+      PQ41: 5, PQ42: 1, PQ43: 5, PQ44: 1, PQ45: 5, PQ46: 1, PQ47: 5, PQ48: 1,
+      // RIASEC I 높음
+      PQ52: 5, PQ53: 5, PQ54: 5,
+      // RIASEC 나머지 낮게
+      PQ49: 1, PQ50: 1, PQ51: 1, PQ55: 2, PQ56: 2, PQ57: 2,
+      PQ58: 2, PQ59: 2, PQ60: 2, PQ61: 1, PQ62: 1, PQ63: 1,
+      PQ64: 2, PQ65: 2, PQ66: 2,
+      // 적성 수리·과학 높음
+      PQ67: 5, PQ68: 5, PQ73: 5, PQ74: 1,
+    },
+  },
+  {
+    label: '3계열 융합',
+    desc: '수리·언어·공간 비슷 — 이과/문과/공학 균형',
+    scores: {
+      ...makeAll(3),
+      // 적성 3개 비슷하게 모두 높음
+      PQ67: 5, PQ68: 1, PQ69: 5, PQ70: 1, PQ73: 5, PQ74: 1,
+      // 나머지 적성 낮게
+      PQ71: 2, PQ72: 5, PQ75: 2, PQ76: 5, PQ77: 2, PQ78: 5,
+      PQ79: 2, PQ80: 5,
+    },
+  },
+  {
+    label: '카리스마 리더',
+    desc: '대담성·진취형 RIASEC 높음 — E형 일치 케이스',
+    scores: {
+      ...makeAll(3),
+      // X 대담성 높음
+      PQ17: 5, PQ18: 1, PQ19: 5, PQ20: 1, PQ21: 5, PQ22: 1, PQ23: 5, PQ24: 1,
+      // RIASEC E 높음
+      PQ61: 5, PQ62: 5, PQ63: 5,
+      PQ49: 1, PQ50: 1, PQ51: 1, PQ52: 2, PQ53: 2, PQ54: 2,
+      PQ55: 2, PQ56: 2, PQ57: 2, PQ58: 2, PQ59: 2, PQ60: 2,
+      PQ64: 1, PQ65: 1, PQ66: 1,
+      // 적성 경상형
+      PQ79: 5, PQ80: 1, PQ81: 5, PQ82: 1,
+    },
+  },
+]
+
+function ScenarioPanel() {
+  const router = useRouter()
+  function launch(scenario: Scenario) {
+    const answers = Object.entries(scenario.scores).map(([id, score]) => ({ id, score }))
+    localStorage.setItem('paid_answers', JSON.stringify(answers))
+    router.push('/paid-result')
+  }
+  return (
+    <div className="glass rounded-2xl p-6 mb-10">
+      <h2 className="font-bold text-lg mb-1">결과 미리보기</h2>
+      <p className="text-sm mb-5" style={{ color: 'var(--muted)' }}>시나리오를 선택하면 localStorage에 저장 후 유료 결과 페이지로 이동합니다</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {SCENARIOS.map(s => (
+          <button
+            key={s.label}
+            onClick={() => launch(s)}
+            className="text-left rounded-xl px-4 py-3 transition-all hover:opacity-85 active:scale-95"
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+          >
+            <p className="font-semibold text-sm">{s.label}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{s.desc}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface BehaviorSection {
   question_funnel: { qid: string; index: number; reach: number }[]
@@ -337,6 +440,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen px-6 py-10" style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <ScenarioPanel />
       <div className="flex items-center justify-between mb-10">
         <div>
           <h1 className="text-3xl font-bold gradient-text">대시보드</h1>
