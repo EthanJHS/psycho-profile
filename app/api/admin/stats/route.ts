@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin1234'
-
 function getServiceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,12 +8,7 @@ function getServiceClient() {
   )
 }
 
-export async function GET(req: NextRequest) {
-  const pw = req.headers.get('x-admin-password')
-  if (pw !== ADMIN_PASSWORD) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
-
+export async function GET(_req: NextRequest) {
   const sb = getServiceClient()
 
   const [

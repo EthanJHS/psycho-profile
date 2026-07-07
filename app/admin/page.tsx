@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 // ─── 테스트 시나리오 (결과 페이지 즉시 확인용) ───────────────────────────────
@@ -364,61 +364,35 @@ function BehaviorPanel({ data, isPaid }: { data: BehaviorSection; isPaid: boolea
 }
 
 export default function AdminPage() {
-  const [pw, setPw] = useState('')
-  const [authed, setAuthed] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [behaviorTab, setBehaviorTab] = useState<'paid' | 'free'>('paid')
 
-  async function fetchStats(password: string) {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch('/api/admin/stats', {
-        headers: { 'x-admin-password': password },
-      })
-      if (!res.ok) { setError('비밀번호가 틀렸습니다.'); return }
-      const data = await res.json()
-      setStats(data)
-      setAuthed(true)
-    } catch {
-      setError('서버 오류가 발생했습니다.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  useEffect(() => {
+    fetch('/api/admin/stats')
+      .then(res => res.ok ? res.json() : Promise.reject(res.status))
+      .then(data => setStats(data))
+      .catch(() => setError('데이터를 불러오지 못했습니다.'))
+      .finally(() => setLoading(false))
+  }, [])
 
-  // 로그인
-  if (!authed) {
+  if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6">
-        <div className="glass rounded-2xl p-10 w-full max-w-sm">
-          <h1 className="text-2xl font-bold mb-2">어드민</h1>
-          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>PsychoProfile 관리자 대시보드</p>
-          <input
-            type="password"
-            placeholder="비밀번호"
-            value={pw}
-            onChange={e => setPw(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && fetchStats(pw)}
-            className="w-full px-4 py-3 rounded-xl mb-4 outline-none"
-            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
-          />
-          {error && <p className="text-sm mb-3" style={{ color: '#f87171' }}>{error}</p>}
-          <button
-            onClick={() => fetchStats(pw)}
-            disabled={loading}
-            className="btn-primary w-full justify-center"
-          >
-            {loading ? '확인 중...' : '접속'}
-          </button>
-        </div>
+      <main className="min-h-screen flex items-center justify-center">
+        <p style={{ color: 'var(--muted)' }}>로딩 중...</p>
       </main>
     )
   }
 
-  if (!stats) return null
+  if (error || !stats) {
+    return (
+      <main className="min-h-screen px-6 py-10" style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <ScenarioPanel />
+        {error && <p style={{ color: '#f87171' }}>{error}</p>}
+      </main>
+    )
+  }
 
   const { overview, profile_distribution, daily_funnel, slow_questions, device_distribution, recent_events, paid, behavior } = stats
   const maxProfile = profile_distribution[0]?.count ?? 1
@@ -447,7 +421,7 @@ export default function AdminPage() {
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>PsychoProfile 어드민</p>
         </div>
         <button
-          onClick={() => fetchStats(pw)}
+          onClick={() => window.location.reload()}
           className="btn-secondary text-sm px-4 py-2"
         >
           새로고침
