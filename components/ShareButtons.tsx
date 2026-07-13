@@ -6,6 +6,7 @@ import Script from 'next/script'
 interface Props {
   profileLabel: string
   profileId: string
+  pdfPath?: string  // 지정하면 window.print() 대신 해당 경로로 새 탭 이동
 }
 
 declare global {
@@ -20,7 +21,7 @@ declare global {
   }
 }
 
-export default function ShareButtons({ profileLabel, profileId: _profileId }: Props) {
+export default function ShareButtons({ profileLabel, profileId: _profileId, pdfPath }: Props) {
   const [copied, setCopied] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [kakaoReady, setKakaoReady] = useState(false)
@@ -84,6 +85,10 @@ export default function ShareButtons({ profileLabel, profileId: _profileId }: Pr
   }
 
   function savePDF() {
+    if (pdfPath) {
+      window.open(pdfPath, '_blank')
+      return
+    }
     setPrinting(true)
     setTimeout(() => {
       window.print()

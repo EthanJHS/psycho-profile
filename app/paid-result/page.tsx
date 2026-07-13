@@ -19,6 +19,7 @@ import { FacetMap } from '@/lib/profiles'
 import { SUB_FACET_LABELS, SubFacet } from '@/lib/paid-questions'
 import Link from 'next/link'
 import PatternIllustration from '@/components/PatternIllustration'
+import ShareButtons from '@/components/ShareButtons'
 import { savePaidResult, initSession, initScrollDepthTracking } from '@/lib/analytics'
 
 // ── 색상 팔레트 ──────────────────────────────────────────────────────────────
@@ -1461,15 +1462,13 @@ export default function PaidResultPage() {
           </a>
         </div>
 
+        {/* ── 공유 / PDF ── */}
+        {interp && (
+          <ShareButtons profileLabel={interp.headline} profileId="paid" pdfPath="/paid-result/print" />
+        )}
+
         {/* ── 하단 액션 ── */}
         <div className="space-y-3">
-          <button
-            onClick={() => window.open('/paid-result/print', '_blank')}
-            className="btn-secondary w-full"
-            style={{ justifyContent: 'center', padding: '13px' }}
-          >
-            결과 저장 (인쇄 / PDF)
-          </button>
           <Link href="/" className="btn-secondary w-full flex items-center justify-center" style={{ padding: '13px' }}>
             홈으로 돌아가기
           </Link>

@@ -639,28 +639,32 @@ function generateSituationalPredictions(hexaco: HexacoScores): SituationalPredic
   let stressHeadline = ''
   let stressWatchout = ''
 
+  // 스트레스 반응 — 더 넓은 범위로 분기 (중간값도 방향 판별)
+  const mhE = E >= 3.4, mlE = E <= 2.6   // 넓은 기준
+  const mhC = C >= 3.4, mlC = C <= 2.6
+
   // 스트레스 반응 핵심 (E × C)
-  if (hE && hC) {
+  if (mhE && mhC) {
     stressHeadline = '더 열심히 하려 하지만 내면에서는 무너지는 유형'
     stressBehaviors.push('압박이 커지면 실수를 막기 위해 더 철저하게 통제하려 합니다. 체크리스트가 늘어나고, 완료 전에 다시 검토하는 행동이 반복됩니다.')
     stressBehaviors.push('겉으로는 "괜찮다"고 하지만 내면에서는 걱정과 긴장이 누적됩니다. 스트레스 신호가 신체(수면, 소화, 긴장)로 먼저 나타나는 경우가 많습니다.')
     stressWatchout = '번아웃의 위험이 가장 높은 패턴입니다. "일을 더 잘하면 불안이 줄어든다"는 믿음이 소진의 핵심 메커니즘입니다. 완료 기준을 미리 정하고, 스스로를 검수하는 루프에서 의도적으로 빠져나오는 연습이 필요합니다.'
-  } else if (hE && lC) {
+  } else if (mhE && mlC) {
     stressHeadline = '압박을 받으면 일단 피하고 싶어지는 유형'
     stressBehaviors.push('마감이 다가올수록 오히려 다른 일을 먼저 하거나 미루는 패턴이 나타납니다. 압박 자체가 불안을 유발하기 때문입니다.')
     stressBehaviors.push('스트레스 상황에서 사소한 자극에 더 민감하게 반응합니다. 평소에는 괜찮은 말도 날카롭게 들릴 수 있습니다.')
     stressWatchout = '회피가 단기적으로는 불안을 줄여주지만, 장기적으로 상황을 악화시킵니다. 아주 작은 첫 단계만 시작하는 것("5분만")이 이 패턴을 끊는 가장 효과적인 방법입니다.'
-  } else if (lE && hC) {
+  } else if (mlE && mhC) {
     stressHeadline = '위기에서 오히려 더 명확해지는 유형'
     stressBehaviors.push('압박 상황에서 감정적으로 흔들리는 대신 해야 할 일 목록을 정리하고 하나씩 처리하려 합니다. 주변이 패닉 상태일 때 침착함을 유지하는 사람입니다.')
     stressBehaviors.push('스트레스가 너무 낮으면 오히려 동기가 떨어지는 경향이 있습니다. 적당한 긴장감이 최고 퍼포먼스의 조건입니다.')
     stressWatchout = '자신은 잘 버티지만, 주변 사람들의 감정적 소진 신호를 놓치기 쉽습니다. "나는 괜찮으니 너도 괜찮아야 한다"는 암묵적 기대가 팀 내 관계에서 갈등을 만들 수 있습니다.'
-  } else if (lE && lC) {
+  } else if (mlE && mlC) {
     stressHeadline = '스트레스에 무뎌지는 대신 방향도 잃는 유형'
     stressBehaviors.push('감정적으로 크게 흔들리지 않지만, 동시에 위기감을 느끼지 못해 필요한 대응을 늦추는 경향이 있습니다.')
     stressBehaviors.push('스트레스 상황에서 에너지가 분산되고 우선순위가 흐려집니다. 외부에서 구조를 잡아주는 사람이나 시스템이 있을 때 훨씬 효과적으로 대응합니다.')
     stressWatchout = '위기 신호를 너무 늦게 인식하는 것이 이 패턴의 핵심 위험입니다. 주기적으로 "지금 이것이 문제인가?"를 의식적으로 점검하는 루틴이 필요합니다.'
-  } else if (hE) {
+  } else if (mhE) {
     stressHeadline = '감정이 먼저 반응하는 유형'
     stressBehaviors.push('스트레스 신호를 다른 사람보다 빠르게 감지합니다. 이 민감성은 조기 경보 시스템으로 작동하지만, 때로는 실제보다 위협을 크게 느끼게 만듭니다.')
     stressBehaviors.push('스트레스 상황에서 지지와 공감을 받을 때 회복이 빠릅니다. 혼자 감당하려 할 때 더 오래 걸립니다.')
