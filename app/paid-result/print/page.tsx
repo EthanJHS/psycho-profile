@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { decodePaidAnswers } from '@/lib/result-encoding'
 import { scorePaidAnswers, PaidScoringOutput, HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS } from '@/lib/paid-scoring'
@@ -43,7 +43,7 @@ function Bar({ value, max = 5, color }: { value: number; max?: number; color: st
   )
 }
 
-export default function PrintPage() {
+function PrintPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [data, setData] = useState<PaidScoringOutput | null>(null)
@@ -516,5 +516,13 @@ export default function PrintPage() {
 
       </div>
     </>
+  )
+}
+
+export default function PrintPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <PrintPage />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { decodePaidAnswers } from '@/lib/result-encoding'
 import {
@@ -118,7 +118,7 @@ function SectionHeader({ icon, badge, badgeColor, title }: { icon: string; badge
 }
 
 // ── 메인 페이지 ──────────────────────────────────────────────────────────────
-export default function PaidResultPage() {
+function PaidResultPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [data,      setData]      = useState<PaidScoringOutput | null>(null)
@@ -1495,5 +1495,13 @@ export default function PaidResultPage() {
 
       </div>
     </main>
+  )
+}
+
+export default function PaidResultPageWrapper() {
+  return (
+    <Suspense fallback={<main className="min-h-screen flex items-center justify-center"><p style={{ color: 'var(--muted)' }}>로딩 중...</p></main>}>
+      <PaidResultPage />
+    </Suspense>
   )
 }
