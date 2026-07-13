@@ -6,7 +6,8 @@ import Script from 'next/script'
 interface Props {
   profileLabel: string
   profileId: string
-  pdfPath?: string  // 지정하면 window.print() 대신 해당 경로로 새 탭 이동
+  pdfPath?: string      // 지정하면 window.print() 대신 해당 경로로 새 탭 이동
+  resultParam?: string  // ?r=<encoded> — 공유 URL에 포함
 }
 
 declare global {
@@ -21,7 +22,7 @@ declare global {
   }
 }
 
-export default function ShareButtons({ profileLabel, profileId: _profileId, pdfPath }: Props) {
+export default function ShareButtons({ profileLabel, profileId: _profileId, pdfPath, resultParam }: Props) {
   const [copied, setCopied] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [kakaoReady, setKakaoReady] = useState(false)
@@ -29,7 +30,8 @@ export default function ShareButtons({ profileLabel, profileId: _profileId, pdfP
 
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|Android/i.test(navigator.userAgent)
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://psycho-profile-eta.vercel.app'
+  const siteBase = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://psycho-profile-eta.vercel.app'
+  const siteUrl = resultParam ? `${siteBase}/paid-result?r=${resultParam}` : siteBase
   const kakaoKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? ''
   const shareText = `나의 심리 프로파일은 "${profileLabel}" 🔮\n192개 유형 중 나에게 딱 맞는 분석을 받아봐. 너도 해봐 →`
 

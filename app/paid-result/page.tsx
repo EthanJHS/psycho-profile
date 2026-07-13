@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { decodePaidAnswers } from '@/lib/result-encoding'
 import {
   scorePaidAnswers, PaidScoringOutput,
   HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS,
@@ -119,6 +120,7 @@ function SectionHeader({ icon, badge, badgeColor, title }: { icon: string; badge
 // ── 메인 페이지 ──────────────────────────────────────────────────────────────
 export default function PaidResultPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [data,      setData]      = useState<PaidScoringOutput | null>(null)
   const [interp,    setInterp]    = useState<PaidInterpretation | null>(null)
   const [narrative, setNarrative] = useState<string>('')
@@ -133,9 +135,17 @@ export default function PaidResultPage() {
   const [tripleConflict, setTripleConflict] = useState<TripleConflict | null>(null)
 
   useEffect(() => {
-    const raw = localStorage.getItem('paid_answers')
-    if (!raw) { router.push('/paid-test'); return }
-    const answers = JSON.parse(raw)
+    const r = searchParams.get('r')
+    let answers
+    if (r) {
+      answers = decodePaidAnswers(r)
+      if (answers.length > 0) localStorage.setItem('paid_answers', JSON.stringify(answers))
+    } else {
+      const raw = localStorage.getItem('paid_answers')
+      if (!raw) { router.push('/paid-test'); return }
+      answers = JSON.parse(raw)
+    }
+    if (!answers || answers.length === 0) { router.push('/paid-test'); return }
     const scored  = scorePaidAnswers(answers)
     setData(scored)
 
@@ -1464,7 +1474,12 @@ export default function PaidResultPage() {
 
         {/* ── 공유 / PDF ── */}
         {interp && (
-          <ShareButtons profileLabel={interp.headline} profileId="paid" pdfPath="/paid-result/print" />
+          <ShareButtons
+            profileLabel={interp.headline}
+            profileId="paid"
+            pdfPath={`/paid-result/print${searchParams.get('r') ? '?r=' + searchParams.get('r') : ''}`}
+            resultParam={searchParams.get('r') ?? undefined}
+          />
         )}
 
         {/* ── 하단 액션 ── */}

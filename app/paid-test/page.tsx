@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PAID_QUESTIONS } from '@/lib/paid-questions'
 import { trackPaidAnswer, sendAbandonBeacon } from '@/lib/analytics'
 import { PaidAnswer } from '@/lib/paid-scoring'
+import { encodePaidAnswers } from '@/lib/result-encoding'
 
 const TOTAL = PAID_QUESTIONS.length
 
@@ -104,7 +105,7 @@ export default function PaidTestPage() {
           score: newAnswers[pq.id] ?? 3,
         }))
         localStorage.setItem('paid_answers', JSON.stringify(result))
-        router.push('/paid-result')
+        router.push('/paid-result?r=' + encodePaidAnswers(result))
         return
       }
 

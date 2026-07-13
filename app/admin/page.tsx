@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { encodePaidAnswers } from '@/lib/result-encoding'
 
 // ─── 테스트 시나리오 (결과 페이지 즉시 확인용) ───────────────────────────────
 type Scenario = { label: string; desc: string; scores: Record<string, number> }
@@ -82,7 +83,7 @@ function ScenarioPanel() {
   function launch(scenario: Scenario) {
     const answers = Object.entries(scenario.scores).map(([id, score]) => ({ id, score }))
     localStorage.setItem('paid_answers', JSON.stringify(answers))
-    router.push('/paid-result')
+    router.push('/paid-result?r=' + encodePaidAnswers(answers))
   }
   return (
     <div className="glass rounded-2xl p-6 mb-10">

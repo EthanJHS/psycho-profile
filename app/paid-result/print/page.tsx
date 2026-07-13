@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { decodePaidAnswers } from '@/lib/result-encoding'
 import { scorePaidAnswers, PaidScoringOutput, HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS } from '@/lib/paid-scoring'
 import { interpretPaidResult, PaidInterpretation } from '@/lib/paid-interpretation'
 import {
@@ -44,6 +45,7 @@ function Bar({ value, max = 5, color }: { value: number; max?: number; color: st
 
 export default function PrintPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [data, setData] = useState<PaidScoringOutput | null>(null)
   const [interp, setInterp] = useState<PaidInterpretation | null>(null)
   const [narrative, setNarrative] = useState('')
@@ -57,9 +59,16 @@ export default function PrintPage() {
   const [tripleConflict, setTripleConflict] = useState<TripleConflict | null>(null)
 
   useEffect(() => {
-    const raw = localStorage.getItem('paid_answers')
-    if (!raw) { router.push('/paid-test'); return }
-    const answers = JSON.parse(raw)
+    const r = searchParams.get('r')
+    let answers
+    if (r) {
+      answers = decodePaidAnswers(r)
+    } else {
+      const raw = localStorage.getItem('paid_answers')
+      if (!raw) { router.push('/paid-test'); return }
+      answers = JSON.parse(raw)
+    }
+    if (!answers || answers.length === 0) { router.push('/paid-test'); return }
     const scored = scorePaidAnswers(answers)
     setData(scored)
 
