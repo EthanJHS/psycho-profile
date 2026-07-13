@@ -6,10 +6,11 @@ import { scorePaidAnswers, PaidScoringOutput, HEXACO_FACTOR_LABELS, RIASEC_LABEL
 import { interpretPaidResult, PaidInterpretation } from '@/lib/paid-interpretation'
 import {
   computeNarrative, computeWorkStyle, computeCharacterStrengths,
-  computeLeadershipStyle, computeBurnoutRisk, computeValuesProfile,
-  WorkStyle, CharacterStrength, LeadershipProfile, BurnoutProfile, ValuesProfile,
+  computeLeadershipStyle, computeBurnoutRisk, computeValuesProfile, computeLifeBalance,
+  WorkStyle, CharacterStrength, LeadershipProfile, BurnoutProfile, ValuesProfile, LifeBalanceProfile,
 } from '@/lib/insights'
 import { computeCareers, CareerScore } from '@/lib/careers'
+import { computeTripleConflict, TripleConflict } from '@/lib/paid-interpretation'
 import { FacetMap } from '@/lib/profiles'
 import { SUB_FACET_LABELS, SubFacet } from '@/lib/paid-questions'
 
@@ -52,6 +53,8 @@ export default function PrintPage() {
   const [burnout, setBurnout] = useState<BurnoutProfile | null>(null)
   const [values, setValues] = useState<ValuesProfile | null>(null)
   const [careers, setCareers] = useState<CareerScore[]>([])
+  const [lifeBalance, setLifeBalance] = useState<LifeBalanceProfile | null>(null)
+  const [tripleConflict, setTripleConflict] = useState<TripleConflict | null>(null)
 
   useEffect(() => {
     const raw = localStorage.getItem('paid_answers')
@@ -85,7 +88,17 @@ export default function PrintPage() {
     setLeadership(computeLeadershipStyle(fm, estCog))
     setBurnout(computeBurnoutRisk(fm, {}))
     setValues(computeValuesProfile(fm))
-    setCareers(computeCareers(fm, estCog))
+    setLifeBalance(computeLifeBalance(fm, {}, undefined))
+    const computedCareers = computeCareers(fm, estCog)
+    setCareers(computedCareers)
+
+    // 세 나침반
+    const top5Riasec = computedCareers.slice(0, 5).map(c => c.riasecPrimary)
+    const riasecCount: Record<string, number> = {}
+    for (const r of top5Riasec) riasecCount[r] = (riasecCount[r] ?? 0) + 1
+    const personalityRiasec = (Object.entries(riasecCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'I') as Parameters<typeof computeTripleConflict>[0]
+    const interpreted2 = interpretPaidResult(scored.hexaco, scored.subFacets, scored.riasec, scored.riasecTop3, scored.aptitude)
+    setTripleConflict(computeTripleConflict(personalityRiasec, scored.riasecTop3[0], interpreted2.aptitudeBreakdown.dominant))
   }, [router])
 
   useEffect(() => {
@@ -402,6 +415,85 @@ export default function PrintPage() {
               </div>
             </div>
             <p style={{ marginTop: 8, fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>{values.tension}</p>
+          </div>
+        )}
+
+        {/* ── 상황별 행동 예측 ── */}
+        {interp.situationalPredictions.length > 0 && (
+          <div className="section">
+            <h2 style={{ color: '#d97706' }}>상황별 행동 예측</h2>
+            <div className="grid3">
+              {interp.situationalPredictions.map((pred, i) => {
+                const colors = ['#d97706', '#dc2626', '#2563eb']
+                const c = colors[i] ?? '#6b7280'
+                return (
+                  <div key={i} className="card" style={{ borderLeft: `3px solid ${c}` }}>
+                    <p style={{ fontWeight: 700, fontSize: 11, color: c, marginBottom: 3 }}>{pred.icon} {pred.context}</p>
+                    <p style={{ fontWeight: 600, fontSize: 11, marginBottom: 5 }}>{pred.headline}</p>
+                    {pred.behaviors.map((b, j) => (
+                      <p key={j} className="hint" style={{ marginBottom: 3 }}>· {b}</p>
+                    ))}
+                    <p className="hint" style={{ marginTop: 5, color: '#dc2626' }}>⚠ {pred.watchout}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── 세 나침반 충돌 분석 ── */}
+        {tripleConflict && (
+          <div className="section">
+            <h2 style={{ color: '#7c3aed' }}>세 나침반 충돌 분석</h2>
+            <div className="grid3" style={{ marginBottom: 12 }}>
+              {[
+                { label: '성격 나침반', code: tripleConflict.personalityRiasec, color: '#7c3aed' },
+                { label: '흥미 나침반', code: tripleConflict.interestRiasec, color: '#059669' },
+                { label: '적성 나침반', code: tripleConflict.aptitudeDominant, color: '#2563eb' },
+              ].map(({ label, code, color }) => (
+                <div key={label} className="card" style={{ textAlign: 'center', border: `1px solid ${color}30` }}>
+                  <p style={{ fontSize: 10, color, fontWeight: 600, marginBottom: 4 }}>{label}</p>
+                  <p style={{ fontSize: 18, fontWeight: 900, color }}>{code}</p>
+                </div>
+              ))}
+            </div>
+            <p style={{ marginBottom: 8, fontWeight: 600, color: tripleConflict.aligned ? '#059669' : '#d97706' }}>
+              {tripleConflict.aligned ? '✓ 세 방향 일치' : '⚡ 방향 불일치'}
+            </p>
+            <p style={{ fontSize: 12, color: '#4b5563', lineHeight: 1.8, marginBottom: 8 }}>{tripleConflict.narrative}</p>
+            {tripleConflict.bridgeRoles.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {tripleConflict.bridgeRoles.map(r => (
+                  <span key={r} className="tag" style={{ background: '#ede9fe', color: '#5b21b6' }}>{r}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 삶의 균형 ── */}
+        {lifeBalance && (
+          <div className="section">
+            <h2 style={{ color: '#059669' }}>삶의 균형 분석</h2>
+            <p style={{ marginBottom: 10 }}>
+              전반적 균형:{' '}
+              <strong style={{ color: lifeBalance.overallBalance === '양호' ? '#059669' : lifeBalance.overallBalance === '보통' ? '#d97706' : '#dc2626' }}>
+                {lifeBalance.overallBalance}
+              </strong>
+              {' '}— {lifeBalance.recommendation}
+            </p>
+            <div className="grid3">
+              {lifeBalance.domains.map(d => (
+                <div key={d.name} className="card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <span style={{ fontWeight: 700, fontSize: 12 }}>{d.icon} {d.name}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: d.score >= 65 ? '#059669' : d.score >= 48 ? '#d97706' : '#dc2626' }}>{d.score}</span>
+                  </div>
+                  <Bar value={d.score} max={100} color={d.score >= 65 ? '#059669' : d.score >= 48 ? '#d97706' : '#dc2626'} />
+                  <p className="hint" style={{ marginTop: 5 }}>{d.insight}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

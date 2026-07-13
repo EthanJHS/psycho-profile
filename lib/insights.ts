@@ -753,13 +753,24 @@ export function computeLifeBalance(facets: FacetMap, life: Record<string, string
   const satisfied = deepAnswers?.life_satisfied as string | undefined
   const lacking = deepAnswers?.life_lacking as string | undefined
 
-  // 각 영역 점수 추정 — 모든 값은 0~1 범위로 먼저 계산 후 100 곱하기
+  // 각 영역 점수 추정 — 도메인별로 주요 facet을 분산시켜 자연스러운 차이가 생기도록 설계
+  // boldness(X), humility(H)도 활용해 diligence/anxiety 편중 방지
+  const bol = get(facets, 'boldness')
+  const hum = get(facets, 'humility')
   const clamp = (v: number) => Math.min(100, Math.max(0, Math.round(v * 100)))
-  const workScore    = clamp(dil * 0.6 + cur * 0.4)
-  const relScore     = clamp(pat * 0.6 + (1 - anx) * 0.4)
-  const healthScore  = clamp((1 - anx) * 0.5 + (life?.recovery_speed === 'fast' ? 0.8 : life?.recovery_speed === 'medium' ? 0.65 : 0.4) * 0.5)
-  const growthScore  = clamp(cur * 0.7 + dil * 0.3)
-  const financeScore = clamp(dil * 0.6 + (1 - anx) * 0.4)
+  // base=0.2: 최저 20점, 최고 95점 → 중간(0.5)은 57점
+  const scale = (v: number) => Math.min(0.95, Math.max(0.20, 0.20 + v * 0.75))
+  // 일·커리어: 성실성 + 대담성 (실행력 + 주도성)
+  const workScore    = clamp(scale(dil * 0.55 + bol * 0.45))
+  // 관계·소속: 인내 + 겸손 (배려·진정성)  — anxiety와 무관하게 분리
+  const relScore     = clamp(scale(pat * 0.6 + hum * 0.4))
+  // 건강·활력: (1-불안) + 회복 속도
+  const recoveryFactor = life?.recovery_speed === 'fast' ? 0.85 : life?.recovery_speed === 'medium' ? 0.65 : 0.45
+  const healthScore  = clamp(scale((1 - anx) * 0.65 + recoveryFactor * 0.35))
+  // 성장·배움: 호기심 + 개방성(=cur) — 성실성과 독립적
+  const growthScore  = clamp(scale(cur * 0.80 + dil * 0.20))
+  // 경제·안정: 성실성 + (1-불안) — 계획성 + 안정감
+  const financeScore = clamp(scale(dil * 0.60 + (1 - anx) * 0.40))
 
   const domains = [
     { name: '일·커리어', icon: '💼', score: satisfied === 'work' ? Math.min(workScore + 15, 100) : lacking === 'work' ? Math.max(workScore - 20, 20) : workScore, insight: dil >= 0.65 ? '성실성이 높아 일에 많은 에너지를 투자합니다. 번아웃 없이 지속 가능한 속도를 유지하는 것이 핵심입니다.' : cur >= 0.6 ? '의미 있는 일에서 에너지를 얻는 유형입니다. 지금 하는 일의 "왜"가 명확한지 점검해보세요.' : '지금 하는 일과 내가 중요하게 생각하는 것이 얼마나 일치하는지 확인해볼 시점입니다.' },
@@ -771,12 +782,14 @@ export function computeLifeBalance(facets: FacetMap, life: Record<string, string
 
   const scores = domains.map(d => d.score)
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+  const range = Math.max(...scores) - Math.min(...scores)
   const variance = scores.reduce((a, b) => a + Math.abs(b - avg), 0) / scores.length
 
   const overallBalance: LifeBalanceProfile['overallBalance'] =
-    avg < 42          ? '불균형'
-    : variance > 25   ? '불균형'
-    : (avg < 52 || variance > 15) ? '보통'
+    avg < 45           ? '불균형'
+    : range > 30       ? '불균형'
+    : variance > 12    ? '불균형'
+    : (avg < 58 || range > 18 || variance > 8) ? '보통'
     : '양호'
 
   const lowestDomain = domains.reduce((a, b) => a.score < b.score ? a : b)
