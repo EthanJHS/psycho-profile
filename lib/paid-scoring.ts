@@ -158,16 +158,41 @@ function classifyAptitude(a: AptitudeScores): AptitudeProfile {
   const biz    = (a.business + a.quantitative)               / 2
   const art    = (a.verbal + a.humanistic)                   / 2
 
-  const max = Math.max(stem, eng, lib, biz)
+  const vals = [stem, eng, lib, biz]
+  const max = Math.max(...vals)
+  const maxIdx = vals.indexOf(max)  // float 동등 비교 대신 인덱스로 결정
   const threshold = 3.5
 
   if (max < threshold) return '복합형'
-  if (max === eng  && a.applied >= 3.5) return '공학형'
-  if (max === stem && a.scientific >= 3.5) return '이과형'
-  if (max === biz  && a.business >= 3.5) return '경상형'
-  if (max === lib  && art >= 3.5 && a.social < 3.5) return '예술형'
-  if (max === lib) return '문과형'
+  if (maxIdx === 1 && a.applied >= 3.5) return '공학형'
+  if (maxIdx === 0 && a.scientific >= 3.5) return '이과형'
+  if (maxIdx === 3 && a.business >= 3.5) return '경상형'
+  if (maxIdx === 2 && art >= 3.5 && a.social < 3.5) return '예술형'
+  if (maxIdx === 2) return '문과형'
   return '복합형'
+}
+
+/**
+ * HEXACO 24 subfacet 점수를 FacetMap으로 변환
+ * 요인 평균 대신 커리어·통찰 계산에 더 직접적으로 연관된 subfacet을 가중 평균하여 사용
+ * 예: curiosity는 탐구심+창의성 위주 (미적감수성 제외), boldness는 사회적 대담성+자존감 위주
+ */
+export function buildFacetMapFromSubFacets(sf: SubFacetScores, hexaco: HexacoScores) {
+  const avg = (...vals: number[]) => vals.reduce((s, v) => s + v, 0) / vals.length
+  return {
+    // O 요인 중 탐구 지향 subfacet에 가중치
+    curiosity:  avg(sf.inquisitiveness * 1.3, sf.creativity * 1.1, sf.unconventionality, sf.aestheticAppreciation * 0.6) / ((1.3 + 1.1 + 1 + 0.6) / 4),
+    // C 요인 중 근면·체계 subfacet
+    diligence:  avg(sf.diligence * 1.3, sf.organization * 1.1, sf.prudence, sf.perfectionism * 0.8) / ((1.3 + 1.1 + 1 + 0.8) / 4),
+    // X 요인 중 직업적 자신감 subfacet
+    boldness:   avg(sf.socialBoldness * 1.3, sf.socialSelfEsteem * 1.2, sf.sociability, sf.liveliness * 0.8) / ((1.3 + 1.2 + 1 + 0.8) / 4),
+    // A 요인 중 인내·유연성 subfacet
+    patience:   avg(sf.patience * 1.3, sf.flexibility * 1.1, sf.gentleness, sf.forgivingness * 0.8) / ((1.3 + 1.1 + 1 + 0.8) / 4),
+    // E 요인 그대로 (요인 평균이 가장 적합)
+    anxiety:    hexaco.E,
+    // H 요인 그대로
+    humility:   hexaco.H,
+  }
 }
 
 // ── 결과 텍스트 생성 헬퍼 ────────────────────────────────────────────

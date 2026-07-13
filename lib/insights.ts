@@ -80,7 +80,7 @@ export function computeNarrative(facets: FacetMap, cogScore: number): string {
   const topFacetLabel = (() => {
     const ranked: [number, string][] = [
       [cur, '지적 탐구'], [dil, '성실한 완수'], [bol, '사회적 에너지'],
-      [hum, '진정성'], [(1 - anx) * 0.5 + anx * 0.5, '감수성'], [pat, '공감력'],
+      [hum, '진정성'], [anx, '감수성'], [pat, '공감력'],
     ]
     ranked.sort((a, b) => b[0] - a[0])
     return ranked[0][1]
@@ -552,6 +552,15 @@ export function computeLeadershipStyle(facets: FacetMap, cogScore: number, deepA
       bestEnvironment: '인재 육성이 중요한 조직, 구성원의 자율성과 성장이 핵심인 환경',
       growthEdge: '때로는 직접 방향을 제시하는 속도가 더 효과적입니다. "지금 이 상황은 코칭보다 명확한 지시가 필요한가?" 를 구분하는 감각을 기르세요.',
     }
+  } else if (isFacilitator) {
+    return {
+      style: '촉진형', icon: '🌐',
+      summary: '구성원 각자의 강점을 끌어내어 팀이 스스로 움직이도록 환경을 만드는 스타일입니다. 직접 이끌기보다 팀이 최선의 결론을 도출하도록 판을 짜는 데 탁월합니다.',
+      strengths: ['다양한 의견을 공정하게 수렴하는 회의 진행', '팀원이 자발적으로 참여하도록 동기를 부여', '심리적 안전감이 높은 환경 조성'],
+      blindspots: ['빠른 결단이 필요한 상황에서 속도가 느려질 수 있음', '촉진에 집중하다 자신의 관점을 충분히 표현하지 못할 위험'],
+      bestEnvironment: '창의적 아이디어가 중요한 프로젝트, 다양한 전문가가 협력하는 크로스펑셔널 팀',
+      growthEdge: '팀을 위한 판 설계가 강점이지만, 자신의 의견을 명확히 표현하는 연습도 필요합니다. "내 생각은 이렇습니다"라고 먼저 말하는 습관이 영향력을 높여줍니다.',
+    }
   } else if (isExpert) {
     return {
       style: '전문가형', icon: '🔬',
@@ -605,7 +614,7 @@ export function computeBurnoutRisk(facets: FacetMap, life: Record<string, string
   }
 
   // 패싯 기반 위험 요인 점수
-  const perfectionistRisk = dil * 0.4 + anx * 0.4 + hum * 0.2  // 완벽주의 패턴
+  const perfectionistRisk = dil * 0.5 + anx * 0.5  // 완벽주의 패턴 (높은 기준 × 불안)
   const interpersonalRisk = (1 - pat) * 0.5 + bol * 0.2 + anx * 0.3  // 대인갈등 소진
   const recoveryPenalty = life?.recovery_speed === 'very_slow' ? 0.2 : life?.recovery_speed === 'slow' ? 0.1 : 0
 

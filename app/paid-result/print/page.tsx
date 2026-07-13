@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { decodePaidAnswers } from '@/lib/result-encoding'
-import { scorePaidAnswers, PaidScoringOutput, HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS } from '@/lib/paid-scoring'
+import { scorePaidAnswers, PaidScoringOutput, HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS, buildFacetMapFromSubFacets } from '@/lib/paid-scoring'
 import { interpretPaidResult, PaidInterpretation } from '@/lib/paid-interpretation'
 import {
   computeNarrative, computeWorkStyle, computeCharacterStrengths,
@@ -78,16 +78,10 @@ function PrintPage() {
     )
     setInterp(interpreted)
 
-    const fm: FacetMap = {
-      curiosity: scored.hexaco.O,
-      diligence: scored.hexaco.C,
-      boldness:  scored.hexaco.X,
-      patience:  scored.hexaco.A,
-      anxiety:   scored.hexaco.E,
-      humility:  scored.hexaco.H,
-    }
+    const fm: FacetMap = buildFacetMapFromSubFacets(scored.subFacets, scored.hexaco)
     const estCog = Math.min(0.9, Math.max(0.35,
-      (scored.hexaco.O - 1) / 4 * 0.55 +
+      (scored.subFacets.inquisitiveness - 1) / 4 * 0.35 +
+      (scored.subFacets.creativity - 1) / 4 * 0.20 +
       (scored.hexaco.C - 1) / 4 * 0.20 + 0.20
     ))
 

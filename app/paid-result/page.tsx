@@ -6,6 +6,7 @@ import { decodePaidAnswers } from '@/lib/result-encoding'
 import {
   scorePaidAnswers, PaidScoringOutput,
   HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS,
+  buildFacetMapFromSubFacets,
 } from '@/lib/paid-scoring'
 import { interpretPaidResult, PaidInterpretation, computeTripleConflict, TripleConflict } from '@/lib/paid-interpretation'
 import {
@@ -155,19 +156,13 @@ function PaidResultPage() {
     )
     setInterp(interpreted)
 
-    // HEXACO → FacetMap 변환 (H=겸손·윤리, E=감수성, X=대담성, A=원만성, C=성실성, O=개방성)
-    const fm: FacetMap = {
-      curiosity: scored.hexaco.O,
-      diligence: scored.hexaco.C,
-      boldness:  scored.hexaco.X,
-      patience:  scored.hexaco.A,
-      anxiety:   scored.hexaco.E,
-      humility:  scored.hexaco.H,
-    }
+    // 24개 subfacet → FacetMap (요인 평균 대신 커리어 관련 subfacet 가중 사용)
+    const fm: FacetMap = buildFacetMapFromSubFacets(scored.subFacets, scored.hexaco)
 
-    // 인지 점수 추정 (개방성 + 성실성 기반)
+    // 인지 점수 추정 — subfacet 중 탐구심·창의성 직접 반영
     const estCog = Math.min(0.9, Math.max(0.35,
-      (scored.hexaco.O - 1) / 4 * 0.55 +
+      (scored.subFacets.inquisitiveness - 1) / 4 * 0.35 +
+      (scored.subFacets.creativity - 1) / 4 * 0.20 +
       (scored.hexaco.C - 1) / 4 * 0.20 +
       0.20
     ))

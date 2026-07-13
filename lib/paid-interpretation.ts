@@ -232,7 +232,7 @@ const RIASEC_PAIRS: Partial<Record<string, RiasecPairData>> = {
   'RC': { title: '숙련된 기술자', portrait: '정해진 기준 안에서 높은 완성도를 추구합니다. 시스템과 도구를 정확하게 다루는 것에서 직업적 만족을 찾습니다.', fits: ['기계 기술자', '전기·전자 기술자', 'IT 운영자', '품질 관리자'], misfits: ['창의적 자유 업무', '불확실한 환경', '사람 관리 중심 직무'] },
   'CR': { title: '숙련된 기술자', portrait: '정해진 기준 안에서 높은 완성도를 추구합니다. 시스템과 도구를 정확하게 다루는 것에서 직업적 만족을 찾습니다.', fits: ['기계 기술자', '전기·전자 기술자', 'IT 운영자', '품질 관리자'], misfits: ['창의적 자유 업무', '불확실한 환경', '사람 관리 중심 직무'] },
   'AC': { title: '체계적 크리에이터', portrait: '창의적 작업을 엄격한 기준과 체계 안에서 완성하는 것을 선호합니다. 예술적 감수성에 실용적 정확성을 더합니다.', fits: ['편집 디자이너', '건축가', '출판 편집자', '게임 디자이너', 'UX 라이터'], misfits: ['즉흥적·감정적 환경', '빠른 의사결정 요구 직무', '순수 영업'] },
-  'CA2': { title: '체계적 크리에이터', portrait: '창의적 작업을 엄격한 기준과 체계 안에서 완성하는 것을 선호합니다. 예술적 감수성에 실용적 정확성을 더합니다.', fits: ['편집 디자이너', '건축가', '출판 편집자', '게임 디자이너', 'UX 라이터'], misfits: ['즉흥적·감정적 환경', '빠른 의사결정 요구 직무', '순수 영업'] },
+  'CA': { title: '체계적 크리에이터', portrait: '창의적 작업을 엄격한 기준과 체계 안에서 완성하는 것을 선호합니다. 예술적 감수성에 실용적 정확성을 더합니다.', fits: ['편집 디자이너', '건축가', '출판 편집자', '게임 디자이너', 'UX 라이터'], misfits: ['즉흥적·감정적 환경', '빠른 의사결정 요구 직무', '순수 영업'] },
   'SC': { title: '체계적 지원자', portrait: '사람을 돕는 일을 정확하고 체계적인 방식으로 실행합니다. 절차와 규정 안에서 타인의 필요를 충족시키는 역할에 적합합니다.', fits: ['간호사', '사회복지사', '행정 지원', '인사 담당자', '도서관 사서'], misfits: ['혁신·창업', '비체계적 환경', '강한 리더십 요구 직무'] },
   'CS': { title: '체계적 지원자', portrait: '사람을 돕는 일을 정확하고 체계적인 방식으로 실행합니다. 절차와 규정 안에서 타인의 필요를 충족시키는 역할에 적합합니다.', fits: ['간호사', '사회복지사', '행정 지원', '인사 담당자', '도서관 사서'], misfits: ['혁신·창업', '비체계적 환경', '강한 리더십 요구 직무'] },
   'RA': { title: '장인형 크리에이터', portrait: '손으로 만들고 눈으로 볼 수 있는 창작물을 완성하는 과정에서 가장 큰 만족을 얻습니다.', fits: ['건축가', '제품 디자이너', '공예가', '사진작가', '영상 제작자'], misfits: ['이론 중심 연구', '대인 서비스', '반복 행정'] },
@@ -312,16 +312,13 @@ export function computeAptitudeRatio(a: AptitudeScores): AptitudeRatio {
   const liberal    = Math.round(libN  / total * 100)
   const business   = Math.round(bizN  / total * 100)
 
-  // 지배 계열
-  const maxVal = Math.max(stemN, engN, libN, bizN)
+  // 지배 계열 — float 동등 비교 대신 인덱스로 최댓값 결정
+  const vals = [stemN, engN, libN, bizN]
+  const maxVal = Math.max(...vals)
+  const maxIdx = vals.indexOf(maxVal)
   const maxDiff = maxVal - (total - maxVal) / 3  // 다른 3개 평균과의 차이
-  let dominant: AptitudeRatio['dominant'] = '균형형'
-  if (maxDiff > 0.05) {
-    if (maxVal === stemN)  dominant = '이과형'
-    else if (maxVal === engN) dominant = '공학형'
-    else if (maxVal === libN) dominant = '문과형'
-    else dominant = '경상형'
-  }
+  const dominantByIdx: AptitudeRatio['dominant'][] = ['이과형', '공학형', '문과형', '경상형']
+  const dominant: AptitudeRatio['dominant'] = maxDiff > 0.05 ? dominantByIdx[maxIdx] : '균형형'
 
   const PORTRAITS: Record<AptitudeRatio['dominant'], string> = {
     '이과형': '수학·과학·논리적 추론에서 두드러진 강점이 확인됩니다. 자연 현상의 원리를 탐구하고 검증하는 활동에서 지적 만족을 얻는 유형입니다.',
