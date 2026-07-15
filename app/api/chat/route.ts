@@ -7,6 +7,38 @@ const client = new Anthropic({
 
 export const runtime = 'nodejs'
 
+// ── Rate limiting (IP 기반, 인스턴스 레벨) ──────────────────────────
+// Vercel 서버리스는 인스턴스를 재사용하므로 어느 정도 효과 있음
+const RATE_LIMIT_WINDOW_MS = 60 * 1000  // 1분
+const RATE_LIMIT_MAX = 10               // 분당 최대 10회
+
+const ipMap = new Map<string, { count: number; resetAt: number }>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = ipMap.get(ip)
+
+  if (!entry || now > entry.resetAt) {
+    ipMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return false
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) return true
+
+  entry.count++
+  return false
+}
+
+// 오래된 항목 주기적 정리 (메모리 누수 방지)
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, entry] of ipMap.entries()) {
+    if (now > entry.resetAt) ipMap.delete(ip)
+  }
+}, 5 * 60 * 1000)
+
+// ── 타입 ────────────────────────────────────────────────────────────
+
 interface ChatRequest {
   messages: { role: 'user' | 'assistant'; content: string }[]
   profile: {
@@ -96,6 +128,18 @@ ${deepSection}
 }
 
 export async function POST(req: NextRequest) {
+  // IP 추출 (Vercel은 x-forwarded-for 헤더 사용)
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
+    ?? req.headers.get('x-real-ip')
+    ?? 'unknown'
+
+  if (isRateLimited(ip)) {
+    return new Response(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
   try {
     const body = (await req.json()) as ChatRequest
 
