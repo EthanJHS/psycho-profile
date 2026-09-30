@@ -3,7 +3,6 @@
 import { supabase } from './supabase'
 import { PRIVACY_VERSION, type TestConsent } from './consent'
 import { ensureProfile } from './profile'
-import { Answer, TestResult } from '@/types'
 
 // ── 세션 ID 관리 ──────────────────────────────
 export function getOrCreateSessionId(): string {
@@ -21,16 +20,7 @@ export function getTestSessionId(): string | null {
   return sessionStorage.getItem('pp_test_session_id')
 }
 
-// ── UTM 파라미터 추출 ─────────────────────────
-export function persistUtm() {
-  const params = new URLSearchParams(window.location.search)
-  const keys = ['utm_source', 'utm_medium', 'utm_campaign'] as const
-  keys.forEach(k => {
-    const v = params.get(k)
-    if (v) sessionStorage.setItem(`pp_${k}`, v)
-  })
-}
-
+// ── UTM 파라미터 ─────────────────────────────
 function getUtm() {
   const params = new URLSearchParams(window.location.search)
   return {
@@ -132,84 +122,6 @@ export async function startTestSession(testVersion?: string, consent?: TestConse
   return testId
 }
 
-// ── 문항 응답 저장 ────────────────────────────
-export async function saveAnswer(answer: Answer) {
-  const testSessionId = getTestSessionId()
-  if (!testSessionId) return
-
-  const startedAt = parseInt(sessionStorage.getItem('pp_question_start') ?? '0')
-  const timeSpentMs = startedAt ? Date.now() - startedAt : null
-
-  if (!supabase) return
-  await supabase.from('test_answers').insert({
-    test_session_id: testSessionId,
-    question_id: answer.questionId,
-    answer_value: String(answer.value),
-    time_spent_ms: timeSpentMs,
-  })
-
-  // 다음 문항 시작 시간 갱신
-  sessionStorage.setItem('pp_question_start', Date.now().toString())
-}
-
-// ── 테스트 완료 저장 ──────────────────────────
-export async function completeTestSession(
-  result: TestResult,
-  facets: Record<string, number>,
-  cogScore: number,
-  life: Record<string, string>
-) {
-  const testSessionId = getTestSessionId()
-  if (!testSessionId) return
-
-  if (!supabase) return
-  const { error } = await supabase.rpc('complete_legacy_session', {
-    p_id: testSessionId,
-    p_profile_id: result.profileId,
-    p_cog_score: cogScore,
-    p_diligence: facets['conscientiousness'] ?? null,
-    p_curiosity: facets['openness'] ?? null,
-    p_anxiety: facets['emotionality'] ?? null,
-    p_boldness: facets['extraversion'] ?? null,
-    p_humility: facets['honesty'] ?? null,
-    p_patience: facets['agreeableness'] ?? null,
-    p_chronotype: life['chronotype'] ?? null,
-    p_learning_style: life['learning_style'] ?? null,
-    p_execution_style: life['execution_style'] ?? null,
-  })
-  if (error) console.error('complete_legacy_session failed', error)
-
-  await trackEvent('test_complete', { profile_id: result.profileId })
-}
-
-// ── 결과 페이지 조회 ──────────────────────────
-export async function trackResultView(profileId: string) {
-  await trackEvent('result_view', { profile_id: profileId })
-}
-
-// ── 업그레이드 클릭 ───────────────────────────
-export async function trackUpgradeClick(source: string) {
-  await trackEvent('upgrade_click', { source })
-}
-
-// ── 유료 검사 문항별 응답 추적 ────────────────
-export async function trackPaidAnswer(
-  questionId: string,
-  questionIndex: number,
-  value: number,
-  timeSpentMs: number | null,
-) {
-  const sessionId = getOrCreateSessionId()
-  if (!supabase) return
-  await supabase.from('paid_answers').insert({
-    session_id: sessionId || null,
-    question_id: questionId,
-    question_index: questionIndex,
-    answer_value: value,
-    time_spent_ms: timeSpentMs,
-  })
-}
-
 // ── 이탈 추적 (beforeunload) ──────────────────
 export function sendAbandonBeacon(questionIndex: number, total: number, source: 'free' | 'paid' = 'paid') {
   const sessionId =
@@ -254,53 +166,6 @@ export function initScrollDepthTracking(page: 'free-result' | 'paid-result' | 'h
   }
   window.addEventListener('scroll', fire, { passive: true })
   return () => window.removeEventListener('scroll', fire)
-}
-
-// ── 유료 검사 결과 저장 ───────────────────────
-export async function savePaidResult(
-  hexaco: Record<string, number>,
-  subFacets: Record<string, number>,
-  riasec: Record<string, number>,
-  riasecTop3: string[],
-  aptitude: Record<string, number>,
-  aptitudeProfile: string,
-  patternKey: string,
-) {
-  const sessionId = getOrCreateSessionId()
-  if (!supabase) return
-
-  const startedAt = sessionStorage.getItem('pp_paid_start_ms')
-  const completionMs = startedAt ? Date.now() - parseInt(startedAt) : null
-
-  await supabase.from('paid_results').insert({
-    session_id: sessionId || null,
-    hexaco_h: hexaco['H'] ?? null,
-    hexaco_e: hexaco['E'] ?? null,
-    hexaco_x: hexaco['X'] ?? null,
-    hexaco_a: hexaco['A'] ?? null,
-    hexaco_c: hexaco['C'] ?? null,
-    hexaco_o: hexaco['O'] ?? null,
-    riasec_r: riasec['R'] ?? null,
-    riasec_i: riasec['I'] ?? null,
-    riasec_a: riasec['A'] ?? null,
-    riasec_s: riasec['S'] ?? null,
-    riasec_e: riasec['E'] ?? null,
-    riasec_c: riasec['C'] ?? null,
-    riasec_top3: riasecTop3.join(''),
-    aptitude_profile: aptitudeProfile,
-    aptitude_scores: aptitude,
-    subfacets: subFacets,
-    pattern_key: patternKey,
-    completion_ms: completionMs,
-    device: getDevice(),
-    created_at: new Date().toISOString(),
-  })
-
-  await trackEvent('paid_test_complete', {
-    riasec_top3: riasecTop3.join(''),
-    aptitude_profile: aptitudeProfile,
-    pattern_key: patternKey,
-  })
 }
 
 // ── HEXACO 검사 결과 저장 ──────────────────────
