@@ -1,8 +1,12 @@
 'use client'
 
 import { supabase } from './supabase'
-import { PRIVACY_VERSION, type TestConsent } from './consent'
+import { privacyVersion, type TestConsent } from './consent'
 import { ensureProfile } from './profile'
+import { langFromPath, isEnVersion } from './i18n'
+
+// 모든 이벤트에 언어를 남김 — 관리자 통계를 언어별로 나눠 보기 위해
+const currentLang = () => (typeof window === 'undefined' ? 'ko' : langFromPath(window.location.pathname))
 
 // ── 세션 ID 관리 ──────────────────────────────
 export function getOrCreateSessionId(): string {
@@ -79,7 +83,7 @@ export async function trackEvent(
     session_id: sessionId || null,
     test_session_id: testSessionId || null,
     event_type: eventType,
-    metadata,
+    metadata: { lang: currentLang(), ...metadata },
   })
 }
 
@@ -110,7 +114,7 @@ export async function startTestSession(testVersion?: string, consent?: TestConse
     is_sample: true,
     device_profile_id: profileId,
     test_version: testVersion ?? null,
-    ...(consent ? { consent_version: PRIVACY_VERSION, research_consent: consent.research, consented_at: new Date().toISOString() } : {}),
+    ...(consent ? { consent_version: privacyVersion(isEnVersion(testVersion) ? 'en' : 'ko'), research_consent: consent.research, consented_at: new Date().toISOString() } : {}),
   })
 
   if (!error) {
@@ -133,7 +137,7 @@ export function sendAbandonBeacon(questionIndex: number, total: number, source: 
   const body = JSON.stringify({
     session_id: sessionId,
     event_type: `${source}_test_abandon`,
-    metadata: { question_index: questionIndex, total, pct: Math.round(questionIndex / total * 100), source },
+    metadata: { question_index: questionIndex, total, pct: Math.round(questionIndex / total * 100), source, lang: currentLang() },
   })
   fetch(url, {
     method: 'POST',
@@ -175,6 +179,7 @@ export async function saveHexacoResult(
   archetypeSecondary: string,
   primaryDist: number,
   answers: Record<string, number>,
+  version: string = HEXACO_VERSION,
 ) {
   const testSessionId = getTestSessionId()
   if (!testSessionId || !supabase || isAdminSim()) return
@@ -185,7 +190,7 @@ export async function saveHexacoResult(
   // anon은 test_sessions를 직접 수정할 수 없음 — 미완료 행 1개만 완료 처리하는 RPC 사용
   const { error } = await supabase.rpc('complete_hexaco_session', {
     p_id:        testSessionId,
-    p_version:   HEXACO_VERSION,
+    p_version:   version,
     p_answers:   answers,
     p_h:         rawScores['H'] ?? null,
     p_e:         rawScores['E'] ?? null,
@@ -200,7 +205,7 @@ export async function saveHexacoResult(
   if (error) console.error('complete_hexaco_session failed', error)
 
   await trackEvent('hexaco_complete', {
-    test_version:        HEXACO_VERSION,
+    test_version:        version,
     archetype_primary:   archetypePrimary,
     archetype_secondary: archetypeSecondary,
   })

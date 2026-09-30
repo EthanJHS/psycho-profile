@@ -3,6 +3,8 @@ import type { PersonalizeText } from '../personalize-result'
 import { ARCHETYPE_DETAILS_EN } from './archetypes-hexaco'
 
 const lcFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
+// 원형 이름("The Sage")을 문장 중간에 쓸 때는 소문자 the
+const mid = (name: string) => name.replace(/^The /, 'the ')
 const andList = (xs: string[]) => xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
 
 export const PERSONALIZE_EN: PersonalizeText = {
@@ -136,7 +138,7 @@ export const PERSONALIZE_EN: PersonalizeText = {
   why: (defining, modifiers, name) => {
     const base = defining.length > 0
       ? defining.join(' ')
-      : `None of your six factors is extreme, but your overall balance is closest to ${name}.`
+      : `None of your six factors is extreme, but your overall balance is closest to ${mid(name)}.`
     const mod = modifiers.length > 0 ? ` Beyond that, ${lcFirst(modifiers.join(' '))}` : ''
     return base + mod
   },
@@ -144,6 +146,6 @@ export const PERSONALIZE_EN: PersonalizeText = {
   secondaryWhy: (hits, name) => {
     if (!hits.length) return `${name} came out as your next-closest match — not because of one standout factor, but because your overall balance is similar.`
     const list = andList(hits.map(h => `${h.dir} ${h.label}`))
-    return `Your ${list} ${hits.length > 1 ? 'overlap' : 'overlaps'} with ${name}, which is why it shows up as your secondary tendency.`
+    return `Your ${list} ${hits.length > 1 ? 'overlap' : 'overlaps'} with ${mid(name)}, which is why it shows up as your secondary tendency.`
   },
 }

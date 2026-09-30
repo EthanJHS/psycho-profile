@@ -2,12 +2,19 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { langFromPath, PATHS } from '@/lib/i18n'
+
+const T = {
+  ko: { freeTest: '무료 테스트', start: '시작하기', switchLabel: 'EN', switchHref: '/en', switchAria: 'English version' },
+  en: { freeTest: 'Free test', start: 'Start', switchLabel: '한국어', switchHref: '/', switchAria: '한국어 버전' },
+}
 
 export default function Navbar() {
   const path = usePathname()
   if (path.startsWith('/admin')) return null
-
-  const isEN = path.startsWith('/en')
+  const lang = langFromPath(path)
+  const t = T[lang]
+  const testHref = `${PATHS[lang].test}?start=1`
 
   return (
     <header
@@ -19,11 +26,7 @@ export default function Navbar() {
       }}
     >
       {/* 로고 */}
-      <Link
-        href={isEN ? '/en/paid' : '/'}
-        className="flex items-center gap-2.5 group"
-        style={{ textDecoration: 'none' }}
-      >
+      <Link href={PATHS[lang].home} className="flex items-center gap-2.5 group" style={{ textDecoration: 'none' }}>
         <span aria-hidden style={{ width: 11, height: 11, transform: 'rotate(45deg)', border: '1.5px solid #c8a030', boxShadow: '0 0 10px rgba(200,160,48,0.35)' }} />
         <span style={{ fontFamily: 'var(--font-serif), serif', fontWeight: 700, fontSize: 16, letterSpacing: '0.12em', color: '#efe6d2' }}>
           CORE TRAIT
@@ -32,50 +35,21 @@ export default function Navbar() {
 
       {/* 오른쪽 액션 */}
       <nav className="flex items-center gap-3">
-        {isEN ? (
-          <>
-            <Link
-              href="/en/test"
-              className="hidden sm:block text-sm font-medium transition-colors"
-              style={{ color: 'var(--muted)', textDecoration: 'none' }}
-            >
-              Free Test
-            </Link>
-            <Link
-              href="/en/paid-test"
-              className="hidden sm:block text-sm font-medium transition-colors"
-              style={{ color: 'var(--muted)', textDecoration: 'none' }}
-            >
-              In-Depth
-            </Link>
-            <Link
-              href="/"
-              className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-              style={{ background: 'rgba(167,139,250,0.1)', color: 'var(--muted)', border: '1px solid rgba(167,139,250,0.2)', textDecoration: 'none' }}
-            >
-              🇰🇷 <span>한국어</span>
-            </Link>
-            <Link href="/en/paid-test" className="btn-primary" style={{ padding: '8px 18px', fontSize: '0.85rem' }}>
-              Start →
-            </Link>
-          </>
-        ) : (
-          <>
-            <Link
-              href="/hexaco-test?start=1"
-              className="hidden sm:block text-sm font-medium transition-colors"
-              style={{ color: 'var(--muted)', textDecoration: 'none' }}
-            >
-              무료 테스트
-            </Link>
-            <Link href="/hexaco-test?start=1" style={{
-              padding: '8px 18px', fontSize: '0.85rem', fontWeight: 800, borderRadius: 999, textDecoration: 'none',
-              background: 'linear-gradient(135deg, #a8781f 0%, #e2c064 50%, #a8781f 100%)', color: '#1a1206',
-            }}>
-              시작하기
-            </Link>
-          </>
-        )}
+        <Link href={t.switchHref} aria-label={t.switchAria} hrefLang={lang === 'ko' ? 'en' : 'ko'} style={{
+          fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 999, textDecoration: 'none',
+          color: 'rgba(239,230,210,0.7)', border: '1px solid rgba(200,160,48,0.25)',
+        }}>
+          {t.switchLabel}
+        </Link>
+        <Link href={testHref} className="hidden sm:block text-sm font-medium transition-colors" style={{ color: 'var(--muted)', textDecoration: 'none' }}>
+          {t.freeTest}
+        </Link>
+        <Link href={testHref} style={{
+          padding: '8px 18px', fontSize: '0.85rem', fontWeight: 800, borderRadius: 999, textDecoration: 'none',
+          background: 'linear-gradient(135deg, #a8781f 0%, #e2c064 50%, #a8781f 100%)', color: '#1a1206',
+        }}>
+          {t.start}
+        </Link>
       </nav>
     </header>
   )
