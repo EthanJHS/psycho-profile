@@ -137,7 +137,7 @@ export function scorePaidAnswers(answers: PaidAnswer[]): PaidScoringOutput {
     aptAccum[q.aptitudeDim]!.count++
   }
   const aptitude = {} as AptitudeScores
-  const aptDims: AptitudeDim[] = ['quantitative','verbal','spatial','social','applied','business','scientific','humanistic']
+  const aptDims: AptitudeDim[] = ['quantitative','verbal','spatial','social','applied','business','scientific','humanistic','artistic']
   for (const dim of aptDims) {
     const acc = aptAccum[dim]
     aptitude[dim] = acc && acc.count > 0 ? acc.sum / acc.count : 3
@@ -156,18 +156,19 @@ function classifyAptitude(a: AptitudeScores): AptitudeProfile {
   const eng    = (a.quantitative + a.spatial + a.applied)    / 3
   const lib    = (a.verbal + a.humanistic + a.social)        / 3
   const biz    = (a.business + a.quantitative)               / 2
-  const art    = (a.verbal + a.humanistic)                   / 2
+  const art    = (a.artistic + a.verbal * 0.5 + a.humanistic * 0.5) / 2
 
-  const vals = [stem, eng, lib, biz]
+  const vals = [stem, eng, lib, biz, art]
   const max = Math.max(...vals)
-  const maxIdx = vals.indexOf(max)  // float 동등 비교 대신 인덱스로 결정
+  const maxIdx = vals.indexOf(max)
   const threshold = 3.5
 
   if (max < threshold) return '복합형'
+  if (maxIdx === 4 && a.artistic >= 3.5) return '예술형'
   if (maxIdx === 1 && a.applied >= 3.5) return '공학형'
   if (maxIdx === 0 && a.scientific >= 3.5) return '이과형'
   if (maxIdx === 3 && a.business >= 3.5) return '경상형'
-  if (maxIdx === 2 && art >= 3.5 && a.social < 3.5) return '예술형'
+  if (maxIdx === 2 && a.artistic >= 3.5 && a.social < 3.5) return '예술형'
   if (maxIdx === 2) return '문과형'
   return '복합형'
 }
@@ -180,18 +181,12 @@ function classifyAptitude(a: AptitudeScores): AptitudeProfile {
 export function buildFacetMapFromSubFacets(sf: SubFacetScores, hexaco: HexacoScores) {
   const avg = (...vals: number[]) => vals.reduce((s, v) => s + v, 0) / vals.length
   return {
-    // O 요인 중 탐구 지향 subfacet에 가중치
-    curiosity:  avg(sf.inquisitiveness * 1.3, sf.creativity * 1.1, sf.unconventionality, sf.aestheticAppreciation * 0.6) / ((1.3 + 1.1 + 1 + 0.6) / 4),
-    // C 요인 중 근면·체계 subfacet
-    diligence:  avg(sf.diligence * 1.3, sf.organization * 1.1, sf.prudence, sf.perfectionism * 0.8) / ((1.3 + 1.1 + 1 + 0.8) / 4),
-    // X 요인 중 직업적 자신감 subfacet
-    boldness:   avg(sf.socialBoldness * 1.3, sf.socialSelfEsteem * 1.2, sf.sociability, sf.liveliness * 0.8) / ((1.3 + 1.2 + 1 + 0.8) / 4),
-    // A 요인 중 인내·유연성 subfacet
-    patience:   avg(sf.patience * 1.3, sf.flexibility * 1.1, sf.gentleness, sf.forgivingness * 0.8) / ((1.3 + 1.1 + 1 + 0.8) / 4),
-    // E 요인 그대로 (요인 평균이 가장 적합)
-    anxiety:    hexaco.E,
-    // H 요인 그대로
-    humility:   hexaco.H,
+    openness:          avg(sf.inquisitiveness * 1.3, sf.creativity * 1.1, sf.unconventionality, sf.aestheticAppreciation * 0.6) / ((1.3 + 1.1 + 1 + 0.6) / 4),
+    conscientiousness: avg(sf.diligence * 1.3, sf.organization * 1.1, sf.prudence, sf.perfectionism * 0.8) / ((1.3 + 1.1 + 1 + 0.8) / 4),
+    extraversion:      avg(sf.socialBoldness * 1.3, sf.socialSelfEsteem * 1.2, sf.sociability, sf.liveliness * 0.8) / ((1.3 + 1.2 + 1 + 0.8) / 4),
+    agreeableness:     avg(sf.patience * 1.3, sf.flexibility * 1.1, sf.gentleness, sf.forgivingness * 0.8) / ((1.3 + 1.1 + 1 + 0.8) / 4),
+    emotionality:      hexaco.E,
+    honesty:           hexaco.H,
   }
 }
 
@@ -224,6 +219,7 @@ export const APTITUDE_DIM_LABELS: Record<AptitudeDim, string> = {
   business:     '경영·재무',
   scientific:   '과학·실험',
   humanistic:   '인문학적 탐구',
+  artistic:     '예술적 표현',
 }
 
 // 하위 요인 수준 (1~5 → low/mid/high)

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { decodePaidAnswers } from '@/lib/result-encoding'
+import { decodePaidAnswers, encodePaidAnswers } from '@/lib/result-encoding'
 import {
   scorePaidAnswers, PaidScoringOutput,
   HEXACO_FACTOR_LABELS, RIASEC_LABELS, APTITUDE_DIM_LABELS,
@@ -21,7 +21,9 @@ import { FacetMap } from '@/lib/profiles'
 import { SUB_FACET_LABELS, SubFacet } from '@/lib/paid-questions'
 import Link from 'next/link'
 import PatternIllustration from '@/components/PatternIllustration'
+import RadarChart from '@/components/RadarChart'
 import ShareButtons from '@/components/ShareButtons'
+import SurveySection from '@/components/SurveySection'
 import { savePaidResult, initSession, initScrollDepthTracking } from '@/lib/analytics'
 
 // ── 색상 팔레트 ──────────────────────────────────────────────────────────────
@@ -134,6 +136,8 @@ function PaidResultPage() {
   const [lifeBalance, setLifeBalance] = useState<LifeBalanceProfile | null>(null)
   const [careers,   setCareers]   = useState<CareerScore[]>([])
   const [tripleConflict, setTripleConflict] = useState<TripleConflict | null>(null)
+  const [showSurvey, setShowSurvey] = useState(false)
+  const [resultCode, setResultCode] = useState<string | null>(null)
 
   useEffect(() => {
     const r = searchParams.get('r')
@@ -144,9 +148,10 @@ function PaidResultPage() {
     } else {
       const raw = localStorage.getItem('paid_answers')
       if (!raw) { router.push('/paid-test'); return }
-      answers = JSON.parse(raw)
+      try { answers = JSON.parse(raw) } catch { router.push('/paid-test'); return }
     }
     if (!answers || answers.length === 0) { router.push('/paid-test'); return }
+    setResultCode(r ?? encodePaidAnswers(answers))
     const scored  = scorePaidAnswers(answers)
     setData(scored)
 
@@ -168,13 +173,16 @@ function PaidResultPage() {
     ))
 
     setNarrative(computeNarrative(fm, estCog))
-    setWorkStyle(computeWorkStyle(fm, estCog))
+    setWorkStyle(computeWorkStyle(fm, estCog, scored.subFacets))
     setInvestment(computeInvestmentProfile(fm, estCog))
     setCharStrengths(computeCharacterStrengths(fm, estCog).slice(0, 7))
     setLeadership(computeLeadershipStyle(fm, estCog, undefined))
-    setBurnout(computeBurnoutRisk(fm, {}, undefined))
+    const rawDeep = localStorage.getItem('paid_deep_answers')
+    let deepAnswers: Record<string, string | number> | undefined
+    try { deepAnswers = rawDeep ? JSON.parse(rawDeep) : undefined } catch { deepAnswers = undefined }
+    setBurnout(computeBurnoutRisk(fm, {}, deepAnswers))
     setValues(computeValuesProfile(fm, undefined))
-    setLifeBalance(computeLifeBalance(fm, {}, undefined))
+    setLifeBalance(computeLifeBalance(fm, {}, deepAnswers))
     const computedCareers = computeCareers(fm, estCog)
     setCareers(computedCareers)
 
@@ -182,7 +190,7 @@ function PaidResultPage() {
     const top5Riasec = computedCareers.slice(0, 5).map(c => c.riasecPrimary)
     const riasecCount: Record<string, number> = {}
     for (const r of top5Riasec) riasecCount[r] = (riasecCount[r] ?? 0) + 1
-    const personalityRiasec = (Object.entries(riasecCount).sort((a, b) => b[1] - a[1])[0][0]) as typeof scored.riasecTop3[0]
+    const personalityRiasec = (Object.entries(riasecCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? scored.riasecTop3[0]) as typeof scored.riasecTop3[0]
     setTripleConflict(computeTripleConflict(
       personalityRiasec,
       scored.riasecTop3[0],
@@ -206,6 +214,20 @@ function PaidResultPage() {
         )
       ).then(() => sessionStorage.setItem('pp_paid_saved', '1'))
     }
+
+    // 설문 팝업 — 스크롤 50% 이상 도달 시, 세션당 1회만
+    if (!sessionStorage.getItem('pp_survey_shown')) {
+      const onScroll = () => {
+        const scrolled = window.scrollY + window.innerHeight
+        const total = document.documentElement.scrollHeight
+        if (scrolled / total >= 0.5) {
+          setShowSurvey(true)
+          window.removeEventListener('scroll', onScroll)
+        }
+      }
+      window.addEventListener('scroll', onScroll, { passive: true })
+      return () => window.removeEventListener('scroll', onScroll)
+    }
   }, [router])
 
   if (!data || !interp) {
@@ -213,7 +235,7 @@ function PaidResultPage() {
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 rounded-full animate-spin mx-auto" style={{ border: '2px solid var(--border)', borderTopColor: '#a78bfa' }} />
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>82개 응답을 정밀 분석하는 중...</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>86개 응답을 정밀 분석하는 중...</p>
         </div>
       </main>
     )
@@ -248,9 +270,24 @@ function PaidResultPage() {
             한 번에 통합한 과학적 심리 초상화입니다.
           </p>
           <div className="flex items-center justify-center gap-2 text-xs" style={{ color: 'var(--muted2)' }}>
-            <span className="px-2 py-0.5 rounded-full" style={{ background: '#a78bfa18', color: '#a78bfa' }}>82문항</span>
+            <span className="px-2 py-0.5 rounded-full" style={{ background: '#a78bfa18', color: '#a78bfa' }}>90문항</span>
             <span className="px-2 py-0.5 rounded-full" style={{ background: '#34d39918', color: '#34d399' }}>15개 영역 분석</span>
             <span className="px-2 py-0.5 rounded-full" style={{ background: '#fbbf2418', color: '#fbbf24' }}>무료 검사 전 항목 포함</span>
+          </div>
+
+          {/* HEXACO 레이더 차트 */}
+          <div className="flex justify-center mt-2">
+            <RadarChart
+              axes={[
+                { label: '개방성',  value: Math.round(((hexaco.O - 1) / 4) * 100) },
+                { label: '성실성',  value: Math.round(((hexaco.C - 1) / 4) * 100) },
+                { label: '대담성',  value: Math.round(((hexaco.X - 1) / 4) * 100) },
+                { label: '원만성',  value: Math.round(((hexaco.A - 1) / 4) * 100) },
+                { label: '감수성',  value: Math.round(((hexaco.E - 1) / 4) * 100) },
+                { label: '겸손성',  value: Math.round(((hexaco.H - 1) / 4) * 100) },
+              ]}
+              size={260}
+            />
           </div>
 
           {/* 무료 검사와의 차이 안내 */}
@@ -262,52 +299,32 @@ function PaidResultPage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════
-            파트 0: 성격 서사 (무료 검사 "당신은 이러한 경향이 있습니다" 업그레이드)
+            파트 1: HEXACO 성격 패턴 (하위 요인 24개 포함)
         ═══════════════════════════════════════════════════════ */}
-        {narrative && (
-          <section className="glass rounded-2xl p-6 space-y-5">
-            <SectionHeader icon="📖" badge="파트 0 · 성격 서사" badgeColor="#c084fc" title="당신에 대한 종합적 서술" />
+        <section className="glass rounded-2xl p-6 space-y-6">
+          <SectionHeader icon="🧠" badge="파트 1 · 성격 프로파일" badgeColor="#a78bfa" title="HEXACO 성격 패턴 — 24 하위 요인 분석" />
 
+          {/* 성격 서사 */}
+          {narrative && (
             <div className="rounded-xl p-5" style={{ background: '#c084fc18', border: '1px solid #c084fc30' }}>
               <div className="text-xs font-bold mb-3" style={{ color: '#c084fc' }}>
                 HEXACO 24 하위 요인 기반 성격 전체상
               </div>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--text)', lineHeight: 1.9 }}>{narrative}</p>
             </div>
+          )}
 
-            {/* 패턴 초상화 (유료 전용 — 무료 검사에는 없는 HEXACO 패턴 기반 서술) */}
-            <div className="rounded-xl p-5" style={{ background: '#7c3aed18', border: '1px solid #7c3aed30' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="text-xs font-bold" style={{ color: '#a78bfa' }}>HEXACO 패턴 초상화</div>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#a78bfa', color: '#fff' }}>
-                  24 하위 요인 분석
-                </span>
-              </div>
-              <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>{interp.hexacoPattern.title}</h3>
-              <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.9 }}>{interp.hexacoPattern.portrait}</p>
+          {/* 패턴 초상화 */}
+          <div className="rounded-xl p-5" style={{ background: '#7c3aed18', border: '1px solid #7c3aed30' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="text-xs font-bold" style={{ color: '#a78bfa' }}>HEXACO 패턴 초상화</div>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#a78bfa', color: '#fff' }}>
+                24 하위 요인 분석
+              </span>
             </div>
-
-            <SectionConclusion
-              color="#c084fc"
-              title="서사 영역 결론"
-              text={(() => {
-                const top3 = interp.hexacoPattern.topFacets.slice(0,3).map(f => f.label).join(', ')
-                const strengthInsight = interp.hexacoPattern.crossInsights.find(c => c.type === 'strength')
-                const tensionInsight  = interp.hexacoPattern.crossInsights.find(c => c.type === 'tension')
-                return `"${interp.hexacoPattern.title}" 패턴의 엔진은 ${top3}의 결합입니다. ` +
-                  (strengthInsight ? `이 조합이 만드는 강점: "${strengthInsight.title}" — ${strengthInsight.body.slice(0,80)}... ` : '') +
-                  (tensionInsight  ? `동시에 "${tensionInsight.title}"라는 긴장도 내포합니다. ` : '') +
-                  `아래 각 섹션은 이 패턴이 업무·진로·관계에서 어떻게 구체적으로 작동하는지를 분해해 보여줍니다.`
-              })()}
-            />
-          </section>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════
-            파트 1: HEXACO 성격 패턴 (기존 — 하위 요인 24개 포함)
-        ═══════════════════════════════════════════════════════ */}
-        <section className="glass rounded-2xl p-6 space-y-6">
-          <SectionHeader icon="🧠" badge="파트 1 · 성격 프로파일" badgeColor="#a78bfa" title="HEXACO 성격 패턴 — 24 하위 요인 분석" />
+            <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--text)' }}>{interp.hexacoPattern.title}</h3>
+            <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.9 }}>{interp.hexacoPattern.portrait}</p>
+          </div>
 
           <div>
             <div className="text-xs font-bold mb-3" style={{ color: 'var(--muted2)' }}>HEXACO 6요인 점수 (1~5)</div>
@@ -318,27 +335,25 @@ function PaidResultPage() {
             </div>
           </div>
 
-          {/* 24 하위 요인 그리드 */}
+          {/* 24 하위 요인 태그 */}
           <div>
-            <div className="text-xs font-bold mb-3" style={{ color: 'var(--muted2)' }}>24 하위 요인 상세 (무료 검사에는 없는 분석)</div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="text-xs font-bold mb-3" style={{ color: 'var(--muted2)' }}>24 하위 요인 (무료 검사에는 없는 분석)</div>
+            <div className="flex flex-wrap gap-2">
               {(Object.entries(subFacets) as [SubFacet, number][]).sort((a, b) => b[1] - a[1]).map(([sf, v]) => {
-                const meta = SUB_FACET_LABELS[sf]
-                const pct  = Math.round(((v - 1) / 4) * 100)
-                const high = v >= 3.67
-                const low  = v <= 2.34
-                const color = high ? '#34d399' : low ? '#f87171' : '#6b7280'
+                const meta  = SUB_FACET_LABELS[sf]
+                const pct   = Math.round(((v - 1) / 4) * 100)
+                const high  = v >= 3.67
+                const low   = v <= 2.34
+                const color = high ? '#34d399' : low ? '#f87171' : '#9ca3af'
+                const bg    = high ? '#34d39918' : low ? '#f8717118' : '#ffffff0a'
                 return (
-                  <div key={sf} className="rounded-lg p-2.5" style={{ background: 'var(--surface2)', border: `1px solid ${color}28` }}>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-[10px] font-semibold truncate" style={{ color: 'var(--text)', maxWidth: '70%' }}>{meta.label}</span>
-                      <span className="text-[10px] font-bold" style={{ color }}>{pct}%</span>
-                    </div>
-                    <div className="h-1 rounded-full" style={{ background: 'var(--border)' }}>
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                    </div>
-                    <div className="text-[9px] mt-1" style={{ color: 'var(--muted2)' }}>{meta.parent}</div>
-                  </div>
+                  <span
+                    key={sf}
+                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: bg, color, border: `1px solid ${color}30` }}
+                  >
+                    {meta.label} {pct}%
+                  </span>
                 )
               })}
             </div>
@@ -419,20 +434,6 @@ function PaidResultPage() {
             </div>
           )}
 
-          <SectionConclusion
-            color="#a78bfa"
-            title="성격 프로파일 영역 결론"
-            text={(() => {
-              const topF = interp.hexacoPattern.topFacets
-              const lowF = interp.hexacoPattern.lowFacets
-              const tensionInsight = interp.hexacoPattern.crossInsights.find(c => c.type === 'tension')
-              return `가장 두드러진 하위 요인: "${topF[0]?.label}"(${topF[0]?.score.toFixed(1)}/5) — ${topF[0]?.insight} ` +
-                `반면 "${lowF[0]?.label}"(${lowF[0]?.score.toFixed(1)}/5)이 낮다는 것은, ${lowF[0]?.insight} ` +
-                (tensionInsight
-                  ? `⚡ 핵심 긴장: "${tensionInsight.title}" — ${tensionInsight.body}`
-                  : `패턴 맹점: ${interp.hexacoPattern.shadow}`)
-            })()}
-          />
         </section>
 
         {/* ═══════════════════════════════════════════════════════
@@ -539,18 +540,6 @@ function PaidResultPage() {
               })}
             </div>
 
-            <SectionConclusion
-              color="#34d399"
-              title="성격 강점 영역 결론"
-              text={(() => {
-                const cs = charStrengths
-                if (cs.length < 2) return cs[0] ? `핵심 강점 "${cs[0].name}": 과도할 때 나타나는 그림자 — ${cs[0].shadow}` : ''
-                return `최상위 강점 "${cs[0].name}" × "${cs[1].name}" — 이 두 강점이 시너지를 낼 때 가장 강력합니다. ` +
-                  `그러나 "${cs[0].name}"이 과도할 때: ${cs[0].shadow} ` +
-                  `"${cs[1].name}"이 과도할 때: ${cs[1].shadow} ` +
-                  `강점의 그림자를 인식하는 것이 맹목적 발휘보다 훨씬 강력한 자기인식입니다.`
-              })()}
-            />
           </section>
         )}
 
@@ -562,7 +551,7 @@ function PaidResultPage() {
             <SectionHeader icon="🏢" badge="파트 3 · 업무 스타일" badgeColor="#60a5fa" title="업무 스타일 심층 분석" />
 
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              HEXACO 직업심리학 연구(Ashton & Lee 2007) 기반 — 82문항 정밀 점수를 반영한 업무 방식 분석입니다.
+              HEXACO 직업심리학 연구(Ashton & Lee 2007) 기반 — 90문항 정밀 점수를 반영한 업무 방식 분석입니다.
             </p>
 
             <div className="space-y-5">
@@ -605,6 +594,60 @@ function PaidResultPage() {
               </div>
             </div>
 
+            {/* 조직 구조 적합도 */}
+            {workStyle.orgFit && (() => {
+              const { orgFit } = workStyle
+              const pct = Math.round(orgFit.score * 100)
+              const typeColor = orgFit.type === '수평형' ? '#34d399' : orgFit.type === '수직형' ? '#a78bfa' : '#fbbf24'
+              return (
+                <div className="rounded-xl p-5 space-y-4" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: '#60a5fa' }}>
+                      <span>🏗️</span>조직 구조 적합도
+                    </p>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: `${typeColor}20`, color: typeColor }}>
+                      {orgFit.type}
+                    </span>
+                  </div>
+
+                  {/* 수직 ← 스펙트럼 바 → 수평 */}
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1.5" style={{ color: 'var(--muted2)' }}>
+                      <span>수직·보수적</span>
+                      <span>수평·개방적</span>
+                    </div>
+                    <div className="relative h-3 rounded-full" style={{ background: 'var(--surface)' }}>
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%`, background: `linear-gradient(90deg, #a78bfa, #34d399)` }}
+                      />
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow"
+                        style={{ left: `calc(${pct}% - 8px)`, background: typeColor }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[11px] mt-1" style={{ color: 'var(--muted2)' }}>
+                      <span>위계·규칙·안정</span>
+                      <span>자율·변화·참여</span>
+                    </div>
+                  </div>
+
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)', lineHeight: 1.8 }}>{orgFit.summary}</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="rounded-lg p-3.5 space-y-1.5" style={{ background: '#a78bfa12', border: '1px solid #a78bfa25' }}>
+                      <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#a78bfa' }}>수직·보수적 조직</p>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)', lineHeight: 1.75 }}>{orgFit.vertical}</p>
+                    </div>
+                    <div className="rounded-lg p-3.5 space-y-1.5" style={{ background: '#34d39912', border: '1px solid #34d39925' }}>
+                      <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#34d399' }}>수평·개방적 조직</p>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)', lineHeight: 1.75 }}>{orgFit.horizontal}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
             <SectionConclusion
               color="#60a5fa"
               title="업무 스타일 영역 결론"
@@ -626,7 +669,7 @@ function PaidResultPage() {
             <SectionHeader icon="🎯" badge="파트 4 · 진로 적합도" badgeColor="#fb923c" title="진로 적합도 TOP 8 — HEXACO × RIASEC 통합 분석" />
 
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              무료 검사는 성격 추정치로 6개 직업을 보여줍니다. 이 분석은 82문항 정밀 점수로 8개 직업을 제시하며,
+              무료 검사는 성격 추정치로 6개 직업을 보여줍니다. 이 분석은 90문항 정밀 점수로 8개 직업을 제시하며,
               Holland 코드 <strong style={{ color: 'var(--text)' }}>{interp.riasecProfile.hollandCode}</strong>({interp.riasecProfile.title})와의 정합성을 함께 반영합니다.
             </p>
 
@@ -892,14 +935,15 @@ function PaidResultPage() {
               <AptitudeRatioBar label="공학" value={interp.aptitudeBreakdown.engineering} color="#34d399" />
               <AptitudeRatioBar label="문과" value={interp.aptitudeBreakdown.liberal}     color="#fbbf24" />
               <AptitudeRatioBar label="경상" value={interp.aptitudeBreakdown.business}    color="#f472b6" />
+              <AptitudeRatioBar label="예술" value={interp.aptitudeBreakdown.art}         color="#fb923c" />
             </div>
             <p className="text-xs" style={{ color: 'var(--muted2)' }}>
-              * 비율은 8개 적성 차원의 계열별 가중합을 정규화한 값입니다
+              * 비율은 9개 적성 차원의 계열별 가중합을 정규화한 값입니다
             </p>
           </div>
 
           <div>
-            <div className="text-xs font-bold mb-3" style={{ color: 'var(--muted2)' }}>8개 적성 차원 점수 (1~5)</div>
+            <div className="text-xs font-bold mb-3" style={{ color: 'var(--muted2)' }}>9개 적성 차원 점수 (1~5)</div>
             <div className="space-y-3">
               {(Object.entries(aptitude) as [string, number][]).map(([dim, v]) => (
                 <ScoreBar key={dim} value={v} max={5} color="#f472b6" label={APTITUDE_DIM_LABELS[dim as keyof typeof APTITUDE_DIM_LABELS]} />
@@ -1079,11 +1123,6 @@ function PaidResultPage() {
               </div>
             </div>
 
-            <SectionConclusion
-              color="#fbbf24"
-              title="투자 성향 영역 결론"
-              text={investment ? `${investment.riskLabel} 성향인 당신의 핵심 편향은 "${investment.behavioralBias}"입니다. 이 패턴을 인식하는 것만으로도 충동적 결정을 피할 수 있습니다. 당신에게 가장 맞는 원칙은 "${investment.principle}" — 성격에 맞는 투자 방식이 억지로 바꾼 방식보다 항상 오래 지속됩니다.` : ''}
-            />
           </section>
         )}
 
@@ -1307,13 +1346,10 @@ function PaidResultPage() {
                 const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
                 const lowest = [...lifeBalance.domains].sort((a, b) => a.score - b.score)[0]
                 const highest = [...lifeBalance.domains].sort((a, b) => b.score - a.score)[0]
-                const burnoutConcern = burnout && burnout.level !== '낮음'
-                  ? ` 번아웃 리스크 ${burnout.level}와 함께 고려하면, 이 균형 상태는 심각성이 높아집니다.`
-                  : ''
                 if (avg < 42) {
-                  return `⚠ 전 영역 평균 ${avg}점 — 충전 자체가 부족한 위험한 상태입니다.${burnoutConcern} 균형보다 에너지 총량 회복이 먼저입니다. ${lowest.name}(${lowest.score}점) 영역에 지금 당장 가장 작은 변화 하나를 시작하세요.`
+                  return `⚠ 전 영역 평균 ${avg}점 — 충전 자체가 부족한 위험한 상태입니다. 균형보다 에너지 총량 회복이 먼저입니다. ${lowest.name}(${lowest.score}점) 영역에 지금 당장 가장 작은 변화 하나를 시작하세요.`
                 }
-                return `${lifeBalance.overallBalance} 상태(평균 ${avg}점). 가장 충전되는 영역: ${highest.name}(${highest.score}점) / 가장 주의할 영역: ${lowest.name}(${lowest.score}점).${burnoutConcern} ${lifeBalance.recommendation}`
+                return `${lifeBalance.overallBalance} 상태(평균 ${avg}점). 가장 충전되는 영역: ${highest.name}(${highest.score}점) / 가장 주의할 영역: ${lowest.name}(${lowest.score}점). ${lifeBalance.recommendation}`
               })() : ''}
             />
           </section>
@@ -1337,31 +1373,6 @@ function PaidResultPage() {
           <div className="rounded-xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div className="text-xs font-bold mb-3" style={{ color: '#10b981' }}>성격 × 흥미 × 적성이 만드는 시너지</div>
             <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.9 }}>{interp.crossDomainSynthesis.coreStrengthNarrative}</p>
-          </div>
-
-          {/* 경력 경로 */}
-          <div className="space-y-4">
-            <div className="text-xs font-bold" style={{ color: '#10b981' }}>최적 경력 경로 (3축 통합 근거)</div>
-            {interp.crossDomainSynthesis.careerPathways.map((path, i) => (
-              <div key={i} className="rounded-xl p-5 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ background: '#10b98120', color: '#10b981' }}>경로 {i + 1}</span>
-                  <span className="text-sm font-bold" style={{ color: 'var(--fg)' }}>{path.label}</span>
-                </div>
-                <p className="text-xs" style={{ color: 'var(--muted)', lineHeight: 1.8 }}><span className="font-semibold" style={{ color: '#6ee7b7' }}>왜 맞는가: </span>{path.why}</p>
-                <ul className="space-y-1">
-                  {path.concrete.map((item, j) => item && (
-                    <li key={j} className="text-xs flex gap-2" style={{ color: 'var(--muted)', lineHeight: 1.7 }}>
-                      <span style={{ color: '#10b981', flexShrink: 0 }}>▸</span><span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="rounded-lg p-3" style={{ background: '#10b98110', border: '1px solid #10b98130' }}>
-                  <span className="text-xs font-bold" style={{ color: '#10b981' }}>지금 당장 할 첫 행동: </span>
-                  <span className="text-xs" style={{ color: 'var(--muted)' }}>{path.firstStep}</span>
-                </div>
-              </div>
-            ))}
           </div>
 
           {/* 개발 역량 */}
@@ -1467,13 +1478,16 @@ function PaidResultPage() {
           </a>
         </div>
 
+        {/* ── 설문 ── */}
+        <SurveySection resultType="paid" />
+
         {/* ── 공유 / PDF ── */}
         {interp && (
           <ShareButtons
             profileLabel={interp.headline}
             profileId="paid"
-            pdfPath={`/paid-result/print${searchParams.get('r') ? '?r=' + searchParams.get('r') : ''}`}
-            resultParam={searchParams.get('r') ?? undefined}
+            pdfPath={`/paid-result/print${resultCode ? '?r=' + resultCode : ''}`}
+            resultParam={resultCode ?? undefined}
           />
         )}
 
@@ -1489,6 +1503,52 @@ function PaidResultPage() {
         </p>
 
       </div>
+
+      {/* 설문 자동 팝업 */}
+      {showSurvey && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+          onClick={() => { setShowSurvey(false); sessionStorage.setItem('pp_survey_shown', '1') }}
+        >
+          <div
+            className="w-full max-w-md mb-6 mx-4 rounded-2xl p-6 space-y-4"
+            style={{ background: 'var(--surface)', border: '1px solid rgba(167,139,250,0.3)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold" style={{ color: 'var(--text)' }}>결과 어떠셨나요? 후기 남겨주세요 🙏</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                  1분이면 충분해요. 피드백을 남겨주시면 출시 알림도 드려요.
+                </p>
+              </div>
+              <button
+                onClick={() => { setShowSurvey(false); sessionStorage.setItem('pp_survey_shown', '1') }}
+                className="text-lg shrink-0"
+                style={{ color: 'var(--muted)', lineHeight: 1 }}
+              >✕</button>
+            </div>
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfkiZOUy56PQ4gC_V7OjT7hP4NclDGFGOVnjIyVax7SfUwvKg/viewform?usp=publish-editor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary w-full flex items-center justify-center"
+              style={{ padding: '13px', textDecoration: 'none', background: 'linear-gradient(135deg,#92400e,#b45309)' }}
+              onClick={() => { setShowSurvey(false); sessionStorage.setItem('pp_survey_shown', '1') }}
+            >
+              피드백 남기고 출시 알림 받기 →
+            </a>
+            <button
+              onClick={() => { setShowSurvey(false); sessionStorage.setItem('pp_survey_shown', '1') }}
+              className="w-full text-sm text-center"
+              style={{ color: 'var(--muted)' }}
+            >
+              나중에 할게요
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

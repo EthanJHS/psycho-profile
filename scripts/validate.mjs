@@ -97,7 +97,7 @@ function computeArchetype(facets, reg, loc) {
     explorer:   O*2.5+E*2-C*1,
     prophet:    O*1.5+N*2.5-E*1,
     warrior:    C*2+E*2.5-A*1,
-    alchemist:  O*2+A*2-Math.abs(N-0.5)*1,
+    seeker:  O*2+A*2-Math.abs(N-0.5)*1,
     sovereign:  E*2.5+C*1.5-H*2,
     sage:       O*2+H*2.5-E*1,
     harmonizer: A*3-Math.abs(E-0.5)*2-N*0.5,

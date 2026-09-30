@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { SAMPLE_QUESTIONS, SECTION_TRANSITIONS } from '@/lib/questions'
+import { SAMPLE_QUESTIONS_EN, SECTION_TRANSITIONS_EN } from '@/lib/questions-en'
 import { Answer, SectionId } from '@/types'
 import { initSession, startTestSession, saveAnswer, trackEvent, sendAbandonBeacon } from '@/lib/analytics'
 
-const TOTAL = SAMPLE_QUESTIONS.length
+const TOTAL = SAMPLE_QUESTIONS_EN.length
 
 function shuffleSections<T extends { section?: string | null }>(arr: T[]): T[] {
   const out = [...arr]
@@ -24,9 +24,9 @@ function shuffleSections<T extends { section?: string | null }>(arr: T[]): T[] {
   return out
 }
 
-export default function TestPage() {
+export default function ENTestPage() {
   const router = useRouter()
-  const [questions] = useState(() => shuffleSections([...SAMPLE_QUESTIONS]))
+  const [questions] = useState(() => shuffleSections([...SAMPLE_QUESTIONS_EN]))
   const [current, setCurrent] = useState(0)
   const [answerMap, setAnswerMap] = useState<Record<number, Answer>>({})
   const [selected, setSelected] = useState<number | string | null>(null)
@@ -39,10 +39,6 @@ export default function TestPage() {
 
   const q = questions[current]
   const isLast = current === TOTAL - 1
-
-  // 섹션 전환 감지
-  const prevSection = current > 0 ? questions[current - 1].section : null
-  const curSection = q.section
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -63,12 +59,11 @@ export default function TestPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, selected, animating, sectionCard])
 
-  // 이탈 추적
   useEffect(() => {
-    sessionStorage.setItem('pp_free_current_idx', '0')
+    sessionStorage.setItem('pp_en_free_current_idx', '0')
     const handleUnload = () => {
-      const idx = parseInt(sessionStorage.getItem('pp_free_current_idx') ?? '0')
-      if (!sessionStorage.getItem('pp_free_completed')) {
+      const idx = parseInt(sessionStorage.getItem('pp_en_free_current_idx') ?? '0')
+      if (!sessionStorage.getItem('pp_en_free_completed')) {
         sendAbandonBeacon(idx, TOTAL)
       }
     }
@@ -82,7 +77,6 @@ export default function TestPage() {
     async function init() {
       await initSession()
       await startTestSession()
-      // 첫 섹션 전환 카드 표시
       const firstSection = questions[0].section
       if (firstSection) {
         shownSections.current.add(firstSection)
@@ -121,13 +115,13 @@ export default function TestPage() {
       const isLastQ = cur === TOTAL - 1
       if (isLastQ) {
         const orderedAnswers = questions.map((_, i) => newMap[i]).filter(Boolean) as Answer[]
-        sessionStorage.setItem('test_answers', JSON.stringify(orderedAnswers))
-        sessionStorage.setItem('pp_free_completed', '1')
-        await trackEvent('test_last_answer', { total: orderedAnswers.length })
-        router.push('/result')
+        sessionStorage.setItem('en_test_answers', JSON.stringify(orderedAnswers))
+        sessionStorage.setItem('pp_en_free_completed', '1')
+        await trackEvent('en_test_last_answer', { total: orderedAnswers.length })
+        router.push('/en/result')
       } else {
         const next = cur + 1
-        sessionStorage.setItem('pp_free_current_idx', String(next))
+        sessionStorage.setItem('pp_en_free_current_idx', String(next))
         const nextSection = questions[next].section
         setCurrent(next)
         setSelected(newMap[next]?.value ?? null)
@@ -159,14 +153,13 @@ export default function TestPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-4">
         <div className="w-10 h-10 rounded-full animate-spin" style={{ border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }} />
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>준비 중...</p>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>Getting ready...</p>
       </main>
     )
   }
 
-  // 섹션 전환 카드
   if (sectionCard) {
-    const tr = SECTION_TRANSITIONS[sectionCard]
+    const tr = SECTION_TRANSITIONS_EN[sectionCard]
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-5">
         <div className="w-full max-w-md glass-hi rounded-2xl p-8 text-center">
@@ -181,21 +174,20 @@ export default function TestPage() {
             className="btn-primary w-full"
             style={{ justifyContent: 'center', padding: '14px' }}
           >
-            시작하기 →
+            Start →
           </button>
-          <p className="mt-3 text-xs" style={{ color: 'var(--muted2)' }}>Enter 키로도 시작할 수 있습니다</p>
+          <p className="mt-3 text-xs" style={{ color: 'var(--muted2)' }}>Press Enter or Space to begin</p>
         </div>
       </main>
     )
   }
 
   const progress = ((current + 1) / TOTAL) * 100
-  const sectionLabel = curSection ? (SECTION_TRANSITIONS[curSection]?.title ?? curSection) : ''
+  const sectionLabel = q.section ? (SECTION_TRANSITIONS_EN[q.section]?.title ?? q.section) : ''
 
   return (
     <main className="min-h-screen flex flex-col items-center px-5 page-top" style={{ paddingBottom: 32 }}>
 
-      {/* 진행 바 */}
       <div className="w-full max-w-xl pt-6 pb-5">
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-baseline gap-1.5">
@@ -215,10 +207,7 @@ export default function TestPage() {
         </div>
       </div>
 
-      {/* 문항 카드 */}
-      <div
-        className={`w-full max-w-xl glass rounded-2xl p-6 transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}
-      >
+      <div className={`w-full max-w-xl glass rounded-2xl p-6 transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}>
         <p className="text-base font-medium leading-relaxed mb-6 whitespace-pre-line" style={{ color: 'var(--text)', lineHeight: 1.8 }}>{q.text}</p>
 
         {q.options && (
@@ -236,13 +225,8 @@ export default function TestPage() {
             ))}
           </div>
         )}
-
-        {q.type === 'cognitive' && (
-          <p className="mt-4 text-xs" style={{ color: 'var(--muted)' }}>이 문항은 정답이 있습니다. 직관적으로 선택해 주세요.</p>
-        )}
       </div>
 
-      {/* 하단 버튼 */}
       <div className="w-full max-w-xl mt-4 flex items-center gap-3">
         <button
           onClick={handleBack}
@@ -250,7 +234,7 @@ export default function TestPage() {
           className="btn-secondary disabled:opacity-20 disabled:cursor-not-allowed"
           style={{ padding: '12px 20px', fontSize: '0.875rem' }}
         >
-          ← 이전
+          ← Back
         </button>
         <button
           onClick={handleNext}
@@ -263,12 +247,12 @@ export default function TestPage() {
             boxShadow: 'none',
           }}
         >
-          {isLast ? '결과 보기 →' : '다음 →'}
+          {isLast ? 'See Results →' : 'Next →'}
         </button>
       </div>
 
-      <p className="mt-3 text-xs hidden sm:block" style={{ color: 'var(--muted2)' }}>숫자키 1~{q.options?.length ?? 4}로 선택 · Enter로 다음 이동</p>
-      <p className="mt-3 text-xs sm:hidden" style={{ color: 'var(--muted2)' }}>선택하면 자동으로 다음 문항으로 이동합니다</p>
+      <p className="mt-3 text-xs hidden sm:block" style={{ color: 'var(--muted2)' }}>Keys 1–{q.options?.length ?? 4} to select · Enter to advance</p>
+      <p className="mt-3 text-xs sm:hidden" style={{ color: 'var(--muted2)' }}>Tap to select — advances automatically</p>
 
     </main>
   )

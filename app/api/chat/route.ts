@@ -63,12 +63,12 @@ function buildSystemPrompt(req: ChatRequest): string {
   const { profile, deepProfile } = req
 
   const facetLabels: Record<string, string> = {
-    curiosity: '개방성·호기심',
-    diligence: '성실성·지속력',
-    boldness: '사회적 대담성',
-    humility: '겸손·윤리 의식',
-    anxiety: '감수성·정서적 민감도',
-    patience: '공감력·원만성',
+    openness: '개방성',
+    conscientiousness: '성실성',
+    extraversion: '외향성',
+    honesty: '정직-겸손',
+    emotionality: '정서성',
+    agreeableness: '원만성',
   }
 
   const facetLines = Object.entries(profile.facets)

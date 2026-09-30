@@ -20,7 +20,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q1',
     text: '오래된 친구가 파티에 데려갔습니다.\n아는 사람이 한 명도 없습니다.\n한 시간 후 당신은:',
     type: 'choice',
-    facet: 'boldness',
+    facet: 'extraversion',
     domain: 'BIG5',
     section: 'world',
     options: [
@@ -35,7 +35,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q3',
     text: '서점에서 고를 시간이 딱 5분입니다.\n당신이 손에 드는 책은:',
     type: 'choice',
-    facet: 'curiosity',
+    facet: 'openness',
     domain: 'BIG5',
     section: 'world',
     options: [
@@ -49,7 +49,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q5',
     text: '중요한 결정을 내린 후 당신은:',
     type: 'choice',
-    facet: 'anxiety',
+    facet: 'emotionality',
     domain: 'BIG5',
     section: 'world',
     options: [
@@ -63,7 +63,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q2',
     text: '주말에 갑자기 해야 할 일이 생겼습니다.\n당신의 첫 반응은:',
     type: 'choice',
-    facet: 'diligence',
+    facet: 'conscientiousness',
     domain: 'BIG5',
     section: 'world',
     options: [
@@ -77,7 +77,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q4',
     text: '친한 친구가 솔직한 피드백을 부탁합니다.\n그 피드백이 그를 불편하게 할 것을 알 때:',
     type: 'choice',
-    facet: 'patience',
+    facet: 'agreeableness',
     domain: 'BIG5',
     section: 'world',
     options: [
@@ -91,7 +91,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q7',
     text: '내가 한 일이 좋은 평가를 받았습니다.\n주변에 어떻게 이야기하나요?',
     type: 'choice',
-    facet: 'humility',
+    facet: 'honesty',
     domain: 'BIG5',
     section: 'world',
     options: [
@@ -105,7 +105,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q6',
     text: '중요한 발표를 앞두고 며칠 전부터\n당신의 상태는 어떤가요?',
     type: 'choice',
-    facet: 'anxiety',
+    facet: 'emotionality',
     domain: 'BIG5',
     section: 'world',
     options: [
@@ -120,7 +120,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'QR1',
     text: '아무 계획이 없는 토요일 오전입니다.\n당신에게 가장 자연스러운 것은:',
     type: 'choice',
-    facet: 'boldness',
+    facet: 'extraversion',
     domain: 'BIG5',
     section: 'world',
     reverse: true,
@@ -135,7 +135,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'QR2',
     text: '별로 하기 싫은 과제가 있습니다.\n마감은 3일 후입니다. 오늘 당신은:',
     type: 'choice',
-    facet: 'diligence',
+    facet: 'conscientiousness',
     domain: 'BIG5',
     section: 'world',
     reverse: true,
@@ -183,7 +183,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q11',
     text: '당신보다 실력이 낮다고 느껴지는 사람과\n팀이 됐습니다. 솔직한 첫 감정은:',
     type: 'choice',
-    facet: 'humility',
+    facet: 'honesty',
     domain: 'BIG5',
     section: 'decision',
     options: [
@@ -197,7 +197,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q13',
     text: '선택할 수 있다면:',
     type: 'choice',
-    facet: 'curiosity',
+    facet: 'openness',
     domain: 'BIG5',
     section: 'decision',
     options: [
@@ -211,7 +211,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q12',
     text: '마감이 촉박한 상황에서\n품질과 속도 사이 선택:',
     type: 'choice',
-    facet: 'diligence',
+    facet: 'conscientiousness',
     domain: 'BIG5',
     section: 'decision',
     options: [
@@ -225,7 +225,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q15',
     text: '예상치 못한 나쁜 소식을 들었을 때\n당신의 첫 반응은:',
     type: 'choice',
-    facet: 'anxiety',
+    facet: 'emotionality',
     domain: 'BIG5',
     section: 'decision',
     options: [
@@ -239,7 +239,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q14',
     text: '당신의 삶에서 "옳은 것"의 기준은 주로:',
     type: 'choice',
-    facet: 'curiosity',
+    facet: 'openness',
     domain: 'BIG5',
     section: 'decision',
     options: [
@@ -254,7 +254,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'QR4',
     text: '회의에서 모두가 동의하는 방향이지만\n당신이 보기엔 분명히 잘못됐습니다. 당신은:',
     type: 'choice',
-    facet: 'patience',
+    facet: 'agreeableness',
     domain: 'BIG5',
     section: 'decision',
     reverse: true,
@@ -269,7 +269,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q9',
     text: '여행을 계획한다면:',
     type: 'choice',
-    facet: 'diligence',
+    facet: 'conscientiousness',
     domain: 'BIG5',
     section: 'decision',
     options: [
@@ -289,7 +289,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q17',
     text: '긴 모임이나 사교 행사 후 당신은:',
     type: 'choice',
-    facet: 'boldness',
+    facet: 'extraversion',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -304,7 +304,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'QR5',
     text: '예상치 못한 좋은 소식이 갑자기 생겼습니다.\n당신의 첫 반응은:',
     type: 'choice',
-    facet: 'anxiety',
+    facet: 'emotionality',
     domain: 'BIG5',
     section: 'relation',
     reverse: true,
@@ -319,7 +319,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q16',
     text: '의견 충돌이 생겼을 때 당신은:',
     type: 'choice',
-    facet: 'patience',
+    facet: 'agreeableness',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -334,7 +334,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'QR6',
     text: '팀 프로젝트 후 상사가 "누가 이 결과를 이끌었나요?"라고 묻습니다.\n사실 당신이 가장 많이 기여했습니다. 당신은:',
     type: 'choice',
-    facet: 'humility',
+    facet: 'honesty',
     domain: 'BIG5',
     section: 'relation',
     reverse: true,
@@ -349,7 +349,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q19',
     text: '가까운 사람이 분명히 잘못된 선택을 하려 합니다.\n당신은:',
     type: 'choice',
-    facet: 'patience',
+    facet: 'agreeableness',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -363,7 +363,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q22',
     text: '그룹에서 명확한 리더가 없을 때 당신은:',
     type: 'choice',
-    facet: 'boldness',
+    facet: 'extraversion',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -377,7 +377,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q18',
     text: '성과를 냈을 때 당신이 더 원하는 것은:',
     type: 'choice',
-    facet: 'humility',
+    facet: 'honesty',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -391,7 +391,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q21',
     text: '나와 전혀 다른 가치관을 가진 사람을 만났을 때:',
     type: 'choice',
-    facet: 'curiosity',
+    facet: 'openness',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -405,7 +405,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q23',
     text: '처음 만난 사람과 엘리베이터에서\n30초를 함께해야 합니다. 당신은:',
     type: 'choice',
-    facet: 'boldness',
+    facet: 'extraversion',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -419,7 +419,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q24',
     text: '팀 프로젝트에서 내 아이디어가\n채택되지 않았습니다. 당신은:',
     type: 'choice',
-    facet: 'humility',
+    facet: 'honesty',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -434,7 +434,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'QR3',
     text: '자주 쓰던 앱이 대대적으로 개편돼\n인터페이스가 완전히 바뀌었습니다. 당신은:',
     type: 'choice',
-    facet: 'curiosity',
+    facet: 'openness',
     domain: 'BIG5',
     section: 'relation',
     reverse: true,
@@ -449,7 +449,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q20',
     text: '처음 보는 여러 사람 앞에서 발표를 마쳤습니다.\n그날 밤 당신은:',
     type: 'choice',
-    facet: 'anxiety',
+    facet: 'emotionality',
     domain: 'BIG5',
     section: 'relation',
     options: [
@@ -463,7 +463,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
     id: 'Q25',
     text: '상대방이 같은 실수를 세 번째 반복했습니다.\n당신의 반응은:',
     type: 'choice',
-    facet: 'patience',
+    facet: 'agreeableness',
     domain: 'BIG5',
     section: 'relation',
     options: [

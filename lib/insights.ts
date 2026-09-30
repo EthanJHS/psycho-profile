@@ -8,6 +8,7 @@
  * ※ 투자 섹션은 성격 기반 경향성 분석이며 금융 조언이 아닙니다.
  */
 import { FacetMap } from './profiles'
+import type { SubFacetScores } from './paid-scoring'
 
 // ─── 서술형 성격 내러티브 ──────────────────────────────────────
 
@@ -18,12 +19,12 @@ import { FacetMap } from './profiles'
 function norm(v: number): number { return Math.min(Math.max((v - 1) / 4, 0), 1) }
 
 export function computeNarrative(facets: FacetMap, cogScore: number): string {
-  const cur = norm(facets.curiosity)
-  const dil = norm(facets.diligence)
-  const bol = norm(facets.boldness)
-  const hum = norm(facets.humility)
-  const anx = norm(facets.anxiety)
-  const pat = norm(facets.patience)
+  const cur = norm(facets.openness)
+  const dil = norm(facets.conscientiousness)
+  const bol = norm(facets.extraversion)
+  const hum = norm(facets.honesty)
+  const anx = norm(facets.emotionality)
+  const pat = norm(facets.agreeableness)
 
   const sentences: string[] = []
 
@@ -101,6 +102,14 @@ function get(f: FacetMap, key: string): number {
 
 // ─── 업무 방식 ─────────────────────────────────────────────
 
+export interface OrgFit {
+  type: '수직형' | '수평형' | '유연형'
+  score: number            // 0(수직) ~ 1(수평)
+  summary: string          // 2~3문장 핵심 설명
+  vertical: string         // 수직 구조에서의 강점·약점
+  horizontal: string       // 수평 구조에서의 강점·약점
+}
+
 export interface WorkStyle {
   decisionMaking: string   // 의사결정 방식
   collaboration: string    // 협업 스타일
@@ -109,9 +118,10 @@ export interface WorkStyle {
   communication: string    // 소통 방식
   strengths: string[]      // 업무 강점 (3가지)
   watchouts: string[]      // 주의사항 (2가지)
+  orgFit: OrgFit           // 조직 구조 적합도
 }
 
-export function computeWorkStyle(facets: FacetMap, cogScore: number): WorkStyle {
+export function computeWorkStyle(facets: FacetMap, cogScore: number, sf?: SubFacetScores): WorkStyle {
   const cur = get(facets, 'curiosity')
   const dil = get(facets, 'diligence')
   const bol = get(facets, 'boldness')
@@ -210,7 +220,49 @@ export function computeWorkStyle(facets: FacetMap, cogScore: number): WorkStyle 
   if (watchouts.length === 0) watchouts.push('지나친 융통성으로 방향이 자주 바뀔 수 있습니다. 핵심 우선순위 3가지를 고정해두고 흔들리지 않게 관리하세요.')
   if (watchouts.length === 1) watchouts.push('강점이 과도해지면 단점이 됩니다. 자신의 주요 특성이 극단으로 흐르지 않도록 주기적으로 점검하세요.')
 
-  return { decisionMaking, collaboration, environment, focus, communication, strengths, watchouts: watchouts.slice(0, 2) }
+  // ── 조직 구조 적합도 ──
+  // O↑ → 자율·변화·수평 선호 / E↑ → 모호성 회피·구조 필요 → 수직 선호
+  // 하위요인이 있으면 관련 있는 것만 사용 (미적감수성·정서의존·공감감동 제외)
+  let orgScore: number
+  if (sf) {
+    const ns = (v: number) => Math.min(Math.max((v - 1) / 4, 0), 1)
+    // raw sum 사용 → O 3항목 : E 2항목 = 3:2 자연 반영
+    // O 내부: 탐구심(1.2) > 비관습(1.0) > 창의(0.8), 합계 3.0
+    // E: 두려움·불안 각 1.0, 합계 2.0
+    const hRaw = ns(sf.inquisitiveness) * 1.2 + ns(sf.unconventionality) * 1.0 + ns(sf.creativity) * 0.8
+    const vRaw = ns(sf.fearfulness) + ns(sf.anxiety)
+    orgScore = (hRaw + vRaw) === 0 ? 0.5 : hRaw / (hRaw + vRaw)
+  } else {
+    orgScore = (cur + anx) === 0 ? 0.5 : cur / (cur + anx)
+  }
+
+  let orgType: OrgFit['type']
+  // 임계값을 3:2 비율 기준으로 보정: 중립(O=E=0.5) → orgScore=0.60 → 유연형 유지
+  if (orgScore >= 0.625) orgType = '수평형'
+  else if (orgScore <= 0.375) orgType = '수직형'
+  else orgType = '유연형'
+
+  let orgSummary: string
+  let orgVertical: string
+  let orgHorizontal: string
+
+  if (orgType === '수평형') {
+    orgSummary = '자율성과 수평 소통이 보장된 환경에서 능력이 가장 잘 발휘됩니다. 위계와 절차보다 아이디어와 역량으로 평가받는 구조가 잘 맞습니다. 지나치게 경직된 관료적 조직에서는 답답함을 느끼고 이탈 욕구가 생길 수 있습니다.'
+    orgVertical = '명확한 역할 정의와 예측 가능한 승진 경로는 장점이지만, 지시 중심 의사결정 구조에서 아이디어 기여 기회가 제한될 수 있습니다. 상향식 의견 제안 채널이 있는지 확인하는 것이 중요합니다.'
+    orgHorizontal = '의사결정에 직접 참여하고 다양한 역할을 실험할 수 있는 환경에서 높은 몰입도를 보입니다. 스타트업, 애자일 팀, 연구·창작 조직 등에서 자연스럽게 주도적 역할을 맡게 됩니다.'
+  } else if (orgType === '수직형') {
+    orgSummary = '명확한 구조와 역할이 있는 조직에서 높은 성과를 냅니다. 권한과 책임이 잘 정의된 환경에서 안정적으로 역량을 쌓고 신뢰를 축적합니다. 지나치게 유동적이거나 모호한 구조에서는 오히려 에너지 소모가 크게 됩니다.'
+    orgVertical = '체계적인 프로세스와 명확한 기대치가 있는 환경에서 탁월한 실행력을 발휘합니다. 선임자의 노하우를 빠르게 흡수하고 조직의 표준을 높이는 역할을 자연스럽게 맡습니다.'
+    orgHorizontal = '자유도 높은 수평 조직에서는 초반에 방향 설정에 시간이 걸릴 수 있습니다. 명시적인 목표와 평가 기준을 스스로 설정하는 역량을 키우면 수평 구조에서도 좋은 성과를 낼 수 있습니다.'
+  } else {
+    orgSummary = '수직·수평 구조 모두에 무리 없이 적응하는 유연한 조직 적합성을 가집니다. 어떤 환경이든 진입 후 비교적 빠르게 적응하지만, 장기적으로는 자신의 강점이 더 잘 발휘되는 환경을 선택하는 것이 중요합니다.'
+    orgVertical = '위계 구조에서의 명확성과 안정감을 활용하되, 과도한 관료주의가 창의성을 억제하지 않는지 주기적으로 점검이 필요합니다.'
+    orgHorizontal = '수평적 환경의 자율성을 잘 활용할 수 있으며, 역할 모호성이 발생하면 스스로 경계를 설정하는 주도성이 강점이 됩니다.'
+  }
+
+  const orgFit: OrgFit = { type: orgType, score: orgScore, summary: orgSummary, vertical: orgVertical, horizontal: orgHorizontal }
+
+  return { decisionMaking, collaboration, environment, focus, communication, strengths, watchouts: watchouts.slice(0, 2), orgFit }
 }
 
 // ─── 투자 스타일 ─────────────────────────────────────────────
@@ -794,11 +846,10 @@ export function computeLifeBalance(facets: FacetMap, life: Record<string, string
   const range = Math.max(...scores) - Math.min(...scores)
   const variance = scores.reduce((a, b) => a + Math.abs(b - avg), 0) / scores.length
 
+  const lowestScore = Math.min(...scores)
   const overallBalance: LifeBalanceProfile['overallBalance'] =
-    avg < 45           ? '불균형'
-    : range > 30       ? '불균형'
-    : variance > 12    ? '불균형'
-    : (avg < 58 || range > 18 || variance > 8) ? '보통'
+    avg < 45 || lowestScore < 35  ? '불균형'
+    : avg < 62 || lowestScore < 58 ? '보통'
     : '양호'
 
   const lowestDomain = domains.reduce((a, b) => a.score < b.score ? a : b)
@@ -830,12 +881,12 @@ export interface RiasecScore {
 }
 
 export function computeRiasec(facets: FacetMap): RiasecScore {
-  const cur = norm(facets.curiosity)
-  const dil = norm(facets.diligence)
-  const bol = norm(facets.boldness)
-  const hum = norm(facets.humility)
-  const anx = norm(facets.anxiety)
-  const pat = norm(facets.patience)
+  const cur = norm(facets.openness)
+  const dil = norm(facets.conscientiousness)
+  const bol = norm(facets.extraversion)
+  const hum = norm(facets.honesty)
+  const anx = norm(facets.emotionality)
+  const pat = norm(facets.agreeableness)
 
   const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 

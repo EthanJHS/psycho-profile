@@ -4,7 +4,7 @@ export type SectionId = 'world' | 'decision' | 'relation' | 'cognition' | 'essen
 
 export type ArchetypeId =
   | 'architect' | 'guardian' | 'explorer' | 'prophet'
-  | 'warrior' | 'alchemist' | 'sovereign' | 'sage'
+  | 'warrior' | 'seeker' | 'sovereign' | 'sage'
   | 'harmonizer' | 'rebel' | 'lover' | 'catalyst'
 
 export type ModeId = 'analytical' | 'intuitive' | 'pragmatic' | 'integrative'
@@ -50,6 +50,8 @@ export interface TestResult {
   lifestyle: string
   weeklyRoutine: string[]
   cognitiveStyle: string
+  cognitiveStyleEN?: string
+  dominantTraitsEN?: string[]
   relationshipStyle?: string
   growthDirection?: string
   shortDesc?: string

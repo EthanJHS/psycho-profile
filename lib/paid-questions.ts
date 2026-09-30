@@ -1,11 +1,11 @@
-// 유료 검사 문항 — 82문항
-// HEXACO 24 하위 요인(48) + RIASEC 직접 측정(18) + 학문 적성(16, 차원당 2문항)
+// 유료 검사 문항 — 90문항
+// HEXACO 24 하위 요인(48) + RIASEC 직접 측정(18) + 학문 적성(20) + 웰빙(4)
 // Likert 척도: 1=전혀 아니다 2=아니다 3=보통이다 4=그렇다 5=매우 그렇다
 
-export type PaidSection = 'hexaco' | 'riasec' | 'aptitude'
+export type PaidSection = 'hexaco' | 'riasec' | 'aptitude' | 'wellbeing'
 
 export interface PaidQuestion {
-  id: string          // PQ1 ~ PQ82
+  id: string          // PQ1 ~ PQ90
   section: PaidSection
   facet?: SubFacet    // HEXACO 하위 요인
   riasecType?: RiasecType
@@ -31,34 +31,34 @@ export type SubFacet =
   | 'aestheticAppreciation' | 'inquisitiveness' | 'creativity' | 'unconventionality'
 
 export type RiasecType = 'R' | 'I' | 'A' | 'S' | 'E' | 'C'
-export type AptitudeDim = 'quantitative' | 'verbal' | 'spatial' | 'social' | 'applied' | 'business' | 'scientific' | 'humanistic'
+export type AptitudeDim = 'quantitative' | 'verbal' | 'spatial' | 'social' | 'applied' | 'business' | 'scientific' | 'humanistic' | 'artistic'
 
 // 하위 요인 한국어 레이블
 export const SUB_FACET_LABELS: Record<SubFacet, { label: string; parent: string }> = {
-  sincerity:             { label: '진실성',     parent: '겸손·윤리' },
-  fairness:              { label: '공정성',     parent: '겸손·윤리' },
-  greedAvoidance:        { label: '탐욕 회피',  parent: '겸손·윤리' },
-  modesty:               { label: '겸손',       parent: '겸손·윤리' },
-  fearfulness:           { label: '두려움 민감성', parent: '감수성' },
-  anxiety:               { label: '불안 경향',  parent: '감수성' },
-  dependence:            { label: '정서적 의존', parent: '감수성' },
-  sentimentality:        { label: '공감·감동',  parent: '감수성' },
-  socialSelfEsteem:      { label: '사회적 자존감', parent: '사회적 대담성' },
-  socialBoldness:        { label: '공적 자신감', parent: '사회적 대담성' },
-  sociability:           { label: '사교성',     parent: '사회적 대담성' },
-  liveliness:            { label: '활력·생동감', parent: '사회적 대담성' },
-  forgivingness:         { label: '용서·관용',  parent: '공감력·원만성' },
-  gentleness:            { label: '온화함',     parent: '공감력·원만성' },
-  flexibility:           { label: '유연성·타협', parent: '공감력·원만성' },
-  patience:              { label: '인내·분노 조절', parent: '공감력·원만성' },
+  sincerity:             { label: '진실성',     parent: '정직-겸손' },
+  fairness:              { label: '공정성',     parent: '정직-겸손' },
+  greedAvoidance:        { label: '탐욕 회피',  parent: '정직-겸손' },
+  modesty:               { label: '겸손',       parent: '정직-겸손' },
+  fearfulness:           { label: '두려움 민감성', parent: '정서성' },
+  anxiety:               { label: '불안 경향',  parent: '정서성' },
+  dependence:            { label: '정서적 의존', parent: '정서성' },
+  sentimentality:        { label: '공감·감동',  parent: '정서성' },
+  socialSelfEsteem:      { label: '사회적 자존감', parent: '외향성' },
+  socialBoldness:        { label: '공적 자신감', parent: '외향성' },
+  sociability:           { label: '사교성',     parent: '외향성' },
+  liveliness:            { label: '활력·생동감', parent: '외향성' },
+  forgivingness:         { label: '용서·관용',  parent: '원만성' },
+  gentleness:            { label: '온화함',     parent: '원만성' },
+  flexibility:           { label: '유연성·타협', parent: '원만성' },
+  patience:              { label: '인내·분노 조절', parent: '원만성' },
   organization:          { label: '체계성',     parent: '성실성' },
   diligence:             { label: '근면성',     parent: '성실성' },
   perfectionism:         { label: '완벽주의',   parent: '성실성' },
   prudence:              { label: '신중성',     parent: '성실성' },
-  aestheticAppreciation: { label: '미적 감수성', parent: '지적 개방성' },
-  inquisitiveness:       { label: '탐구심',     parent: '지적 개방성' },
-  creativity:            { label: '창의적 상상력', parent: '지적 개방성' },
-  unconventionality:     { label: '비관습적 사고', parent: '지적 개방성' },
+  aestheticAppreciation: { label: '미적 감수성', parent: '개방성' },
+  inquisitiveness:       { label: '탐구심',     parent: '개방성' },
+  creativity:            { label: '창의적 상상력', parent: '개방성' },
+  unconventionality:     { label: '비관습적 사고', parent: '개방성' },
 }
 
 export const PAID_QUESTIONS: PaidQuestion[] = [
@@ -357,7 +357,7 @@ export const PAID_QUESTIONS: PaidQuestion[] = [
   },
   {
     id: 'PQ54', section: 'riasec', riasecType: 'I', reverse: false,
-    text: '관찰과 실험, 데이터 수집을 통해 문제를 체계적으로 검증하는 방식을 선호한다.',
+    text: '복잡한 현상 뒤에 숨은 원리나 메커니즘을 밝혀내는 것 자체가 즐겁고 흥미롭다.',
   },
 
   // A: Artistic — 예술형 (창작·표현·자유)
@@ -385,7 +385,7 @@ export const PAID_QUESTIONS: PaidQuestion[] = [
   },
   {
     id: 'PQ60', section: 'riasec', riasecType: 'S', reverse: false,
-    text: '팀워크와 협력을 중심으로 한 환경에서 일하는 것이 편하고 즐겁다.',
+    text: '사람들을 가르치거나 돕는 역할에서 보람과 의미를 느낀다.',
   },
 
   // E: Enterprising — 진취형 (설득·리더십·경쟁)
@@ -480,7 +480,7 @@ export const PAID_QUESTIONS: PaidQuestion[] = [
   // 언어·문해 2차 (정방향): 논리적 허점 포착 능력
   {
     id: 'PQ76', section: 'aptitude', aptitudeDim: 'verbal', reverse: false,
-    text: '상대방의 말이나 글에서 논리적 허점이나 모순을 비교적 잘 찾아내는 편이다.',
+    text: '길고 복잡한 글을 읽고 핵심 주장과 그 근거를 명확하게 파악하는 것이 잘 된다.',
   },
   // 공간·시각화 2차 (역채점): 도면·배치도 파악 어려움 → 역채점
   {
@@ -511,6 +511,48 @@ export const PAID_QUESTIONS: PaidQuestion[] = [
   {
     id: 'PQ82', section: 'aptitude', aptitudeDim: 'humanistic', reverse: false,
     text: '같은 역사적 사건이나 문학 작품도 시대·문화·관점에 따라 다르게 해석될 수 있다는 것을 잘 이해한다.',
+  },
+
+  // 예술적 표현 역량 (정방향): 아이디어를 감각적 형태로 표현하는 능력
+  {
+    id: 'PQ83', section: 'aptitude', aptitudeDim: 'artistic', reverse: false,
+    text: '아이디어나 감정을 글, 그림, 음악, 디자인 같은 형태로 표현하는 것이 자연스럽게 잘 된다.',
+  },
+  // 미적 감지 역량 (역채점): 색감·형태·분위기 포착이 어렵다 → 역채점으로 미적 역량 낮음
+  {
+    id: 'PQ84', section: 'aptitude', aptitudeDim: 'artistic', reverse: true,
+    text: '어떤 대상의 색감, 형태, 소리, 분위기 같은 미적 특성을 포착하고 표현하는 것이 나에게는 어렵다.',
+  },
+  // 독창적 표현 충동 (정방향): 같은 주제도 남들과 다른 방식으로 접근하고 싶은 욕구
+  {
+    id: 'PQ85', section: 'aptitude', aptitudeDim: 'artistic', reverse: false,
+    text: '같은 주제나 과제를 접해도 남들과 다른 독창적인 방식으로 표현하고 싶은 충동이 자연스럽게 든다.',
+  },
+  // 심미적 판단력 (역채점): 작품·디자인의 예술적 가치 파악이 어렵다 → 역채점
+  {
+    id: 'PQ86', section: 'aptitude', aptitudeDim: 'artistic', reverse: true,
+    text: '음악, 미술, 영화, 디자인 등의 작품을 접할 때 그 예술적 특성이나 완성도를 파악하는 것이 어렵게 느껴진다.',
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // 파트 4: 웰빙 — 번아웃 지표 4문항
+  // ════════════════════════════════════════════════════════════════
+
+  {
+    id: 'PQ87', section: 'wellbeing', facet: 'burnout_detachment' as never, reverse: false,
+    text: '퇴근 후에도 업무나 해야 할 일에 대한 생각을 완전히 멈추기 어렵다.',
+  },
+  {
+    id: 'PQ88', section: 'wellbeing', facet: 'burnout_meaning' as never, reverse: false,
+    text: '일에서 예전에 느끼던 보람이나 의미가 최근 들어 줄어든 것 같다.',
+  },
+  {
+    id: 'PQ89', section: 'wellbeing', facet: 'burnout_exhaustion' as never, reverse: false,
+    text: '하루를 마칠 때 감정적으로나 신체적으로나 완전히 탈진한 느낌이 자주 든다.',
+  },
+  {
+    id: 'PQ90', section: 'wellbeing', facet: 'burnout_recovery' as never, reverse: false,
+    text: '충분히 쉬어도 다음 날 일을 시작할 에너지가 제대로 회복되지 않는 느낌이다.',
   },
 ]
 

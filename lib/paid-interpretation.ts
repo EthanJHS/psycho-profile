@@ -280,7 +280,8 @@ export interface AptitudeRatio {
   engineering: number
   liberal: number
   business: number
-  dominant: '이과형' | '공학형' | '문과형' | '경상형' | '균형형'
+  art: number
+  dominant: '이과형' | '공학형' | '문과형' | '경상형' | '예술형' | '복합형'
   portrait: string
   recommended: string[]
   fusionPath?: FusionPath   // 상위 2계열 차이 ≤ 12%일 때만 존재
@@ -293,39 +294,48 @@ export function computeAptitudeRatio(a: AptitudeScores): AptitudeRatio {
   const engRaw   = a.quantitative * 0.3 + a.applied   * 1.0 + a.spatial * 0.7
   const libRaw   = a.verbal       * 0.7 + a.humanistic* 1.0 + a.social  * 0.6
   const bizRaw   = a.quantitative * 0.2 + a.business  * 1.0 + a.social  * 0.4
+  // 예술형: 창작·미적 표현 역량(artistic)을 핵심으로, 인문(humanistic)·언어(verbal) 보조
+  // 수리/과학 적성이 높을수록 예술형 순수도 희석 (패널티 유지)
+  const artRaw   = a.artistic * 1.5 + a.verbal * 0.4 + a.humanistic * 0.6
+  const artStemPenalty = Math.max(0, a.scientific - 3) * 0.28 + Math.max(0, a.quantitative - 3) * 0.18
+  const artAdjusted = Math.max(0, artRaw - artStemPenalty)
 
   // 각 계열 만점 (all 5점일 때)
-  const stemMax  = 5 * (0.5 + 1.0 + 0.3)  // 9
-  const engMax   = 5 * (0.3 + 1.0 + 0.7)  // 10
-  const libMax   = 5 * (0.7 + 1.0 + 0.6)  // 11.5
-  const bizMax   = 5 * (0.2 + 1.0 + 0.4)  // 8
+  const stemMax  = 5 * (0.5 + 1.0 + 0.3)       // 9
+  const engMax   = 5 * (0.3 + 1.0 + 0.7)       // 10
+  const libMax   = 5 * (0.7 + 1.0 + 0.6)       // 11.5
+  const bizMax   = 5 * (0.2 + 1.0 + 0.4)       // 8
+  const artMax   = 5 * (1.5 + 0.4 + 0.6)       // 12.5 (만점 기준 조정)
 
   // 정규화 (0~1)
-  const stemN  = stemRaw  / stemMax
-  const engN   = engRaw   / engMax
-  const libN   = libRaw   / libMax
-  const bizN   = bizRaw   / bizMax
+  const stemN  = stemRaw    / stemMax
+  const engN   = engRaw     / engMax
+  const libN   = libRaw     / libMax
+  const bizN   = bizRaw     / bizMax
+  const artN   = artAdjusted / artMax
 
-  const total = stemN + engN + libN + bizN || 1
-  const stem       = Math.round(stemN / total * 100)
+  const total = stemN + engN + libN + bizN + artN || 1
+  const stem        = Math.round(stemN / total * 100)
   const engineering = Math.round(engN  / total * 100)
-  const liberal    = Math.round(libN  / total * 100)
-  const business   = Math.round(bizN  / total * 100)
+  const liberal     = Math.round(libN  / total * 100)
+  const business    = Math.round(bizN  / total * 100)
+  const art         = Math.round(artN  / total * 100)
 
   // 지배 계열 — float 동등 비교 대신 인덱스로 최댓값 결정
-  const vals = [stemN, engN, libN, bizN]
+  const vals = [stemN, engN, libN, bizN, artN]
   const maxVal = Math.max(...vals)
   const maxIdx = vals.indexOf(maxVal)
-  const maxDiff = maxVal - (total - maxVal) / 3  // 다른 3개 평균과의 차이
-  const dominantByIdx: AptitudeRatio['dominant'][] = ['이과형', '공학형', '문과형', '경상형']
-  const dominant: AptitudeRatio['dominant'] = maxDiff > 0.05 ? dominantByIdx[maxIdx] : '균형형'
+  const maxDiff = maxVal - (total - maxVal) / 4  // 다른 4개 평균과의 차이
+  const dominantByIdx: AptitudeRatio['dominant'][] = ['이과형', '공학형', '문과형', '경상형', '예술형']
+  const dominant: AptitudeRatio['dominant'] = maxDiff > 0.05 ? dominantByIdx[maxIdx] : '복합형'
 
   const PORTRAITS: Record<AptitudeRatio['dominant'], string> = {
     '이과형': '수학·과학·논리적 추론에서 두드러진 강점이 확인됩니다. 자연 현상의 원리를 탐구하고 검증하는 활동에서 지적 만족을 얻는 유형입니다.',
     '공학형': '이론을 실제 시스템으로 구현하는 응용적 사고가 강점입니다. 공간적 추론과 제작·설계 활동에서 높은 몰입을 경험하는 유형입니다.',
     '문과형': '언어·인문·사회적 이해가 두드러집니다. 인간과 사회를 탐구하고 그것을 글과 말로 표현하는 활동에 가장 자연스럽게 끌리는 유형입니다.',
     '경상형': '경영·경제·재무 논리와 수리적 분석이 결합된 적성입니다. 비즈니스 환경에서 데이터를 읽고 전략적 판단을 내리는 역할에 적합합니다.',
-    '균형형': '특정 계열에 편중되지 않고 여러 학문 영역에 고르게 관심이 분포합니다. 다학제적 접근이나 융합 분야에서 독특한 강점을 발휘할 수 있습니다.',
+    '예술형': '언어적 감수성과 인문학적 깊이가 결합된 창의적 표현 지향 유형입니다. 감정과 아이디어를 작품·글·디자인 등의 형태로 구체화하는 활동에서 강한 몰입을 경험합니다.',
+    '복합형': '특정 계열에 편중되지 않고 여러 학문 영역에 고르게 관심이 분포합니다. 다학제적 접근이나 융합 분야에서 독특한 강점을 발휘할 수 있습니다.',
   }
 
   const RECOMMENDED: Record<AptitudeRatio['dominant'], string[]> = {
@@ -333,13 +343,14 @@ export function computeAptitudeRatio(a: AptitudeScores): AptitudeRatio {
     '공학형': ['컴퓨터공학', '기계공학', '전자·전기공학', '건축·도시공학', '산업공학'],
     '문과형': ['국어국문', '사회학', '역사학', '철학', '심리학', '교육학', '언론·미디어'],
     '경상형': ['경영학', '경제학', '회계·세무', '금융·보험', '통계·데이터 분석'],
-    '균형형': ['자유전공학부', '융합전공', '사회심리학', '경영정보학', '디지털 인문학'],
+    '예술형': ['시각디자인', '영상·미디어', '문예창작', '미술·음악', '인문학', '문화콘텐츠학'],
+    '복합형': ['자유전공학부', '융합전공', '사회심리학', '경영정보학', '디지털 인문학'],
   }
 
   // ── 융합 경로: 상위 2계열의 비율 차이가 12% 이하일 때 ──────────────
   // 비율 배열을 내림차순 정렬해 상위 2계열 파악
   const ratioEntries = (
-    [['liberal', liberal], ['stem', stem], ['engineering', engineering], ['business', business]] as [string, number][]
+    [['liberal', liberal], ['stem', stem], ['engineering', engineering], ['business', business], ['art', art]] as [string, number][]
   ).sort((a, b) => b[1] - a[1])
 
   const top1Key = ratioEntries[0][0]
@@ -387,6 +398,30 @@ export function computeAptitudeRatio(a: AptitudeScores): AptitudeRatio {
       majors: ['산업공학', '기술경영(MOT)', '창업학', '경영공학', '핀테크', '스마트 제조'],
       careers: ['기술 창업자', '기술 컨설턴트', 'CTO', '제품 관리자(PM)', '벤처캐피털 심사역', '스마트팩토리 기획자'],
     },
+    'art-liberal': {
+      label: '예술 × 문과 융합형',
+      description: '인문학적 글쓰기와 예술적 감수성이 결합된 표현 지향형 조합입니다. 언어를 매개로 인간의 내면과 사회적 현실을 탐구하고 독창적 방식으로 전달하는 역할에 탁월합니다. 시인·소설가·문화비평가처럼 글과 이야기로 세상을 해석하는 직업에서 진정한 소명을 찾는 경우가 많습니다.',
+      majors: ['문예창작', '인문학', '미술·사진', '인문상담', '미학', '문화콘텐츠학', '시각예술'],
+      careers: ['작가·시인', '문화비평가', '큐레이터', '독립 저널리스트', '예술치료사', '콘텐츠 크리에이터'],
+    },
+    'art-engineering': {
+      label: '예술 × 공학 융합형',
+      description: '창의적 감수성과 기술적 구현 역량이 교차하는 드문 조합입니다. 아름다운 것을 만들고 싶은 욕구와 작동하는 시스템을 설계하는 능력이 동시에 있어, 디자인과 기술의 경계를 허무는 역할에 최적화되어 있습니다.',
+      majors: ['산업디자인', '건축학', 'UX 디자인', '미디어아트', '영상공학', '게임공학'],
+      careers: ['제품 디자이너', '건축가', 'UX/UI 디자이너', '미디어 아티스트', '게임 아트 디렉터', '모션 디자이너'],
+    },
+    'art-stem': {
+      label: '예술 × 이과 융합형',
+      description: '과학적 탐구심과 예술적 표현 욕구가 공존하는 희귀한 조합입니다. 자연의 복잡한 현상을 시각화하거나 과학적 발견을 창의적 매체로 전달하는 역할에서 강점이 발휘됩니다.',
+      majors: ['과학시각화', '사이언스 커뮤니케이션', '바이오아트', '디지털 사이언스', '미디어아트', '수리물리'],
+      careers: ['과학 일러스트레이터', '사이언스 커뮤니케이터', '과학 저술가', '데이터 시각화 전문가', '과학 영상 제작자'],
+    },
+    'art-business': {
+      label: '예술 × 경상 융합형',
+      description: '창의적 감수성과 비즈니스 감각이 결합된 문화산업형 조합입니다. 예술과 콘텐츠를 시장에서 가치 있게 만드는 역할, 또는 브랜드와 문화가 교차하는 영역에서 강점을 발휘합니다.',
+      majors: ['문화콘텐츠경영', '엔터테인먼트경영', '패션경영', '예술경영', '광고홍보', '창업학'],
+      careers: ['문화기획자', '엔터테인먼트 매니저', '브랜드 크리에이티브 디렉터', '갤러리 큐레이터', '콘텐츠 사업가'],
+    },
   }
 
   // 3계열 융합 경로 (상위 3계열의 최대~최소 격차 ≤ 18%일 때)
@@ -419,11 +454,36 @@ export function computeAptitudeRatio(a: AptitudeScores): AptitudeRatio {
       majors: ['기술경영', '서비스 디자인', 'UX 전략', '경영인문학', '디지털 트랜스포메이션', '사회적기업', '소셜이노베이션'],
       careers: ['제품 관리자(PM)', '서비스 디자이너', '디지털 전환 컨설턴트', '사회적 기업가', '브랜드 전략가', 'HR 테크 기획자'],
     },
+    'art-liberal-stem': {
+      label: '예술·문과·이과 3계열 융합형',
+      description: '창의적 표현력, 인문학적 통찰, 과학적 분석력이 한 사람 안에 공존하는 극히 희소한 프로필입니다. 복잡한 현실을 다각도로 해석하고 그것을 감각적이면서도 논리적인 방식으로 전달하는 역할에서 두드러집니다. 과학과 예술, 이야기와 데이터가 교차하는 지점에서 차별화된 목소리를 가질 수 있습니다.',
+      majors: ['과학시각화', '디지털인문학', '미디어아트', '사이언스 커뮤니케이션', '인지과학', '문화콘텐츠학', '미학'],
+      careers: ['사이언스 커뮤니케이터', '데이터 시각화 전문가', '과학 저술가', '다큐멘터리 제작자', '미디어 아티스트', '인문 콘텐츠 크리에이터'],
+    },
+    'art-engineering-liberal': {
+      label: '예술·공학·문과 3계열 융합형',
+      description: '감각적 디자인 사고, 기술 구현 역량, 인문학적 스토리텔링이 통합된 조합입니다. 기술이 사람에게 어떻게 경험되는지를 깊이 이해하며, 그것을 아름답고 의미 있는 형태로 만드는 역할에 탁월합니다. UX·브랜딩·콘텐츠 기술이 교차하는 영역의 리더로 성장할 가능성이 높습니다.',
+      majors: ['UX 디자인', 'HCI', '디지털인문학', '인터랙션 디자인', '미디어공학', '문화콘텐츠학', '서비스 디자인'],
+      careers: ['UX 디렉터', '크리에이티브 테크놀로지스트', '인터랙션 디자이너', '콘텐츠 플랫폼 기획자', '미디어 아트 감독', '브랜드 경험 디자이너'],
+    },
+    'art-business-liberal': {
+      label: '예술·경상·문과 3계열 융합형',
+      description: '예술적 감수성, 비즈니스 감각, 인문학적 이해가 결합된 문화산업 특화형 조합입니다. 콘텐츠의 가치를 알아보고, 그것을 시장에서 유통하며, 사람들에게 의미 있게 전달하는 역할을 자연스럽게 수행합니다. 문화·엔터테인먼트·미디어 산업에서 기획·경영·창작을 동시에 아우르는 포지션이 최적입니다.',
+      majors: ['예술경영', '문화콘텐츠경영', '광고홍보', '엔터테인먼트경영', '미학', '소비자심리학', '문예창작'],
+      careers: ['문화기획자', '엔터테인먼트 프로듀서', '브랜드 스토리텔러', '콘텐츠 사업 기획자', '아트 디렉터', '미디어 퍼블리셔'],
+    },
+    'art-engineering-stem': {
+      label: '예술·공학·이과 3계열 융합형',
+      description: '창의적 표현 욕구, 공학적 구현 역량, 과학적 탐구심이 통합된 테크-아트 지향 프로필입니다. 아름다운 것을 만들고 싶은 충동과 작동하는 시스템을 설계하는 능력이 과학적 호기심과 결합되어, 미래 기술과 예술의 경계를 허무는 역할에 탁월합니다.',
+      majors: ['미디어아트', '게임공학', '디지털 사이언스', '인터랙티브 미디어', '건축학', '바이오아트', '사운드 엔지니어링'],
+      careers: ['미디어 아티스트', '게임 아트 디렉터', '인터랙티브 설치작가', '과학-예술 융합 연구자', '사운드 디자이너', 'XR(VR/AR) 크리에이터'],
+    },
   }
 
   // 3개 키를 알파벳 순 정렬해 매핑
   const tripleKey = [top1Key, top2Key, top3Key].sort().join('-')
-  const fusionPath3 = gap3 <= 18 ? (FUSION_PATHS_3[tripleKey] ?? undefined) : undefined
+  // 3위가 1위의 85% 이상이어야 진짜 3계열 융합으로 인정 (비율 조건 추가)
+  const fusionPath3 = gap3 <= 18 && top3Val >= top1Val * 0.85 ? (FUSION_PATHS_3[tripleKey] ?? undefined) : undefined
 
   // 페어 키 생성 (알파벳 순 정렬로 양방향 통일)
   const pairKey = [top1Key, top2Key].sort().join('-')
@@ -431,7 +491,7 @@ export function computeAptitudeRatio(a: AptitudeScores): AptitudeRatio {
   // 2계열 융합: 3계열이 있어도 독립적으로 표시 (임계값 20%로 확대)
   const fusionPath = gap <= 20 ? (FUSION_PATHS[pairKey] ?? undefined) : undefined
 
-  return { stem, engineering, liberal, business, dominant, portrait: PORTRAITS[dominant], recommended: RECOMMENDED[dominant], fusionPath, fusionPath3 }
+  return { stem, engineering, liberal, business, art, dominant, portrait: PORTRAITS[dominant], recommended: RECOMMENDED[dominant], fusionPath, fusionPath3 }
 }
 
 // ── 교차 패턴 인사이트 ────────────────────────────────────────────────
@@ -942,17 +1002,43 @@ function computeCrossDomainSynthesis(
       firstStep: '관심 분야 최상위 자격증의 취득 경로와 합격률을 조사하고 3년 역산 계획표 작성하기.',
     })
   } else { // R
-    pathways.push({
-      label: '기술·현장 전문가 경로',
-      why: `현실형 흥미(R 1위) + ${hC ? `높은 성실성(C ${C.toFixed(1)}/5)의 실행력` : '실행 지향성'} + ${engineering >= 28 ? `공학 적성(${engineering}%)` : `이과 적성(${stem}%)`}이 결합해, 직접 손으로 만들고 고치는 기술 환경에서 최고의 몰입을 경험합니다.`,
-      concrete: [
-        '기계·제조: 기계공학자, 생산 기술자, 자동화 엔지니어',
-        '전기·전자: 전기공학자, 반도체 엔지니어, 임베디드 개발자',
-        '건설·환경: 건축공학자, 토목엔지니어, 환경공학자',
-        hO ? '단순 실행보다 기술 R&D·혁신 역할을 병행해 개방성을 활용할 것' : '현장 숙련 전문가 → 기술 관리자로의 이동 경로 추천',
-      ],
-      firstStep: '직접 뭔가를 만드는 사이드 프로젝트(아두이노, 3D 프린팅, 목공, 전자기기 수리 등) 시작하기 → "내 손으로 만들었을 때" 느끼는 만족감의 강도를 확인하는 것이 목표.',
-    })
+    if (liberal >= 28) {
+      pathways.push({
+        label: '실기·기술 기반 인문 경로',
+        why: `현실형 흥미(R 1위) + ${hC ? `높은 성실성(C ${C.toFixed(1)}/5)의 실행력` : '실행 지향성'} + 문과 적성(${liberal}%)이 결합해, 직접 만들고 실행하는 능력을 언어·사람·문화와 연결하는 역할에서 강점을 발휘합니다.`,
+        concrete: [
+          '문화·예술 기술직: 무대 기술감독, 영상 촬영·편집 전문가, 음악 프로듀서·음향 엔지니어',
+          '체육·스포츠: 스포츠 트레이너, 운동처방사, 스포츠 에이전트',
+          '실용 교육: 실기 교사(미술·체육·음악), 직업훈련교관, 요리·제과 교육자',
+          hO ? '기술과 인문을 잇는 콘텐츠 기획(유튜브·팟캐스트 등) 병행 추천' : '현장 기술 숙련 → 교육·훈련 전달자로 이동 경로 추천',
+        ],
+        firstStep: '내가 "직접 해서 잘하는 것" 중 다른 사람에게 가르칠 수 있는 것 3가지 적기 → 이것이 실기 기반 진로의 핵심 재료입니다.',
+      })
+    } else if (business >= 28) {
+      pathways.push({
+        label: '기술·현장 관리 경로',
+        why: `현실형 흥미(R 1위) + ${hC ? `높은 성실성(C ${C.toFixed(1)}/5)의 실행력` : '실행 지향성'} + 경상 적성(${business}%)이 결합해, 현장 기술 역량을 바탕으로 운영·관리·사업 영역으로 확장하는 구조에 강점이 있습니다.`,
+        concrete: [
+          '건설·부동산: 현장 감리, 시설 관리, 부동산 개발 기획',
+          '제조·물류 관리: 생산 관리자, SCM 전문가, 품질 관리 팀장',
+          '기술 창업: 현장 경험 기반 소규모 창업(인테리어, 설비, 전기 시공)',
+          hC ? '자격증(건축사·전기기사·설비기사 등) → 관리직 이동 트랙 추천' : '현장 경험 축적 → 팀장·소장 역할로 자연스럽게 이동',
+        ],
+        firstStep: '관심 있는 현장 직종의 관련 자격증 1~2개를 조사하고, 취득 후 어떤 관리 역할로 이동할 수 있는지 경로를 그려보기.',
+      })
+    } else {
+      pathways.push({
+        label: '기술·현장 전문가 경로',
+        why: `현실형 흥미(R 1위) + ${hC ? `높은 성실성(C ${C.toFixed(1)}/5)의 실행력` : '실행 지향성'} + ${engineering >= 28 ? `공학 적성(${engineering}%)` : stem >= 28 ? `이과 적성(${stem}%)` : `실행 중심 적성`}이 결합해, 직접 손으로 만들고 고치는 기술 환경에서 최고의 몰입을 경험합니다.`,
+        concrete: [
+          '기계·제조: 기계공학자, 생산 기술자, 자동화 엔지니어',
+          '전기·전자: 전기공학자, 반도체 엔지니어, 임베디드 개발자',
+          '건설·환경: 건축공학자, 토목엔지니어, 환경공학자',
+          hO ? '단순 실행보다 기술 R&D·혁신 역할을 병행해 개방성을 활용할 것' : '현장 숙련 전문가 → 기술 관리자로의 이동 경로 추천',
+        ],
+        firstStep: '직접 뭔가를 만드는 사이드 프로젝트(아두이노, 3D 프린팅, 목공, 전자기기 수리 등) 시작하기 → "내 손으로 만들었을 때" 느끼는 만족감의 강도를 확인하는 것이 목표.',
+      })
+    }
   }
 
   // 경로 2: RIASEC 1+2위 조합 × 적성 융합
@@ -1057,7 +1143,7 @@ function generateSynthesis(
 
   // 3문단: 학문 적성 연결 (구체적 점수 포함)
   const fusionLabel = aptitudeRatio.fusionPath3?.label ?? aptitudeRatio.fusionPath?.label
-  lines.push(`학문적 성향은 ${aptitudeRatio.dominant}으로, 이과 ${aptitudeRatio.stem}% / 공학 ${aptitudeRatio.engineering}% / 문과 ${aptitudeRatio.liberal}% / 경상 ${aptitudeRatio.business}%의 분포를 보입니다.${fusionLabel ? ` 상위 계열 간 점수 차이가 작아 "${fusionLabel}"의 융합 적성이 확인됩니다 — 이는 단일 계열 전공자보다 학제간 연결 지점에서 차별화된 강점을 발휘할 수 있는 구조입니다.` : ` ${aptitudeRatio.portrait}`}`)
+  lines.push(`학문적 성향은 ${aptitudeRatio.dominant}으로, 이과 ${aptitudeRatio.stem}% / 공학 ${aptitudeRatio.engineering}% / 문과 ${aptitudeRatio.liberal}% / 경상 ${aptitudeRatio.business}% / 예술 ${aptitudeRatio.art}%의 분포를 보입니다.${fusionLabel ? ` 상위 계열 간 점수 차이가 작아 "${fusionLabel}"의 융합 적성이 확인됩니다 — 이는 단일 계열 전공자보다 학제간 연결 지점에서 차별화된 강점을 발휘할 수 있는 구조입니다.` : ` ${aptitudeRatio.portrait}`}`)
 
   // 4문단: 통합 결론 (성격 수치를 명시해 구체성 부여)
   const hasContrast = (O >= 4 && riasecProfile.hollandCode[0] === 'C') ||
@@ -1078,7 +1164,7 @@ function generateSynthesis(
 
 // ── 세 나침반 충돌 분석 ───────────────────────────────────────────────
 
-type AptDomain = '이과형' | '공학형' | '문과형' | '경상형' | '균형형'
+type AptDomain = '이과형' | '공학형' | '문과형' | '경상형' | '예술형' | '복합형'
 
 // 적성 계열 → RIASEC 친화 클러스터 매핑
 const APT_RIASEC_CLUSTER: Record<AptDomain, RiasecType[]> = {
@@ -1086,7 +1172,8 @@ const APT_RIASEC_CLUSTER: Record<AptDomain, RiasecType[]> = {
   '공학형':  ['R', 'I'],
   '문과형':  ['I', 'S', 'A'],
   '경상형':  ['E', 'C'],
-  '균형형':  ['I', 'S', 'E', 'A', 'R', 'C'],
+  '예술형':  ['A', 'I'],
+  '복합형':  ['I', 'S', 'E', 'A', 'R', 'C'],
 }
 
 const RIASEC_KO: Record<RiasecType, string> = {
@@ -1280,6 +1367,34 @@ export function computeTripleConflict(
     narrative: softNote + ` 세 영역이 대체로 일관성 있게 정렬되어 있어, 적성(${aptDominant})이 강점이 되는 구체적 직업을 진로의 중심에 두는 전략이 유효합니다.`,
     bridgeRoles: [],
   }
+}
+
+// ── 공유 카드 복합 이름 생성 ──────────────────────────────────────────
+// 유료 결과 카드용 이름: HEXACO 상위 요인 × RIASEC 1위 유형 교차
+// 학문적성이 아닌 성격·흥미 중심 네이밍
+
+const HEXACO_MODIFIER: Record<HexacoFactor, string> = {
+  H: '원칙 있는',
+  E: '섬세한',
+  X: '활력 있는',
+  A: '따뜻한',
+  C: '꼼꼼한',
+  O: '호기심 넘치는',
+}
+
+const RIASEC_ROLE: Record<RiasecType, string> = {
+  R: '구현자',
+  I: '탐구자',
+  A: '표현가',
+  S: '조율가',
+  E: '개척자',
+  C: '설계자',
+}
+
+export function computeShareCardName(hexaco: HexacoScores, riasecTop1: RiasecType): string {
+  const topFactor = (Object.entries(hexaco) as [HexacoFactor, number][])
+    .sort((a, b) => b[1] - a[1])[0][0]
+  return `${HEXACO_MODIFIER[topFactor]} ${RIASEC_ROLE[riasecTop1]}`
 }
 
 // ── 메인 해석 함수 ────────────────────────────────────────────────────

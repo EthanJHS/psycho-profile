@@ -1,68 +1,67 @@
 import { Answer, ArchetypeId, ModeId, DriveId } from '@/types'
-import { buildLayeredResult } from './profiles'
+import { buildLayeredResult, buildLayeredResultEN } from './profiles'
 
 export interface ScoringOutput {
   result: ReturnType<typeof buildLayeredResult>
   facets: Record<string, number>
   cogScore: number
   life: Record<string, string>
-  consistencyScore: number  // 0=일관됨, >2.5=응답 비일관, max≈4
 }
 
 // ─── Big Five 패싯 점수 맵 (1~5 스케일) ────────────────────────────────
-type FacetKey = 'curiosity' | 'diligence' | 'boldness' | 'patience' | 'anxiety' | 'humility'
+type FacetKey = 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'emotionality' | 'honesty'
 
 const FACET_MAP: Record<string, Record<string, Partial<Record<FacetKey, number>>>> = {
   // ── Section 1: 세계와의 인터페이스 (Q1~Q7) ──
-  Q1: { A: { boldness: 5 }, B: { boldness: 3.5 }, C: { boldness: 2.2 }, D: { boldness: 1 } },
-  Q2: { A: { diligence: 5 }, B: { diligence: 3 }, C: { diligence: 1 } },
-  Q3: { A: { curiosity: 5 }, B: { curiosity: 3.2 }, C: { curiosity: 1.5 } },
-  Q4: { A: { patience: 2 }, B: { patience: 3.5 }, C: { patience: 4.8 } },
-  Q5: { A: { anxiety: 1 }, B: { anxiety: 2.5 }, C: { anxiety: 4.8 } },
-  Q6: { A: { anxiety: 1 }, B: { anxiety: 2.5 }, C: { anxiety: 5 } },
-  Q7: { A: { humility: 5 }, B: { humility: 3.5 }, C: { humility: 1.5 } },
+  Q1: { A: { extraversion: 5 }, B: { extraversion: 3.5 }, C: { extraversion: 2.2 }, D: { extraversion: 1 } },
+  Q2: { A: { conscientiousness: 5 }, B: { conscientiousness: 3 }, C: { conscientiousness: 1 } },
+  Q3: { A: { openness: 5 }, B: { openness: 3.2 }, C: { openness: 1.5 } },
+  Q4: { A: { agreeableness: 2 }, B: { agreeableness: 3.5 }, C: { agreeableness: 4.8 } },
+  Q5: { A: { emotionality: 1 }, B: { emotionality: 2.5 }, C: { emotionality: 4.8 } },
+  Q6: { A: { emotionality: 1 }, B: { emotionality: 2.5 }, C: { emotionality: 5 } },
+  Q7: { A: { honesty: 5 }, B: { honesty: 3.5 }, C: { honesty: 1.5 } },
 
   // ── Section 2: 결정의 아키텍처 (Q8~Q15) ──
   // Q8=regulatory_focus, Q10=locus_of_control → computeArchetype에서만 사용
-  Q9:  { A: { diligence: 4.5, curiosity: 1.5 }, B: { diligence: 3, curiosity: 3.8 }, C: { diligence: 1, curiosity: 5 } },
-  Q11: { A: { humility: 2 }, B: { humility: 4.8 }, C: { humility: 3.2 } },
-  Q12: { A: { diligence: 2.5 }, B: { diligence: 4.8 }, C: { diligence: 3 } },
-  Q13: { A: { curiosity: 1.5 }, B: { curiosity: 5 }, C: { curiosity: 3 } },
-  Q14: { A: { curiosity: 1 }, B: { curiosity: 4.5 }, C: { curiosity: 3.5 } },
-  Q15: { A: { anxiety: 1 }, B: { anxiety: 2.5 }, C: { anxiety: 5 } },
+  Q9:  { A: { conscientiousness: 4.5, openness: 1.5 }, B: { conscientiousness: 3, openness: 3.8 }, C: { conscientiousness: 1, openness: 5 } },
+  Q11: { A: { honesty: 2 }, B: { honesty: 4.8 }, C: { honesty: 3.2 } },
+  Q12: { A: { conscientiousness: 2.5 }, B: { conscientiousness: 4.8 }, C: { conscientiousness: 3 } },
+  Q13: { A: { openness: 1.5 }, B: { openness: 5 }, C: { openness: 3 } },
+  Q14: { A: { openness: 1 }, B: { openness: 4.5 }, C: { openness: 3.5 } },
+  Q15: { A: { emotionality: 1 }, B: { emotionality: 2.5 }, C: { emotionality: 5 } },
 
   // ── 역문항 (QR1~QR6): 높은 trait = 마지막 옵션(C), 낮은 trait = 첫 옵션(A) ──
   // boldness_r: A=집에서 쉼(1) B=수동적(2.5) C=먼저 연락(5)
-  QR1: { A: { boldness: 1 }, B: { boldness: 2.5 }, C: { boldness: 5 } },
+  QR1: { A: { extraversion: 1 }, B: { extraversion: 2.5 }, C: { extraversion: 5 } },
   // diligence_r: A=미룸(1) B=조금씩(3) C=오늘 분량 완수(5)
-  QR2: { A: { diligence: 1 }, B: { diligence: 3 }, C: { diligence: 5 } },
+  QR2: { A: { conscientiousness: 1 }, B: { conscientiousness: 3 }, C: { conscientiousness: 5 } },
   // curiosity_r: A=변화 거부(1) B=수용(2.5) C=바로 탐색(5)
-  QR3: { A: { curiosity: 1 }, B: { curiosity: 2.5 }, C: { curiosity: 5 } },
+  QR3: { A: { openness: 1 }, B: { openness: 2.5 }, C: { openness: 5 } },
   // patience_r: A=반대 의견 표명(1.5) B=조용히 말함(3) C=일단 따름(5)
-  QR4: { A: { patience: 1.5 }, B: { patience: 3 }, C: { patience: 5 } },
+  QR4: { A: { agreeableness: 1.5 }, B: { agreeableness: 3 }, C: { agreeableness: 5 } },
   // anxiety_r: A=그냥 기쁨(1) B=약간 확인(3) C=걱정 앞섬(5)
-  QR5: { A: { anxiety: 1 }, B: { anxiety: 3 }, C: { anxiety: 5 } },
+  QR5: { A: { emotionality: 1 }, B: { emotionality: 3 }, C: { emotionality: 5 } },
   // humility_r: A=자기 공적 주장(1) B=팀 공유(3) C=팀원 공으로 돌림(5)
-  QR6: { A: { humility: 1 }, B: { humility: 3 }, C: { humility: 5 } },
+  QR6: { A: { honesty: 1 }, B: { honesty: 3 }, C: { honesty: 5 } },
 
   // ── Section 3: 관계의 역학 (Q16~Q25) ──
-  Q16: { A: { patience: 1.5, boldness: 4 }, B: { patience: 3.5, boldness: 3 }, C: { patience: 4.8, boldness: 1.5 } },
-  Q17: { A: { boldness: 5 }, B: { boldness: 3 }, C: { boldness: 1 } },
-  Q18: { A: { humility: 1.5 }, B: { humility: 5 }, C: { humility: 3 } },
-  Q19: { A: { patience: 1.5 }, B: { patience: 3.5 }, C: { patience: 4.8 } },
-  Q20: { A: { anxiety: 1 }, B: { anxiety: 5 }, C: { anxiety: 3 } },
-  Q21: { A: { curiosity: 4.5 }, B: { curiosity: 2.5 }, C: { curiosity: 1 } },
-  Q22: { A: { boldness: 5 }, B: { boldness: 1.5 }, C: { boldness: 3 } },
-  Q23: { A: { boldness: 5 }, B: { boldness: 3 }, C: { boldness: 1 } },
-  Q24: { A: { humility: 5 }, B: { humility: 3.5 }, C: { humility: 1.5 } },
-  Q25: { A: { patience: 4.5 }, B: { patience: 3 }, C: { patience: 1.5 } },
+  Q16: { A: { agreeableness: 1.5, extraversion: 4 }, B: { agreeableness: 3.5, extraversion: 3 }, C: { agreeableness: 4.8, extraversion: 1.5 } },
+  Q17: { A: { extraversion: 5 }, B: { extraversion: 3 }, C: { extraversion: 1 } },
+  Q18: { A: { honesty: 1.5 }, B: { honesty: 5 }, C: { honesty: 3 } },
+  Q19: { A: { agreeableness: 1.5 }, B: { agreeableness: 3.5 }, C: { agreeableness: 4.8 } },
+  Q20: { A: { emotionality: 1 }, B: { emotionality: 5 }, C: { emotionality: 3 } },
+  Q21: { A: { openness: 4.5 }, B: { openness: 2.5 }, C: { openness: 1 } },
+  Q22: { A: { extraversion: 5 }, B: { extraversion: 1.5 }, C: { extraversion: 3 } },
+  Q23: { A: { extraversion: 5 }, B: { extraversion: 3 }, C: { extraversion: 1 } },
+  Q24: { A: { honesty: 5 }, B: { honesty: 3.5 }, C: { honesty: 1.5 } },
+  Q25: { A: { agreeableness: 4.5 }, B: { agreeableness: 3 }, C: { agreeableness: 1.5 } },
 }
 
 // ─── 패싯 평균 계산 ───────────────────────────────────────────────────
 function computeFacets(answers: Record<string, string>): Record<FacetKey, number> {
   const sums: Record<FacetKey, number[]> = {
-    curiosity: [], diligence: [], boldness: [],
-    patience: [], anxiety: [], humility: [],
+    openness: [], conscientiousness: [], extraversion: [],
+    agreeableness: [], emotionality: [], honesty: [],
   }
 
   for (const [qId, val] of Object.entries(answers)) {
@@ -118,8 +117,16 @@ function computeMode(answers: Record<string, string>): ModeId {
   if (answers['Q31'] === 'A') intuitive += 2
   else analytical += 1.5
 
-  const scores = { analytical, intuitive, pragmatic, integrative }
-  return Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0] as ModeId
+  // 모드별 이론적 최대값이 다르므로 정규화 후 비교
+  // analytical≈9, intuitive≈9, integrative≈9, pragmatic≈5.5 → pragmatic 저대표 방지
+  const MAX = { analytical: 9, intuitive: 9, pragmatic: 5.5, integrative: 9 }
+  const normalized = {
+    analytical: analytical / MAX.analytical,
+    intuitive: intuitive / MAX.intuitive,
+    pragmatic: pragmatic / MAX.pragmatic,
+    integrative: integrative / MAX.integrative,
+  }
+  return Object.entries(normalized).sort((a, b) => b[1] - a[1])[0][0] as ModeId
 }
 
 // ─── 핵심 동력 결정 (Q32~Q35) ─────────────────────────────────────────
@@ -163,39 +170,39 @@ function computeArchetype(
   locus: string,      // Q10: A=internal, B=external, C=mixed
 ): ArchetypeId {
   const n = (v: number) => (v - 1) / 4
-  const O = n(facets.curiosity)
-  const C = n(facets.diligence)
-  const E = n(facets.boldness)
-  const A = n(facets.patience)
-  const N = n(facets.anxiety)
-  const H = n(facets.humility)
+  const O = n(facets.openness)
+  const C = n(facets.conscientiousness)
+  const E = n(facets.extraversion)
+  const A = n(facets.agreeableness)
+  const N = n(facets.emotionality)
+  const H = n(facets.honesty)
 
-  // 반대 특성에 패널티를 추가해 평균값에서 특정 원형이 독점하지 않도록 함
+  // 각 원형 고유 특성에 집중, warrior/sage 독식 방지를 위해 가중치 재조정
   const scores: Record<ArchetypeId, number> = {
     // 높은 O+C, 낮은 E+N → 내향적 체계 설계자
-    architect:   O * 2 + C * 2.5 - E * 0.5 - N * 0.5,
-    // 높은 A+C, 낮은 N → 안정 수호자 (O 높으면 탐험가와 구분)
+    architect:   O * 1.8 + C * 2.5 - E * 0.6 - N * 0.5,
+    // 높은 A+C, 낮은 N → 안정 수호자
     guardian:    A * 2.5 + C * 1.5 - N * 1.5 - O * 0.3,
     // 높은 O+E, 낮은 C → 자유 탐험가
-    explorer:    O * 2.5 + E * 2 - C * 1,
-    // 높은 O+N, 낮은 E → 예민한 통찰자
-    prophet:     O * 1.5 + N * 2.5 - E * 1,
-    // 높은 C+E, 낮은 A → 목표 지향 전사
-    warrior:     C * 2 + E * 2.5 - A * 1,
-    // 높은 O+A, 중간 C → 유연한 변환자
-    alchemist:   O * 2 + A * 2 - Math.abs(N - 0.5) * 1,
+    explorer:    O * 2.5 + E * 1.8 - C * 1.2,
+    // 높은 O+N, 낮은 E → 예민한 통찰자 (N 가중치 강화)
+    prophet:     O * 1.5 + N * 3.0 - E * 0.8,
+    // 높은 C+E, 낮은 A → 목표 지향 전사 (E 가중치 축소, A 패널티 강화)
+    warrior:     C * 1.8 + E * 1.8 - A * 1.5,
+    // 높은 O+A, 낮은 극단 N → 유연한 변환자 (A 가중치 강화)
+    seeker:      O * 2 + A * 2.5 - Math.abs(N - 0.5) * 1 - E * 0.3,
     // 높은 E+C, 낮은 H → 지배적 군주
-    sovereign:   E * 2.5 + C * 1.5 - H * 2,
-    // 높은 O+H, 낮은 E → 깊은 지혜자
-    sage:        O * 2 + H * 2.5 - E * 1,
-    // 높은 A, 중간 E, 낮은 N → 조율자
-    harmonizer:  A * 3 - Math.abs(E - 0.5) * 2 - N * 0.5,
-    // 낮은 H+A, 높은 O → 체제 저항자
-    rebel:       (1 - H) * 2.5 + O * 1 - A * 0.5,
-    // 높은 A+N, 중간 E → 깊은 연결 추구자
-    lover:       A * 2 + N * 1.5 - C * 0.5,
-    // 높은 E+O, 낮은 C → 변화 촉발자
-    catalyst:    E * 2.5 + O * 1 - C * 0.5,
+    sovereign:   E * 2.5 + C * 1.5 - H * 2.5,
+    // 높은 O+H, 낮은 E → 깊은 지혜자 (H 가중치 축소로 독식 방지)
+    sage:        O * 1.8 + H * 1.8 - E * 1.2,
+    // 높은 A, 중간 E, 낮은 N → 조율자 (A 가중치 강화, N 패널티 완화)
+    harmonizer:  A * 3.5 - Math.abs(E - 0.5) * 2 - N * 0.3,
+    // 낮은 H+A, 높은 O → 체제 저항자 (O 가중치 강화)
+    rebel:       (1 - H) * 2.5 + O * 1.5 - A * 0.3,
+    // 높은 A+N, 중간 E → 깊은 연결 추구자 (A,N 가중치 강화)
+    lover:       A * 2.5 + N * 2.0 - C * 0.5,
+    // 높은 E+O, 낮은 C → 변화 촉발자 (O 가중치 강화)
+    catalyst:    E * 2.5 + O * 1.5 - C * 0.8,
   }
 
   if (regulatory === 'A') {
@@ -224,29 +231,6 @@ function computeCogScore(answers: Record<string, string>): number {
   return Math.min(score, 0.98)
 }
 
-// ─── 일관성 점수 (역문항↔정문항 쌍 비교) ─────────────────────────────
-// 0 = 완전히 일관됨, >2.5 = 비일관 의심, max ≈ 4
-function computeConsistencyScore(answers: Record<string, string>): number {
-  const pairs: Array<{ fwd: string; rev: string; facet: FacetKey }> = [
-    { fwd: 'Q1',  rev: 'QR1', facet: 'boldness'   },
-    { fwd: 'Q5',  rev: 'QR5', facet: 'anxiety'    },
-    { fwd: 'Q4',  rev: 'QR4', facet: 'patience'   },
-    { fwd: 'Q7',  rev: 'QR6', facet: 'humility'   },
-    { fwd: 'Q2',  rev: 'QR2', facet: 'diligence'  },
-    { fwd: 'Q3',  rev: 'QR3', facet: 'curiosity'  },
-  ]
-  const diffs: number[] = []
-  for (const { fwd, rev, facet } of pairs) {
-    const fwdScore = FACET_MAP[fwd]?.[answers[fwd]]?.[facet]
-    const revScore = FACET_MAP[rev]?.[answers[rev]]?.[facet]
-    if (fwdScore !== undefined && revScore !== undefined) {
-      diffs.push(Math.abs(fwdScore - revScore))
-    }
-  }
-  return diffs.length > 0
-    ? diffs.reduce((a, b) => a + b, 0) / diffs.length
-    : 0
-}
 
 // ─── 메인 스코어링 함수 ────────────────────────────────────────────────
 export function scoreAnswers(answers: Answer[]): ScoringOutput {
@@ -264,8 +248,6 @@ export function scoreAnswers(answers: Answer[]): ScoringOutput {
     answerMap['Q10'] ?? 'C',  // locus_of_control
   )
   const cogScore = computeCogScore(answerMap)
-  const consistencyScore = computeConsistencyScore(answerMap)
-
   const result = buildLayeredResult(archetype, mode, drive, facets, cogScore)
 
   return {
@@ -273,6 +255,30 @@ export function scoreAnswers(answers: Answer[]): ScoringOutput {
     facets: facets as Record<string, number>,
     cogScore,
     life: {},
-    consistencyScore,
+  }
+}
+
+export function scoreAnswersEN(answers: Answer[]): ScoringOutput {
+  const answerMap: Record<string, string> = {}
+  for (const a of answers) {
+    answerMap[a.questionId] = String(a.value)
+  }
+
+  const facets = computeFacets(answerMap)
+  const mode = computeMode(answerMap)
+  const drive = computeDrive(answerMap)
+  const archetype = computeArchetype(
+    facets,
+    answerMap['Q8'] ?? 'A',
+    answerMap['Q10'] ?? 'C',
+  )
+  const cogScore = computeCogScore(answerMap)
+  const result = buildLayeredResultEN(archetype, mode, drive, facets, cogScore)
+
+  return {
+    result,
+    facets: facets as Record<string, number>,
+    cogScore,
+    life: {},
   }
 }

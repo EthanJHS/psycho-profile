@@ -1,5 +1,5 @@
 // 유료 검사 답변을 URL-safe 문자열로 인코딩/디코딩
-// PQ1~PQ82 순서로 점수(1~5)를 연결한 82자리 문자열 → btoa → URL-safe base64
+// PQ1~PQ86 순서로 점수(1~5)를 연결한 86자리 문자열 → btoa → URL-safe base64
 // 예: "3124531245..." → "MzEyNDU..."
 
 import { PAID_QUESTIONS } from './paid-questions'
