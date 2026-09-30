@@ -15,13 +15,19 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self'",
-      "connect-src 'self'",
+      "connect-src 'self' https://*.supabase.co",
       "frame-ancestors 'none'",
     ].join('; '),
   },
 ];
 
+// 동의 절차 없이 응답을 저장하던 구버전 검사·영문 페이지 — 현재 검사로 연결 (307: 되돌릴 수 있게 임시 리다이렉트)
+const LEGACY_PATHS = ['/test', '/result', '/deep', '/paid', '/paid-test', '/paid-result', '/paid-result/print', '/en', '/en/:path*']
+
 const nextConfig: NextConfig = {
+  async redirects() {
+    return LEGACY_PATHS.map(source => ({ source, destination: '/hexaco-test', permanent: false }))
+  },
   async headers() {
     return [
       {
