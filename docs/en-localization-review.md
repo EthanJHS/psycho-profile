@@ -37,11 +37,17 @@ ID·채점은 한국어판과 공유. 문구만 언어별.
 - **X4** "침묵이 흐른다" → *dies down into an awkward silence*
 - 원형 `daily` 한 줄은 번역이 아니라 영어 인터넷 말투로 다시 씀 (예: 몽상가 *"Huh? Sorry, I zoned out."*)
 
-## 4. 영어 무료판 출시까지 남은 것
+## 4. 영어 무료판 — 2026-09-30 공개
 
-1. 결과 해석 문구 번역 — `lib/personalize-result.ts`(성장 팁·조합 팁·보조 원형 설명 등 약 330줄)
-2. 화면 문구 — 메인·검사·결과·결과 리포트·공유 카드
-3. 영어권 전용 동의·개인정보 처리방침 — GDPR(EU·영국), 미국 13세 미만(COPPA). 이용 연령 기준이 한국(14세)과 다름
-4. `/en` 경로 구성, 언어 전환, 검색엔진용 hreflang
-5. DB `locale` 칼럼, 관리자 통계 언어별 분리
-6. 영문 OG·공유 문구 ("I got The Guardian. What are you?")
+- 경로: `/en`(메인) · `/en/test` · `/en/result` · `/en/result/report` · `/en/a/[id]`(공유) · `/en/privacy` · `/en/terms`
+- 화면 로직은 한국어와 공용 컴포넌트 하나(`components/hexaco/*`, `components/home/HomeView.tsx`), 문구만 언어별. 언어별 경로·저장 키·문항 버전은 `lib/i18n.ts`
+- DB: `test_sessions.test_version = 'hexaco-v2-en'`, 이벤트 `metadata.lang = 'en'`, `waitlist.locale = 'en'`. 관리자 대시보드 상단에서 한국어판/영어판 통계 전환
+- 영어판은 결과 리포트 하단에 진로 리포트 대신 "전체 원형 리포트 출시 알림" (해외 유료 전환 의향 측정)
+- EU 기준: 동의 전에는 방문 기록을 남기지 않음(한국어판은 기존대로). 이용 연령 16세 이상
+
+## 5. 남은 것 (사용자 결정·외부 작업)
+
+1. 영어 개인정보 처리방침·약관 법률 검토 — 특히 EU 이용자가 많아지면 GDPR 27조 EU 대리인 지정 필요 여부
+2. 해외 유입 채널 (Reddit·TikTok 등) — 광고 없이는 유입이 거의 없음
+3. 영어 응답 300건 이후 문항 점검 (2번 항목)
+4. 해외 결제 (MoR: Paddle·Lemon Squeezy 등) — 한국 결제 검증 이후

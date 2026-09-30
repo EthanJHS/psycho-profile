@@ -707,14 +707,17 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // 한국어판·영어판 통계는 섞지 않고 따로 봄
+  const [lang, setLang] = useState<'ko' | 'en'>('ko')
 
   useEffect(() => {
-    fetch('/api/admin/stats')
+    setLoading(true); setError(''); setStats(null)
+    fetch(`/api/admin/stats?lang=${lang}`)
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setStats)
       .catch(() => setError('통계 데이터를 불러오지 못했습니다.'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [lang])
 
   return (
     <main style={{ minHeight: '100vh', maxWidth: 1000, margin: '0 auto', padding: '40px 20px 80px' }}>
@@ -724,9 +727,17 @@ export default function AdminPage() {
         <div>
           <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(200,168,75,0.6)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>ADMIN · CORE TRAIT</p>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>대시보드</h1>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>HEXACO 원형 검사 · 실시간 Supabase 기준</p>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>HEXACO 원형 검사 · 실시간 Supabase 기준 · {lang === 'ko' ? '한국어판' : '영어판'} (방문·기기 수는 두 언어 합계)</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div role="tablist" aria-label="통계 언어" style={{ display: 'flex', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+            {([['ko', '한국어판'], ['en', '영어판']] as const).map(([k, label]) => (
+              <button key={k} role="tab" aria-selected={lang === k} onClick={() => setLang(k)} style={{
+                padding: '8px 14px', fontSize: 12, border: 'none', cursor: 'pointer',
+                background: lang === k ? 'rgba(200,160,48,0.2)' : 'transparent', color: lang === k ? '#e2c064' : 'rgba(255,255,255,0.5)',
+              }}>{label}</button>
+            ))}
+          </div>
           <a href="/career" style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(200,160,48,0.4)', color: '#e2c064', fontSize: 12, textDecoration: 'none' }}>
             진로 리포트 미리보기 →
           </a>
@@ -759,7 +770,7 @@ export default function AdminPage() {
           {stats.health && <HealthBanner health={stats.health} />}
           <GateSection gate={stats.gate} />
           <OverviewSection stats={stats} />
-          <CareerSection rows={stats.career ?? []} />
+          {lang === 'ko' && <CareerSection rows={stats.career ?? []} />}
           <ResultFunnelSection stats={stats} />
           <ArchetypeDistribution dist={stats.archetype_distribution} />
           <ItemQualitySection stats={stats} />

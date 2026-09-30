@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isAdminAuthorized, ADMIN_CHALLENGE } from '@/lib/admin-auth'
 import { QUESTIONS, ARCHETYPES, scoreHexaco, HexacoFactor } from '@/lib/scoring-hexaco'
+import { HEXACO_VERSION_BY_LANG, isEnVersion } from '@/lib/i18n'
 
 const FACTORS: HexacoFactor[] = ['H', 'E', 'X', 'A', 'C', 'O']
 const DAY = 86400000
@@ -47,6 +48,11 @@ export async function GET(req: NextRequest) {
   if (!isAdminAuthorized(req.headers.get('authorization'))) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401, headers: ADMIN_CHALLENGE })
   }
+  // 언어별로 따로 집계 — 영어 응답은 한국어 응답과 절대 합치지 않음 (문항 버전으로 구분)
+  const lang = req.nextUrl.searchParams.get('lang') === 'en' ? 'en' : 'ko'
+  const CURRENT = HEXACO_VERSION_BY_LANG[lang]
+  const inLang = (version: unknown) => isEnVersion(version as string) === (lang === 'en')
+  const eventInLang = (e: Row) => (((e.metadata as Row)?.lang as string | undefined) ?? 'ko') === lang   // 언어 기록 이전 이벤트는 한국어
   const sb = getServiceClient()
   const since14 = new Date(Date.now() - 14 * DAY).toISOString()
 
@@ -59,12 +65,12 @@ export async function GET(req: NextRequest) {
       .in('event_type', ['hexaco_result_view', 'hexaco_report_click', 'hexaco_report_view', 'hexaco_unlock_click', 'hexaco_share', 'waitlist_signup', 'free_test_abandon', 'result_scroll_depth'])
       .gte('created_at', since14).limit(10000),
     sb.from('events').select('event_type, metadata, created_at').order('created_at', { ascending: false }).limit(20),
-    sb.from('waitlist').select('email', { count: 'exact', head: true }),
-    sb.from('survey_responses').select('rating, opinion, result_type, created_at').eq('result_type', 'hexaco').order('created_at', { ascending: false }).limit(500),
+    sb.from('waitlist').select('email', { count: 'exact', head: true }).eq('locale', lang),
+    sb.from('survey_responses').select('rating, opinion, result_type, test_version, created_at').eq('result_type', 'hexaco').order('created_at', { ascending: false }).limit(500),
   ])
 
-  const tests = (testsRes.data ?? []) as Row[]
-  const events = (eventsRes.data ?? []) as Row[]
+  const tests = ((testsRes.data ?? []) as Row[]).filter(t => inLang(t.test_version))
+  const events = ((eventsRes.data ?? []) as Row[]).filter(eventInLang)
   const completed = tests.filter(t => t.completed_at)
   const answered = completed.filter(t => t.hexaco_answers && typeof t.hexaco_answers === 'object') as (Row & { hexaco_answers: Record<string, number> })[]
 
@@ -114,8 +120,8 @@ export async function GET(req: NextRequest) {
     count: abandons.filter(i => i >= b * 8 && i < b * 8 + 8).length,
   }))
 
-  // ── 원형 분포: 실제 vs 기대 (v2만) ──
-  const v2 = completed.filter(t => t.test_version === 'hexaco-v2')
+  // ── 원형 분포: 실제 vs 기대 (현재 문항 버전만) ──
+  const v2 = completed.filter(t => t.test_version === CURRENT)
   const actual = countBy(v2, t => t.archetype_primary as string)
   const archetype_distribution = ARCHETYPES.map(a => ({
     id: a.id, count: actual[a.id] ?? 0,
@@ -131,7 +137,7 @@ export async function GET(req: NextRequest) {
 
   // ── 문항 품질 (v2, 응답 원자료 기준) ──
   // 연구·검사 개선 목적 분석은 선택 동의한 응답만 사용
-  const items = answered.filter(t => t.test_version === 'hexaco-v2' && t.research_consent === true).map(t => t.hexaco_answers)
+  const items = answered.filter(t => t.test_version === CURRENT && t.research_consent === true).map(t => t.hexaco_answers)
   const scored = (a: Record<string, number>, q: typeof QUESTIONS[number]) => q.reverse ? 6 - a[q.id] : a[q.id]
   const item_stats = QUESTIONS.map(q => {
     const raw = items.map(a => a[q.id]).filter(v => v >= 1 && v <= 5)
@@ -168,7 +174,7 @@ export async function GET(req: NextRequest) {
   const device_distribution = countBy((sessionsRes.data ?? []) as Row[], s => (s.device as string) ?? 'unknown')
 
   // ── 설문 ──
-  const surveys = (surveyRes.data ?? []) as Row[]
+  const surveys = ((surveyRes.data ?? []) as Row[]).filter(s => inLang(s.test_version))
   const survey = {
     count: surveys.length,
     avg_rating: surveys.length ? round(mean(surveys.map(s => Number(s.rating)))) : null,
@@ -205,12 +211,13 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
+    lang,
     health,
     gate: { items: gate, sample: completed14.length, minSample: MIN_SAMPLE },
     career,
     overview, result_funnel, scroll_depth, daily, abandon_by_bucket,
     archetype_distribution, factor_means, item_stats, reliability,
     device_distribution, survey,
-    recent_events: recentRes.data ?? [],
+    recent_events: ((recentRes.data ?? []) as Row[]).filter(eventInLang),
   })
 }

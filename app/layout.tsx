@@ -6,6 +6,7 @@ import './globals.css'
 const serif = Gowun_Batang({ weight: ['400', '700'], subsets: ['latin'], preload: false, display: 'swap', variable: '--font-serif' })
 import Navbar from '@/components/Navbar'
 import SiteFooter from '@/components/SiteFooter'
+import LangSetter from '@/components/LangSetter'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://core-trait.com'
 const OG_IMAGE = `${SITE_URL}/og.png`
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={`h-full ${serif.variable}`}>
       <body className="min-h-full flex flex-col antialiased">
+        <LangSetter />
         <Navbar />
         <div className="flex-1">{children}</div>
         <SiteFooter />
