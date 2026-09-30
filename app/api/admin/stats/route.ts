@@ -198,7 +198,14 @@ export async function GET(req: NextRequest) {
   ].map(g => ({ ...g, met: g.value != null && g.value >= g.target }))
   const MIN_SAMPLE = 100
 
+  // 저장 상태 — Supabase가 일시정지되면 저장이 조용히 실패하므로 마지막 기록 시각으로 확인
+  const health = {
+    db_ok: !recentRes.error && !testsRes.error,
+    last_saved_at: (recentRes.data?.[0]?.created_at as string | undefined) ?? null,
+  }
+
   return NextResponse.json({
+    health,
     gate: { items: gate, sample: completed14.length, minSample: MIN_SAMPLE },
     career,
     overview, result_funnel, scroll_depth, daily, abandon_by_bucket,

@@ -11,7 +11,8 @@ import { ADMIN_SIM_KEY } from '@/lib/analytics'
 type Factor = 'H' | 'E' | 'X' | 'A' | 'C' | 'O'
 interface GateItem { key: string; label: string; value: number | null; target: number; unit: string; basis: string; met: boolean }
 interface Stats {
-  gate: { items: GateItem[]; sample: number; minSample: number }
+  health?: { db_ok: boolean; last_saved_at: string | null }
+  gate:{ items: GateItem[]; sample: number; minSample: number }
   career: { stage: string; plan: string; started: number; completed: number }[]
   overview: {
     visits_14d: number
@@ -672,6 +673,35 @@ function RecentEvents({ events }: { events: Stats['recent_events'] }) {
   )
 }
 
+// Supabase 무료 플랜은 일시정지되면 저장이 조용히 실패함 → 마지막 기록 시각으로 이상 여부 표시
+function HealthBanner({ health }: { health: NonNullable<Stats['health']> }) {
+  const last = health.last_saved_at ? new Date(health.last_saved_at) : null
+  const hours = last ? (Date.now() - last.getTime()) / 3600000 : Infinity
+  const ago = !last ? '기록 없음'
+    : hours < 1 ? `${Math.max(1, Math.round(hours * 60))}분 전`
+    : hours < 48 ? `${Math.round(hours)}시간 전`
+    : `${Math.round(hours / 24)}일 전`
+  const warn = !health.db_ok || hours > 24
+  const color = warn ? '#f87171' : '#4ade80'
+  return (
+    <div role={warn ? 'alert' : undefined} style={{
+      display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 16px', borderRadius: 12, marginBottom: 24,
+      background: `${color}10`, border: `1px solid ${color}40`,
+    }}>
+      <span aria-hidden style={{ width: 8, height: 8, borderRadius: 99, background: color, marginTop: 5, flexShrink: 0 }} />
+      <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'rgba(255,255,255,0.75)' }}>
+        <b style={{ color }}>{!health.db_ok ? 'DB 조회 실패' : warn ? '24시간 넘게 새 기록 없음' : '저장 정상'}</b>
+        <span style={{ color: muted }}> · 마지막 저장 {ago}{last && ` (${last.toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})`}</span>
+        {warn && (
+          <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.55)' }}>
+            방문이 없었을 수도 있지만, Supabase 프로젝트가 일시정지됐는지 대시보드에서 확인해 보세요.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── 메인 ─────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -726,6 +756,7 @@ export default function AdminPage() {
 
       {stats && (
         <>
+          {stats.health && <HealthBanner health={stats.health} />}
           <GateSection gate={stats.gate} />
           <OverviewSection stats={stats} />
           <CareerSection rows={stats.career ?? []} />
