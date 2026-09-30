@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# local data dumps / unused source art
+/backups/
+/public/archetypes/*.png

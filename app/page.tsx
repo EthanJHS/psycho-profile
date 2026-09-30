@@ -1,412 +1,262 @@
 'use client'
 
 import Link from 'next/link'
-import HeroIllustration from '@/components/HeroIllustration'
+import { useEffect, useState } from 'react'
+import WaitlistForm from '@/components/WaitlistForm'
+import { ARCHETYPE_DETAILS } from '@/lib/archetypes-hexaco'
+import { ARCHETYPES } from '@/lib/scoring-hexaco'
 
-const FEATURES = [
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
-      </svg>
-    ),
-    title: 'HEXACO 기반 6요인 측정',
-    desc: 'Big Five가 놓친 겸손성·정직 차원까지 포함한 HEXACO 모델로 성격을 더 정확하게 읽습니다. 리커트 자가보고가 아닌 시나리오형 문항으로 사회적 바람직성 편향을 최소화합니다.',
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-      </svg>
-    ),
-    title: '192개 세분화 프로파일',
-    desc: '원형(12) × 사고방식(4) × 핵심동력(4)의 3-레이어 조합. "INTJ" 한 칸에 욱여넣는 게 아니라 당신만의 고유한 심리 지도를 그립니다.',
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-      </svg>
-    ),
-    title: 'Holland RIASEC 직업흥미 추정',
-    desc: '성격 패싯에서 탐구형·예술형·진취형 등 직업흥미 유형을 교차 추정합니다. 성격과 흥미가 같은 방향을 가리킬 때, 직업 추천의 신뢰도가 높아집니다.',
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
-    ),
-    title: '응답 일관성 자동 검증',
-    desc: '역방향 문항과의 비교로 응답의 일관성을 자동 산출합니다. 결과를 신뢰할 수 있는지를 결과지에서 직접 확인할 수 있는 심리검사는 드뭅니다.',
-  },
+// 원형 그림(검은 바탕 · 금박 · 촛불빛 유화)에서 뽑은 팔레트
+const INK = '#0b0910'
+const GOLD = '#c8a030'
+const GOLD_SOFT = 'rgba(200,160,48,0.28)'
+const PARCHMENT = '#efe6d2'
+const MUTED = 'rgba(239,230,210,0.58)'
+const FAINT = 'rgba(239,230,210,0.38)'
+const SERIF = 'var(--font-serif), "Nanum Myeongjo", "Noto Serif KR", serif'
+const GOLD_BUTTON = 'linear-gradient(135deg, #a8781f 0%, #e2c064 50%, #a8781f 100%)'
+
+// 히어로에서 순서대로 펼쳐 보일 원형 (색감이 서로 다른 것끼리 묶음)
+const HERO_DECK = [
+  ['guardian', 'dreamer', 'strategist'],
+  ['sage', 'charmer', 'warrior'],
+  ['explorer', 'empath', 'conqueror'],
+  ['visionary', 'artisan', 'cynic'],
 ]
 
-const PROFILES_PREVIEW = [
-  { label: '전략적 완벽주의자', delay: 0 },
-  { label: '탐구형 혁신가', delay: 0.2 },
-  { label: '조용한 천재', delay: 0.4 },
-  { label: '카리스마 리더', delay: 0.1 },
-  { label: '공감형 조력자', delay: 0.3 },
-  { label: '분석형 연구자', delay: 0.5 },
-  { label: '민감형 완벽주의자', delay: 0.6 },
-  { label: '독립형 장인', delay: 0.25 },
-]
+function Ornament({ width = 72 }: { width?: number }) {
+  return (
+    <div aria-hidden style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+      <span style={{ height: 1, width, background: `linear-gradient(to right, transparent, ${GOLD_SOFT})` }} />
+      <span style={{ width: 6, height: 6, transform: 'rotate(45deg)', border: `1px solid ${GOLD}`, opacity: 0.7 }} />
+      <span style={{ height: 1, width, background: `linear-gradient(to left, transparent, ${GOLD_SOFT})` }} />
+    </div>
+  )
+}
 
-const STEPS = [
-  { n: '01', title: '42문항 응답', sub: '약 10분 · 시나리오형 강제선택 — 사회적 바람직성 편향 최소화' },
-  { n: '02', title: '3-레이어 분석', sub: '원형 × 사고방식 × 핵심동력으로 192개 프로파일 매칭' },
-  { n: '03', title: '즉시 리포트', sub: '성격·진로·RIASEC·인지·강점·업무 스타일 한 번에 확인' },
-]
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return <p style={{ fontSize: 11, fontWeight: 700, color: GOLD, letterSpacing: '0.22em', marginBottom: 10 }}>{children}</p>
+}
 
-const FREE_ITEMS = ['42문항 (약 10분)', '192개 프로파일 중 매칭', 'HEXACO 6요인 레이더 차트', 'Holland RIASEC 직업흥미 추정', '성격 경향 서술형 분석', '응답 일관성 자동 검증', '진로 적합도 상위 2개 미리보기']
-const FULL_ITEMS = ['진로 TOP 6 전체 (이유·세부역할 포함)', '나와 맞지 않는 직업 분석', '성격 강점 TOP 5 (VIA 기반)', '업무 스타일 상세 분석', '행동재무 기반 투자 성향', '리더십 스타일 · 번아웃 리스크']
+function GoldLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="gold-cta" style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      padding: '16px 34px', borderRadius: 999, background: GOLD_BUTTON, color: '#1a1206',
+      fontSize: 15, fontWeight: 800, letterSpacing: '0.02em', textDecoration: 'none',
+      boxShadow: '0 8px 32px rgba(200,160,48,0.25), inset 0 1px 0 rgba(255,255,255,0.35)',
+    }}>{children}</Link>
+  )
+}
+
+// ── 히어로: 타로처럼 펼친 원형 카드 3장, 몇 초마다 다른 원형으로 교체 ──
+function HeroDeck() {
+  const [hand, setHand] = useState(0)
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const t = setInterval(() => setHand(h => (h + 1) % HERO_DECK.length), 4200)
+    return () => clearInterval(t)
+  }, [])
+  const cards = HERO_DECK[hand]
+  const pose = [
+    { rotate: -11, x: -58, y: 14, z: 1 },
+    { rotate: 0, x: 0, y: 0, z: 3 },
+    { rotate: 11, x: 58, y: 14, z: 2 },
+  ]
+  return (
+    <div aria-hidden style={{ position: 'relative', height: 250, width: '100%', maxWidth: 320, margin: '0 auto 30px' }}>
+      <div style={{ position: 'absolute', left: '50%', top: '42%', width: 260, height: 260, transform: 'translate(-50%,-50%)', background: 'radial-gradient(circle, rgba(226,192,100,0.22) 0%, transparent 65%)', filter: 'blur(6px)' }} />
+      {cards.map((id, i) => (
+        <div key={i} className="hero-card" style={{
+          position: 'absolute', left: '50%', top: 0, width: 132, aspectRatio: '3 / 4.4',
+          marginLeft: -66, borderRadius: 12, overflow: 'hidden', zIndex: pose[i].z,
+          transform: `translate(${pose[i].x}px, ${pose[i].y}px) rotate(${pose[i].rotate}deg)`,
+          border: `1px solid ${i === 1 ? 'rgba(226,192,100,0.7)' : GOLD_SOFT}`,
+          boxShadow: '0 18px 40px rgba(0,0,0,0.6)', background: '#140f18',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img key={id} src={`/archetypes/t/${id}.webp`} alt="" className="hero-card-img"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block', filter: i === 1 ? 'none' : 'brightness(0.6)' }} />
+          <div style={{ position: 'absolute', inset: 5, border: '1px solid rgba(226,192,100,0.25)', borderRadius: 8, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '22px 6px 8px', textAlign: 'center', background: 'linear-gradient(transparent, rgba(8,6,12,0.92))' }}>
+            <p style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 700, color: PARCHMENT }}>{ARCHETYPE_DETAILS[id]?.name}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── CORE CAREER 소개: 시기를 고르면 탐색·향상 리포트가 무엇을 담는지 보여줌 ──
+const CAREER_STAGES = [
+  { id: 'high', label: '고등학생', find: '나에게 맞는 계열·학과 TOP 5와 결정이 어려운 이유', do: '나에게 맞는 공부법, 시험 불안과 수행평가 전략' },
+  { id: 'college', label: '대학생', find: '전공 이후 잘 맞는 직무 TOP 5, 전공 전환 고민 정리', do: '학업 전략, 팀 프로젝트와 발표에서의 나' },
+  { id: 'jobseeker', label: '취준생', find: '지원할 직무 TOP 5와 직무별 AI 변화 전망', do: '자기소개서에 쓸 강점 문장, 면접과 불합격 회복' },
+  { id: 'worker', label: '직장인', find: '지금 직장 진단(바꿀까, 조정할까)과 맞는 직무', do: '지금 자리에서의 성과, 잡 크래프팅, 번아웃 신호' },
+] as const
+
+function CareerSection() {
+  const [stage, setStage] = useState<(typeof CAREER_STAGES)[number]['id']>('jobseeker')
+  const cur = CAREER_STAGES.find(s => s.id === stage)!
+  return (
+    <section aria-labelledby="career-title" style={{ padding: '56px 16px', borderTop: `1px solid ${GOLD_SOFT}` }}>
+      <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <Eyebrow>CORE CAREER · 출시 예정</Eyebrow>
+          <h2 id="career-title" style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: PARCHMENT, marginBottom: 8, lineHeight: 1.4 }}>지금 시기에 맞춘<br />진로 리포트</h2>
+          <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.7 }}>
+            무료 원형 검사로 성격은 이미 알고 있어요.<br />흥미·가치 질문을 더해 지금 나에게 필요한 답을 드려요.
+          </p>
+        </div>
+
+        <div role="tablist" aria-label="시기 선택" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 12 }}>
+          {CAREER_STAGES.map(s => (
+            <button key={s.id} role="tab" aria-selected={stage === s.id} onClick={() => setStage(s.id)} style={{
+              padding: '10px 0', borderRadius: 999, fontSize: 13.5, cursor: 'pointer', fontWeight: stage === s.id ? 800 : 500,
+              border: `1px solid ${stage === s.id ? 'transparent' : GOLD_SOFT}`,
+              background: stage === s.id ? GOLD_BUTTON : 'transparent', color: stage === s.id ? '#1a1206' : MUTED,
+            }}>{s.label}</button>
+          ))}
+        </div>
+
+        <div role="tabpanel" style={{ border: `1px solid ${GOLD_SOFT}`, borderRadius: 16, padding: '6px 18px', background: 'linear-gradient(160deg, rgba(60,40,12,0.35), rgba(20,15,24,0.6))' }}>
+          {[
+            ['탐색', '나에게 맞는 길 찾기', cur.find],
+            ['향상', '지금 자리에서 더 잘하기', cur.do],
+          ].map(([t, k, d], i) => (
+            <div key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '14px 0', borderBottom: i === 0 ? '1px solid rgba(200,160,48,0.14)' : 'none' }}>
+              <span aria-hidden style={{ width: 8, height: 8, marginTop: 8, transform: 'rotate(45deg)', background: GOLD, opacity: 0.75, flexShrink: 0 }} />
+              <div>
+                <p style={{ fontFamily: SERIF, fontSize: 15.5, fontWeight: 700, color: PARCHMENT }}>{t} <span style={{ fontFamily: 'inherit', fontSize: 12, fontWeight: 400, color: FAINT, marginLeft: 4 }}>{k}</span></p>
+                <p style={{ fontSize: 13, color: MUTED, marginTop: 3, lineHeight: 1.6 }}>{d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 12.5, color: FAINT, lineHeight: 1.6, margin: '10px 2px 0' }}>
+          모든 리포트에 관계 패턴, 시기별 스트레스 반응, 성장 로드맵이 함께 들어가요. 탐색과 향상을 묶어서 받을 수도 있어요.
+        </p>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '18px 2px 14px' }}>
+          <p style={{ fontSize: 13, color: MUTED }}>출시가 <span style={{ fontSize: 12, color: FAINT }}>· 묶음은 할인가로 준비 중</span></p>
+          <p style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: PARCHMENT }}>9,900원</p>
+        </div>
+        <WaitlistForm source="home" />
+      </div>
+    </section>
+  )
+}
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col page-top" style={{ overflowX: 'hidden' }}>
+    <main style={{ minHeight: '100vh', background: INK, color: PARCHMENT, overflowX: 'hidden' }}>
+      <style>{`
+        .gold-cta { transition: transform .2s ease, box-shadow .2s ease; }
+        .gold-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 40px rgba(200,160,48,0.35), inset 0 1px 0 rgba(255,255,255,0.35); }
+        .hero-card { transition: transform .6s cubic-bezier(.2,.8,.2,1); }
+        .hero-card-img { animation: cardIn .7s ease both; }
+        @keyframes cardIn { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+        .codex { scrollbar-width: none; scroll-snap-type: x mandatory; }
+        .codex::-webkit-scrollbar { display: none; }
+        .codex-card { transition: transform .25s ease, border-color .25s ease; }
+        .codex-card:hover, .codex-card:focus-visible { transform: translateY(-4px); border-color: rgba(226,192,100,0.6) !important; }
+        @media (prefers-reduced-motion: reduce) { .hero-card, .hero-card-img, .codex-card, .gold-cta { transition: none; animation: none; } }
+      `}</style>
 
-      {/* ── 배경 그라디언트 오브 ── */}
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-        <div style={{
-          position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)',
-          width: 900, height: 700,
-          background: 'radial-gradient(ellipse, rgba(124,58,237,0.11) 0%, transparent 62%)',
-          filter: 'blur(1px)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '10%', right: '-5%',
-          width: 480, height: 480,
-          background: 'radial-gradient(ellipse, rgba(45,212,191,0.07) 0%, transparent 65%)',
-        }} />
-        <div style={{
-          position: 'absolute', top: '40%', left: '-8%',
-          width: 360, height: 360,
-          background: 'radial-gradient(ellipse, rgba(139,92,246,0.07) 0%, transparent 65%)',
-        }} />
-      </div>
-
-      {/* ══════════════════════════════
-          HERO
-      ══════════════════════════════ */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-20 pb-28">
-        <div className="max-w-3xl mx-auto">
-
-          {/* 뱃지 */}
-          <div
-            className="badge badge-violet mx-auto mb-8 animate-fade-up opacity-0"
-            style={{ animationFillMode: 'forwards' }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent2)', display: 'inline-block', flexShrink: 0 }} />
-            과학 기반 심리 분석
-          </div>
-
-          {/* 히어로 일러스트 */}
-          <div className="flex justify-center mb-8 animate-fade-up opacity-0" style={{ animationFillMode: 'forwards', animationDelay: '0.05s' }}>
-            <HeroIllustration size={220} />
-          </div>
-
-          {/* 헤드라인 */}
-          <h1
-            className="heading-xl mb-6 animate-fade-up opacity-0 delay-100"
-            style={{ animationFillMode: 'forwards', color: 'var(--text)' }}
-          >
-            <span className="gradient-text">당신을 가장</span>
-            <br />
-            <span className="gradient-text">정확하게 읽는</span>
-            <br />
-            <span>심리 분석</span>
+      {/* ── 히어로 ── */}
+      <section style={{ position: 'relative', padding: '104px 16px 56px', textAlign: 'center' }}>
+        <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 55% at 50% 30%, rgba(120,70,20,0.18), transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', maxWidth: 480, margin: '0 auto' }}>
+          <HeroDeck />
+          <Eyebrow>CORE TRAIT · 원형 성격검사</Eyebrow>
+          <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(1.9rem, 7.5vw, 2.7rem)', fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.02em', color: PARCHMENT, textWrap: 'balance', marginBottom: 16 }}>
+            당신 안에 잠든<br /><span style={{ color: '#e2c064' }}>원형이 깨어납니다</span>
           </h1>
-
-          <p
-            className="text-lg animate-fade-up opacity-0 delay-200"
-            style={{
-              color: 'var(--muted)',
-              lineHeight: 1.85,
-              maxWidth: 520,
-              margin: '0 auto 40px',
-              animationFillMode: 'forwards',
-            }}
-          >
-            HEXACO 기반 성격 측정과 Holland 직업흥미를 교차해<br />
-            192개 세분화 프로파일로 성격, 진로, 업무 방식까지.
+          <Ornament />
+          <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.85, margin: '16px 0 28px' }}>
+            성격에는 가장 선명하게 드러나는 하나의 원형이 있습니다.<br />
+            48개의 질문으로 22가지 원형 중 당신의 것을 찾아보세요.
           </p>
-
-          {/* CTA 버튼 */}
-          <div
-            className="flex flex-col sm:flex-row gap-3 justify-center animate-fade-up opacity-0 delay-300"
-            style={{ animationFillMode: 'forwards' }}
-          >
-            <Link href="/test" className="btn-primary" style={{ fontSize: '1rem', padding: '14px 32px' }}>
-              무료로 시작하기
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-            <a
-              href="#how"
-              className="btn-secondary"
-              style={{ fontSize: '1rem', padding: '14px 28px', textDecoration: 'none' }}
-            >
-              어떻게 다른가요?
-            </a>
-          </div>
-
-          <p
-            className="mt-5 text-sm animate-fade-up opacity-0 delay-400"
-            style={{ color: 'var(--muted2)', animationFillMode: 'forwards' }}
-          >
-            약 10분 · 완전 무료 · 회원가입 불필요
-          </p>
-        </div>
-
-        {/* 프로파일 태그 플로팅 */}
-        <div
-          className="relative z-10 mt-16 flex flex-wrap justify-center gap-2 max-w-lg mx-auto animate-fade-up opacity-0 delay-500"
-          style={{ animationFillMode: 'forwards' }}
-        >
-          {PROFILES_PREVIEW.map((p) => (
-            <span
-              key={p.label}
-              className="text-xs px-3.5 py-1.5 rounded-full"
-              style={{
-                background: 'rgba(26,23,42,0.9)',
-                border: '1px solid var(--border)',
-                color: 'var(--muted)',
-                animation: `float ${3.4 + p.delay * 0.8}s ease-in-out infinite`,
-                animationDelay: `${p.delay}s`,
-              }}
-            >
-              {p.label}
-            </span>
-          ))}
-          <span
-            className="text-xs px-3.5 py-1.5 rounded-full"
-            style={{
-              background: 'rgba(139,92,246,0.12)',
-              border: '1px solid rgba(139,92,246,0.28)',
-              color: 'var(--accent2)',
-            }}
-          >
-            +184개 더
-          </span>
+          <GoldLink href="/hexaco-test?start=1">원형 깨우기 →</GoldLink>
+          <p style={{ marginTop: 14, fontSize: 12, color: FAINT }}>무료 · 로그인 없음 · 약 8분</p>
         </div>
       </section>
 
-      {/* ══════════════════════════════
-          숫자 스탯
-      ══════════════════════════════ */}
-      <section
-        className="relative z-10 py-10 px-6"
-        style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'rgba(17,16,24,0.6)' }}
-      >
-        <div className="max-w-3xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { v: '192', l: '세분화 프로파일' },
-            { v: '42', l: '시나리오형 문항' },
-            { v: '6축', l: 'HEXACO 레이더' },
-            { v: '3층', l: '레이어 심리 모델' },
-          ].map(s => (
-            <div key={s.l}>
-              <p className="text-3xl font-extrabold gradient-text tracking-tight">{s.v}</p>
-              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>{s.l}</p>
-            </div>
-          ))}
+      {/* ── 원형 도감 ── */}
+      <section aria-labelledby="codex-title" style={{ padding: '48px 0 56px', borderTop: `1px solid ${GOLD_SOFT}`, background: 'linear-gradient(to bottom, rgba(40,26,10,0.25), transparent)' }}>
+        <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px', textAlign: 'center', marginBottom: 22 }}>
+          <Eyebrow>ARCHETYPE CODEX</Eyebrow>
+          <h2 id="codex-title" style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: PARCHMENT, marginBottom: 8 }}>22가지 원형 도감</h2>
+          <p style={{ fontSize: 13, color: FAINT }}>옆으로 넘겨 보세요. 카드를 누르면 원형 소개를 볼 수 있어요.</p>
         </div>
-      </section>
-
-      {/* ══════════════════════════════
-          특징 — Why Different
-      ══════════════════════════════ */}
-      <section id="how" className="relative z-10 py-28 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="badge badge-violet mx-auto mb-4">Why Different</div>
-            <h2 className="heading-lg mb-4" style={{ color: 'var(--text)' }}>단순 유형 분류가 아닙니다</h2>
-            <p style={{ color: 'var(--muted)' }}>MBTI와 근본적으로 다른 과학적 접근법</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {FEATURES.map((f, i) => (
-              <div
-                key={f.title}
-                className="glass glass-hover rounded-2xl p-7 animate-fade-up opacity-0"
-                style={{
-                  animationFillMode: 'forwards',
-                  animationDelay: `${i * 0.08}s`,
-                }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"
-                  style={{ background: 'rgba(139,92,246,0.15)', color: 'var(--accent2)' }}
-                >
-                  {f.icon}
+        <div className="codex" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '6px 16px 14px' }}>
+          {ARCHETYPES.map(a => {
+            const d = ARCHETYPE_DETAILS[a.id]
+            return (
+              <Link key={a.id} href={`/a/${a.id}`} className="codex-card" style={{
+                flex: '0 0 148px', scrollSnapAlign: 'start', textDecoration: 'none', color: PARCHMENT,
+                borderRadius: 12, overflow: 'hidden', border: `1px solid ${GOLD_SOFT}`, background: '#140f18',
+              }}>
+                <div style={{ position: 'relative', aspectRatio: '3 / 4' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/archetypes/t/${a.id}.webp`} alt={`${d?.name} 원형 그림`} loading="lazy"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 55%, rgba(8,6,12,0.95))' }} />
+                  <div style={{ position: 'absolute', left: 10, right: 10, bottom: 8 }}>
+                    <p style={{ fontSize: 9, fontWeight: 700, color: GOLD, letterSpacing: '0.14em' }}>{d?.nameEn.replace('THE ', '')}</p>
+                    <p style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 700 }}>{d?.name}</p>
+                  </div>
                 </div>
-                <h3 className="font-bold text-base mb-2" style={{ color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                  {f.title}
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)', lineHeight: 1.75 }}>
-                  {f.desc}
-                </p>
-              </div>
-            ))}
-          </div>
+                <p style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.5, padding: '9px 10px 11px', minHeight: 52 }}>{d?.tagline}</p>
+              </Link>
+            )
+          })}
         </div>
       </section>
 
-      {/* ══════════════════════════════
-          진행 방식
-      ══════════════════════════════ */}
-      <section
-        className="relative z-10 py-24 px-6"
-        style={{ background: 'rgba(17,16,24,0.5)', borderTop: '1px solid var(--border)' }}
-      >
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-14">
-            <div className="badge badge-teal mx-auto mb-4">How It Works</div>
-            <h2 className="heading-lg" style={{ color: 'var(--text)' }}>어떻게 진행되나요?</h2>
+      {/* ── 검사 방식 (실제 진행 순서) ── */}
+      <section style={{ padding: '56px 16px', borderTop: `1px solid ${GOLD_SOFT}` }}>
+        <div style={{ maxWidth: 480, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 30 }}>
+            <Eyebrow>HOW IT WORKS</Eyebrow>
+            <h2 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: PARCHMENT, lineHeight: 1.4, textWrap: 'balance' }}>
+              학술 모델로 측정하고,<br />원형으로 읽어드립니다
+            </h2>
           </div>
-
-          <div className="space-y-3">
-            {STEPS.map((s, i) => (
-              <div
-                key={s.n}
-                className="glass rounded-2xl p-5 flex items-center gap-5 animate-fade-up opacity-0"
-                style={{ animationFillMode: 'forwards', animationDelay: `${i * 0.1}s` }}
-              >
-                <span
-                  className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black"
-                  style={{ background: 'rgba(139,92,246,0.12)', color: 'var(--accent2)', letterSpacing: '-0.02em' }}
-                >
-                  {s.n}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm mb-0.5" style={{ color: 'var(--text)' }}>{s.title}</p>
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{s.sub}</p>
+          <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 22 }}>
+            {[
+              { t: '48개의 질문에 답합니다', d: '평소의 나와 가장 가까운 답을 고르면 됩니다. 정답은 없고, 약 8분이면 끝나요.' },
+              { t: 'HEXACO 6요인을 측정합니다', d: '정직·겸손, 정서성, 외향성, 원만성, 성실성, 개방성. 학술 연구에서 널리 쓰이는 성격 모델이에요.' },
+              { t: '22가지 중 당신의 원형을 찾습니다', d: '6요인의 조합이 가장 가까운 원형과, 같은 원형 안에서도 당신만 다른 점을 함께 알려드려요.' },
+              { t: '원하면 진로 리포트로 이어갑니다', d: '이미 측정한 성격에 흥미·가치 질문을 더해, 지금 시기에 맞는 진로 리포트를 만들어요.' },
+            ].map((s, i) => (
+              <li key={s.t} style={{ display: 'grid', gridTemplateColumns: '36px 1fr', gap: 14, alignItems: 'start' }}>
+                <span style={{ fontFamily: SERIF, fontSize: 22, color: GOLD, lineHeight: 1.2, textAlign: 'center' }}>{['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'][i]}</span>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: PARCHMENT, marginBottom: 4 }}>{s.t}</p>
+                  <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.75 }}>{s.d}</p>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
-      {/* ══════════════════════════════
-          가격 비교
-      ══════════════════════════════ */}
-      <section className="relative z-10 py-28 px-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="badge badge-violet mx-auto mb-4">Pricing</div>
-            <h2 className="heading-lg" style={{ color: 'var(--text)' }}>무료 샘플 vs 풀버전</h2>
-          </div>
+      {/* ── CORE CAREER: 시기별 진로 리포트 ── */}
+      <CareerSection />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-            {/* 무료 */}
-            <div className="glass rounded-2xl p-7 flex flex-col">
-              <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--muted)' }}>무료 샘플</p>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-4xl font-extrabold gradient-text">0원</span>
-              </div>
-              <ul className="space-y-2.5 text-sm flex-1 mb-7" style={{ color: 'var(--muted)' }}>
-                {FREE_ITEMS.map(t => (
-                  <li key={t} className="flex items-start gap-2.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {t}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/test"
-                className="btn-secondary w-full text-center"
-                style={{ textDecoration: 'none', justifyContent: 'center' }}
-              >
-                무료로 시작
-              </Link>
-            </div>
-
-            {/* 풀버전 */}
-            <div
-              className="rounded-2xl p-7 relative overflow-hidden flex flex-col glow-accent"
-              style={{
-                background: 'linear-gradient(145deg, rgba(124,58,237,0.18), rgba(139,92,246,0.06) 60%, rgba(26,23,42,0.85))',
-                border: '1px solid rgba(139,92,246,0.35)',
-              }}
-            >
-              {/* 추천 뱃지 */}
-              <div
-                className="absolute top-4 right-4 text-xs px-2.5 py-1 rounded-full font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #a78bfa)' }}
-              >
-                추천
-              </div>
-
-              <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--accent3)' }}>풀버전 리포트</p>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-4xl font-extrabold gradient-text">9,900원</span>
-              </div>
-              <ul className="space-y-2.5 text-sm flex-1 mb-7" style={{ color: 'var(--text2)' }}>
-                {FULL_ITEMS.map(t => (
-                  <li key={t} className="flex items-start gap-2.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {t}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/paid"
-                className="btn-primary w-full text-center"
-                style={{ textDecoration: 'none', justifyContent: 'center', background: 'linear-gradient(135deg, #be185d, #7c3aed)' }}
-              >
-                정밀 검사 시작하기 →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════
-          최종 CTA
-      ══════════════════════════════ */}
-      <section
-        className="relative z-10 py-28 px-6 text-center"
-        style={{ background: 'rgba(17,16,24,0.5)', borderTop: '1px solid var(--border)' }}
-      >
-        {/* CTA 글로우 */}
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 600, height: 400,
-          background: 'radial-gradient(ellipse, rgba(124,58,237,0.13) 0%, transparent 65%)',
-          pointerEvents: 'none',
-        }} />
-
-        <div className="relative z-10 max-w-lg mx-auto">
-          <div className="badge badge-rose mx-auto mb-6">지금 바로 시작</div>
-          <h2 className="heading-lg mb-5" style={{ color: 'var(--text)' }}>
-            10분이면<br />충분합니다
+      {/* ── 마무리 CTA ── */}
+      <section style={{ padding: '64px 16px 72px', textAlign: 'center', borderTop: `1px solid ${GOLD_SOFT}`, background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(120,70,20,0.2), transparent 70%)' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <Ornament width={48} />
+          <h2 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, color: PARCHMENT, lineHeight: 1.4, margin: '18px 0 12px' }}>
+            당신의 원형은<br />무엇일까요
           </h2>
-          <p className="mb-10 text-base" style={{ color: 'var(--muted)', lineHeight: 1.85 }}>
-            당신이 몰랐던 성격의 패턴,<br />강점과 맹점을 지금 발견하세요.
-          </p>
-          <Link
-            href="/test"
-            className="btn-primary animate-pulse-ring"
-            style={{ fontSize: '1.05rem', padding: '15px 40px', display: 'inline-flex' }}
-          >
-            무료 테스트 시작
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <p className="mt-5 text-sm" style={{ color: 'var(--muted2)' }}>신용카드 불필요 · 즉시 결과</p>
+          <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.8, marginBottom: 26 }}>몰랐던 성격의 패턴과 강점, 맹점을 발견해 보세요.</p>
+          <GoldLink href="/hexaco-test?start=1">무료로 원형 찾기 →</GoldLink>
+          <p style={{ marginTop: 14, fontSize: 12, color: FAINT }}>결과는 바로 확인할 수 있어요</p>
         </div>
       </section>
-
     </main>
   )
 }
