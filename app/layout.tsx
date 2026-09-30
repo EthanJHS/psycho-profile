@@ -5,7 +5,6 @@ import './globals.css'
 // 원형 그림(유화·금박)과 어울리는 제목용 명조 — 한글은 subset 지정이 불가해 preload 끔
 const serif = Gowun_Batang({ weight: ['400', '700'], subsets: ['latin'], preload: false, display: 'swap', variable: '--font-serif' })
 import Navbar from '@/components/Navbar'
-import LangSetter from '@/components/LangSetter'
 import SiteFooter from '@/components/SiteFooter'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://core-trait.com'
@@ -42,7 +41,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={`h-full ${serif.variable}`}>
       <body className="min-h-full flex flex-col antialiased">
-        <LangSetter />
         <Navbar />
         <div className="flex-1">{children}</div>
         <SiteFooter />
