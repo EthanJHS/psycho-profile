@@ -45,18 +45,18 @@ export default function ResultFeedback({ testId }: { testId: string }) {
   return (
     <div>
       <p id="feedback-q" style={{ fontSize: 15, fontWeight: 700, color: '#efe6d2', marginBottom: 12 }}>이 결과, 얼마나 만족스러우셨나요?</p>
-      <div role="radiogroup" aria-labelledby="feedback-q" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+      <div role="radiogroup" aria-labelledby="feedback-q" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6 }}>
         {LABELS.map((label, i) => {
           const v = i + 1
           const on = rating === v
           return (
-            <button key={v} role="radio" aria-checked={on} onClick={() => rate(v)} style={{
+            <button key={v} role="radio" aria-checked={on} aria-label={`${v}점, ${label}`} onClick={() => rate(v)} style={{
               padding: '10px 2px', borderRadius: 10, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               border: `1px solid ${on ? 'rgba(226,192,100,0.85)' : 'rgba(200,160,48,0.25)'}`,
               background: on ? 'rgba(200,160,48,0.16)' : 'rgba(255,255,255,0.02)',
             }}>
               <span style={{ fontSize: 17, fontWeight: 700, color: on ? '#e2c064' : 'rgba(239,230,210,0.8)', fontVariantNumeric: 'tabular-nums' }}>{v}</span>
-              <span style={{ fontSize: 11, color: 'rgba(239,230,210,0.55)', whiteSpace: 'nowrap' }}>{label}</span>
+              <span style={{ fontSize: 11, color: 'rgba(239,230,210,0.55)', textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
             </button>
           )
         })}
