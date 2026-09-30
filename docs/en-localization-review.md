@@ -3,16 +3,15 @@
 파일: `lib/en/questions-hexaco.ts`(48문항), `lib/en/archetypes-hexaco.ts`(22원형).
 ID·채점은 한국어판과 공유. 문구만 언어별.
 
-## 1. 결정이 필요한 것 — 원형 영문 이름
+## 1. 원형 영문 이름 — 2026-09-30 결정
 
-영문 이름(`nameEn`)은 한국어 사이트 카드에도 표시되므로, 바꾸면 양쪽을 같이 바꾼다 (공유 카드가 나라를 넘어 같은 이름으로 보여야 함).
+영문 이름(`nameEn`)은 한국어 사이트 카드에도 표시되므로 양쪽을 같이 바꿨다 (공유 카드가 나라를 넘어 같은 이름으로 보이도록).
 
-| 원형 | 현재 | 영어권에서 읽히는 느낌 | 후보 |
+| 원형 | 이전 | 변경 | 이유 |
 |---|---|---|---|
-| 기회가 (opportunist) | THE OPPORTUNIST | "이익을 위해 원칙을 버리는 사람" — 부정적 뉘앙스가 한국어 '기회가'보다 훨씬 강함. 공유하고 싶지 않은 이름 | THE PLAYMAKER, THE CATALYST |
-| 투사 (warrior) vs 전사 (fighter) | WARRIOR / FIGHTER | 영어로는 거의 같은 말이라 두 원형이 구분되지 않음. 투사는 "정의를 위해 싸움"이 핵심 | 투사 → THE CHAMPION (대의를 옹호하는 사람) |
-| 향락가 (hedonist) | THE HEDONIST | 성격 퀴즈에서 흔히 쓰여 무난하지만 약간 방탕한 느낌 | 유지 또는 THE FREE SPIRIT |
-| 냉소가 (cynic) | THE CYNIC | 한국어와 비슷한 수준. 유지 권장 | — |
+| 기회가 (opportunist) | THE OPPORTUNIST | **THE PLAYMAKER** | 영어로는 "이익을 위해 원칙을 버리는 사람"이라는 부정적 뉘앙스가 강함 |
+| 투사 (warrior) | THE WARRIOR | **THE CHAMPION** | 전사(THE FIGHTER)와 영어로 구분되지 않음. 투사의 핵심은 대의를 위해 싸우는 것 |
+| 향락가 (hedonist) | THE HEDONIST | **THE FREE SPIRIT** | 방탕한 느낌을 덜고 공유하고 싶은 이름으로 |
 
 ## 2. 문화 차이로 응답이 달라질 수 있는 문항
 

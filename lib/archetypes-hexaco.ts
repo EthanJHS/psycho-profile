@@ -25,7 +25,7 @@ export const ARCHETYPE_DETAILS: Record<string, ArchetypeDetail> = {
   },
 
   warrior: {
-    id: 'warrior', name: '투사', nameEn: 'THE WARRIOR',
+    id: 'warrior', name: '투사', nameEn: 'THE CHAMPION',
     tagline: '옳다고 믿으면 혼자라도 앞에 선다',
     daily: '"틀렸으면 틀렸다고 해야지."',
     light: '불의 앞에서 물러서지 않는 이상적 전사',
@@ -75,7 +75,7 @@ export const ARCHETYPE_DETAILS: Record<string, ArchetypeDetail> = {
   },
 
   opportunist: {
-    id: 'opportunist', name: '기회가', nameEn: 'THE OPPORTUNIST',
+    id: 'opportunist', name: '기회가', nameEn: 'THE PLAYMAKER',
     tagline: '흐름을 먼저 읽고, 먼저 움직인다',
     daily: '"이거 될 것 같은데? 일단 해보자."',
     light: '흐름을 읽고 순간을 장악하는 기민한 탐색자',
@@ -225,7 +225,7 @@ export const ARCHETYPE_DETAILS: Record<string, ArchetypeDetail> = {
   },
 
   hedonist: {
-    id: 'hedonist', name: '향락가', nameEn: 'THE HEDONIST',
+    id: 'hedonist', name: '향락가', nameEn: 'THE FREE SPIRIT',
     tagline: '지금 이 순간이 전부다',
     daily: '"일단 맛있는 거 먹고 생각하자."',
     light: '지금 이 순간을 온전히 살아내는 감각적 자유인',

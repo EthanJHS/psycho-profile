@@ -1,5 +1,5 @@
 // 영어판 22원형 문구 — 한국어판(lib/archetypes-hexaco.ts)과 같은 ID·같은 필드. name = 화면 표시 이름, nameEn = 카드용 대문자 표기
-// 이름을 바꿀지 검토 중인 원형(opportunist·warrior·hedonist)은 docs/en-localization-review.md 참고
+// 영문 이름 변경(2026-09-30): opportunist→Playmaker, warrior→Champion, hedonist→Free Spirit (한국어판 nameEn도 같이 변경)
 import type { ArchetypeDetail } from '../archetypes-hexaco'
 
 export const ARCHETYPE_DETAILS_EN: Record<string, ArchetypeDetail> = {
@@ -15,7 +15,7 @@ export const ARCHETYPE_DETAILS_EN: Record<string, ArchetypeDetail> = {
   },
 
   warrior: {
-    id: 'warrior', name: 'The Warrior', nameEn: 'THE WARRIOR',
+    id: 'warrior', name: 'The Champion', nameEn: 'THE CHAMPION',
     tagline: 'If it’s right, I’ll stand up for it — even alone',
     daily: '"If it’s wrong, someone has to say it."',
     light: 'An idealist who doesn’t back down in the face of injustice',
@@ -65,7 +65,7 @@ export const ARCHETYPE_DETAILS_EN: Record<string, ArchetypeDetail> = {
   },
 
   opportunist: {
-    id: 'opportunist', name: 'The Opportunist', nameEn: 'THE OPPORTUNIST',
+    id: 'opportunist', name: 'The Playmaker', nameEn: 'THE PLAYMAKER',
     tagline: 'Read the current first. Move first.',
     daily: '"This could actually work. Let’s just try it."',
     light: 'A quick-witted scout who reads the moment and seizes it',
@@ -215,10 +215,10 @@ export const ARCHETYPE_DETAILS_EN: Record<string, ArchetypeDetail> = {
   },
 
   hedonist: {
-    id: 'hedonist', name: 'The Hedonist', nameEn: 'THE HEDONIST',
+    id: 'hedonist', name: 'The Free Spirit', nameEn: 'THE FREE SPIRIT',
     tagline: 'This moment is everything',
     daily: '"Let’s grab something good to eat first, then think."',
-    light: 'A free spirit who lives the present moment to the fullest',
+    light: 'Someone who lives the present moment to the fullest, senses wide open',
     shadow: 'Putting today’s fun first can mean the things you put off all come back at once',
     shortDesc: 'You put present joy and sensory pleasure at the center of your life. Your spontaneous, free-flowing energy is magnetic — but if you keep pushing long-term consequences down the road, they can pile up.',
     traits: ['Pursuit of joy', 'Quick decisions', 'Sensory energy', 'Love of freedom'],
