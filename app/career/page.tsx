@@ -8,6 +8,7 @@ import { isAvailable } from '@/lib/career/flow'
 import { loadConsent, saveConsent } from '@/lib/consent'
 import ConsentSheet from '@/components/ConsentSheet'
 import { readFreeAnswers } from '@/lib/career/free-link'
+import { loadMyReports, type MyReport } from '@/lib/career/my-reports'
 
 const GOLD = '#c8a030'
 const TEXT = '#efe6d2'
@@ -37,8 +38,9 @@ export default function CareerStartPage() {
   const [stage, setStage] = useState<LifeStage>('jobseeker')
   const [plan, setPlan] = useState<Plan>('find')
   const [askConsent, setAskConsent] = useState(false)
+  const [mine, setMine] = useState<MyReport[]>([])
 
-  useEffect(() => { setHasHexaco(!!readFreeAnswers()) }, [])
+  useEffect(() => { setHasHexaco(!!readFreeAnswers()); setMine(loadMyReports()) }, [])
 
   const go = () => router.push(`/career/test?stage=${stage}&plan=${plan}`)
   const start = () => (loadConsent() ? go() : setAskConsent(true))
@@ -94,6 +96,27 @@ export default function CareerStartPage() {
               </p>
             )}
           </>
+        )}
+
+        {mine.length > 0 && (
+          <section style={{ marginTop: 36, paddingTop: 22, borderTop: '1px solid rgba(200,160,48,0.2)' }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: GOLD, letterSpacing: '0.08em', marginBottom: 4 }}>내 리포트</h2>
+            <p style={{ fontSize: 12, color: 'rgba(239,230,210,0.45)', marginBottom: 12 }}>이 기기에서 만들거나 열어 본 리포트예요.</p>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {mine.map(r => (
+                <li key={r.id}>
+                  <Link href={`/career/report/${r.id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(200,160,48,0.25)', background: 'rgba(21,17,28,0.8)', textDecoration: 'none' }}>
+                    <span style={{ fontSize: 14, color: TEXT }}>
+                      {LIFE_STAGES.find(s => s.id === r.stage)?.label ?? r.stage} · {PLANS.find(p => p.id === r.plan)?.label.split(' ')[0] ?? r.plan}
+                    </span>
+                    <span style={{ fontSize: 12.5, color: MUTED, fontVariantNumeric: 'tabular-nums' }}>
+                      {new Date(r.at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} →
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </div>
     </main>

@@ -2,15 +2,13 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { buildScreens, isAnswered, isAvailable, ITEM_BANK_VERSION, type Screen } from '@/lib/career/flow'
-import { scoreCareer, type Answers } from '@/lib/career/score'
-import { scoreHexaco } from '@/lib/scoring-hexaco'
+import { buildScreens, isAnswered, isAvailable, type Screen } from '@/lib/career/flow'
+import type { Answers } from '@/lib/career/score'
 import { readFreeAnswers, freeResultCode } from '@/lib/career/free-link'
+import { rememberReport } from '@/lib/career/my-reports'
 import { VALUE_CARDS, LIFE_STAGES, type LifeStage, type Plan } from '@/lib/paid-v2/items'
-import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/profile'
 import { loadConsent } from '@/lib/consent'
-import { PRIVACY_VERSION } from '@/lib/consent'
 
 const GOLD = '#c8a030'
 const TEXT = '#efe6d2'
@@ -19,6 +17,21 @@ const SERIF = 'var(--font-serif), serif'
 const KEY = 'ct_career_progress'
 
 interface Progress { stage: LifeStage; plan: Plan; assessmentId: string; answers: Answers; idx: number; freeCode: string | null }
+
+// 검사 기록은 서버에서 생성 (익명 사용자는 assessments에 직접 쓸 수 없음)
+async function createAssessment(stage: LifeStage, plan: Plan): Promise<string | null> {
+  try {
+    const res = await fetch('/api/career/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stage, plan, profileId: await ensureProfile(),
+        hexacoSessionId: sessionStorage.getItem('pp_test_session_id'),
+        research: loadConsent()?.research === true,
+      }),
+    })
+    return res.ok ? ((await res.json()) as { id: string }).id : null
+  } catch { return null }
+}
 
 export default function CareerTestPage() {
   return <Suspense fallback={null}><CareerTest /></Suspense>
@@ -54,17 +67,8 @@ function CareerTest() {
         return
       }
     } catch { /* 새로 시작 */ }
-    const id = crypto.randomUUID()
-    setAssessmentId(id)
     setFreeCode(freeCode)
-    ;(async () => {
-      const profileId = await ensureProfile()
-      await supabase?.from('assessments').insert({
-        id, profile_id: profileId, product: 'career', stage, plan, item_version: ITEM_BANK_VERSION,
-        hexaco_session_id: sessionStorage.getItem('pp_test_session_id'),
-        consent_version: PRIVACY_VERSION, research_consent: consent.research,
-      })
-    })()
+    createAssessment(stage, plan).then(id => { if (id) setAssessmentId(id) })
   }, [stage, plan, router])
 
   useEffect(() => {
@@ -76,23 +80,23 @@ function CareerTest() {
   const total = screens.length
 
   const finish = useCallback(async (final: Answers) => {
-    if (!assessmentId) return
     setBusy(true); setError('')
     try {
       const hexAnswers = readFreeAnswers()
       if (!hexAnswers) { router.replace('/career'); return }
-      const hex = scoreHexaco(hexAnswers)
-      const scores = {
-        ...scoreCareer(stage, plan, final, hex.scores.raw, hexAnswers),
-        archetype: { id: hex.primary.id, name: hex.primary.name },
-        freeResultCode: freeResultCode(hexAnswers),   // 무료 결과와의 연결 (세션 번호가 없어도 추적 가능)
-      }
-      if (supabase) {
-        const { error: e } = await supabase.rpc('complete_assessment', { p_id: assessmentId, p_answers: final, p_scores: scores })
-        if (e) throw e
-      }
+      // 시작할 때 기록 생성에 실패했으면 여기서 다시 시도
+      const id = assessmentId ?? await createAssessment(stage, plan)
+      if (!id) throw new Error('no assessment')
+      setAssessmentId(id)
+      // 점수는 서버가 응답과 무료 결과 코드로 다시 계산 (무료 결과와의 연결 고리이기도 함)
+      const res = await fetch(`/api/career/${id}/complete`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: final, freeCode: freeResultCode(hexAnswers) }),
+      })
+      if (!res.ok) throw new Error(String(res.status))
+      rememberReport({ id, stage, plan, at: new Date().toISOString() })
       sessionStorage.removeItem(KEY)
-      router.push(`/career/report/${assessmentId}`)
+      router.push(`/career/report/${id}`)
     } catch {
       setBusy(false)
       setError('결과를 저장하지 못했어요. 네트워크를 확인하고 다시 눌러 주세요.')
