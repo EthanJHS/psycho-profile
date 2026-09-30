@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       .gte('created_at', since14).limit(10000),
     sb.from('events').select('event_type, metadata, created_at').order('created_at', { ascending: false }).limit(20),
     sb.from('waitlist').select('email', { count: 'exact', head: true }),
-    sb.from('survey_responses').select('rating, opinion, result_type, created_at').order('created_at', { ascending: false }).limit(500),
+    sb.from('survey_responses').select('rating, opinion, result_type, created_at').eq('result_type', 'hexaco').order('created_at', { ascending: false }).limit(500),
   ])
 
   const tests = (testsRes.data ?? []) as Row[]

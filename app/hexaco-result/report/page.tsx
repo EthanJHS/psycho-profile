@@ -6,6 +6,7 @@ import { scoreHexaco, HexacoResult, HexacoFactor } from '@/lib/scoring-hexaco'
 import { ARCHETYPE_DETAILS } from '@/lib/archetypes-hexaco'
 import { personalizeResult, PersonalizedResult } from '@/lib/personalize-result'
 import { trackHexaco, initScrollDepthTracking, isAdminSim } from '@/lib/analytics'
+import ResultFeedback from '@/components/ResultFeedback'
 import { encodeHexacoAnswers, decodeHexacoAnswers } from '@/lib/hexaco-encoding'
 import WaitlistForm from '@/components/WaitlistForm'
 import { w } from '@/lib/career/report-content'
@@ -365,6 +366,13 @@ function HexacoReportInner() {
             <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.85 }}>
               {personalized.practicalTip}
             </p>
+          </Tome>
+        )}
+
+        {/* 만족도 — 이 기기에서 실제로 끝낸 검사일 때만 (미리보기·결과 링크·관리자 시뮬레이션 제외) */}
+        {testId && !previewId && !isAdminSim() && (
+          <Tome label="결과 평가" accent="gold">
+            <ResultFeedback testId={testId} />
           </Tome>
         )}
 
