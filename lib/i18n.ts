@@ -12,8 +12,8 @@ export type Lang = 'ko' | 'en'
 export const langFromPath = (path: string): Lang => (path === '/en' || path.startsWith('/en/') ? 'en' : 'ko')
 
 export const PATHS = {
-  ko: { home: '/', test: '/hexaco-test', result: '/hexaco-result', report: '/hexaco-result/report', privacy: '/privacy', terms: '/terms', share: (id: string) => `/a/${id}` },
-  en: { home: '/en', test: '/en/test', result: '/en/result', report: '/en/result/report', privacy: '/en/privacy', terms: '/en/terms', share: (id: string) => `/en/a/${id}` },
+  ko: { home: '/', test: '/hexaco-test', result: '/hexaco-result', report: '/hexaco-result/report', privacy: '/privacy', terms: '/terms', compare: '/compare', share: (id: string) => `/a/${id}` },
+  en: { home: '/en', test: '/en/test', result: '/en/result', report: '/en/result/report', privacy: '/en/privacy', terms: '/en/terms', compare: '/en/compare', share: (id: string) => `/en/a/${id}` },
 } as const
 
 // 문항 버전 = DB에서 언어를 구분하는 기준. 영어 응답은 한국어 응답과 절대 합쳐 분석하지 않는다

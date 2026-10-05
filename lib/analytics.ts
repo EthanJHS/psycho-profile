@@ -213,7 +213,7 @@ export async function saveHexacoResult(
 
 // ── HEXACO 결과 화면 행동 (미리보기·시뮬레이션 제외) ──
 export async function trackHexaco(
-  eventType: 'hexaco_result_view' | 'hexaco_report_click' | 'hexaco_report_view' | 'hexaco_unlock_click' | 'hexaco_share',
+  eventType: 'hexaco_result_view' | 'hexaco_report_click' | 'hexaco_report_view' | 'hexaco_unlock_click' | 'hexaco_share' | 'hexaco_card_save' | 'hexaco_compare_create' | 'hexaco_compare_view',
   metadata: Record<string, unknown> = {},
 ) {
   if (isAdminSim()) return

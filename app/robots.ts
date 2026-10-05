@@ -7,8 +7,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      // 관리자·비공개 유료 리포트·API, 그리고 개인 응답이 담긴 결과 페이지
-      disallow: ['/admin', '/career', '/api/', '/hexaco-result', '/en/result'],
+      // 관리자·비공개 유료 리포트·API, 그리고 개인 응답·점수가 담긴 결과·비교 페이지
+      disallow: ['/admin', '/career', '/api/', '/hexaco-result', '/en/result', '/compare', '/en/compare'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   }

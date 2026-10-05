@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { scoreHexaco, HexacoResult, HexacoFactor } from '@/lib/scoring-hexaco'
 import { personalizeResult, PersonalizedResult } from '@/lib/personalize-result'
 import { CONTENT, PATHS, STORAGE, type Lang } from '@/lib/i18n'
+import { COMPARE_PENDING_KEY, decodeCompareCode, encodeCompareCode } from '@/lib/compare'
+import Link from 'next/link'
 import { trackHexaco, initScrollDepthTracking, isAdminSim } from '@/lib/analytics'
 import ResultFeedback from '@/components/ResultFeedback'
 import { encodeHexacoAnswers, decodeHexacoAnswers } from '@/lib/hexaco-encoding'
@@ -73,6 +75,14 @@ const KO = {
   preparingTitle: '진로 리포트는 출시 준비 중이에요',
   preparingBody: '열리면 가장 먼저 알려드릴게요. 아래 “내 결과 링크 복사”로 지금 결과를 저장해 두면, 출시 후 질문을 처음부터 다시 풀지 않고 이어갈 수 있어요.',
   share: '원형 공유하기',
+  saveCard: '이미지로 저장 (스토리용)',
+  compare: '친구와 비교하기',
+  flashCompare: '비교 링크를 복사했습니다 — 친구에게 보내 보세요',
+  compareNote: '비교 링크에는 내 원형과 6요인 점수만 담겨요. 친구가 검사하면 두 사람의 결과를 나란히 볼 수 있어요.',
+  pendingCompare: '친구가 보낸 비교가 기다리고 있어요',
+  pendingCompareCta: '비교 결과 보기 →',
+  flashCardSaved: '카드 이미지를 저장했습니다',
+  flashCardFail: '이미지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요',
   copyLink: '내 결과 링크 복사',
   shareNote: '원형 공유는 원형 소개만 보여줍니다. 내 결과 링크에는 내 점수가 담겨 있으니 본인만 보관하세요.',
   testNo: '검사 번호',
@@ -125,6 +135,14 @@ const T: Record<Lang, typeof KO> = {
     preparingTitle: 'The full report is on its way',
     preparingBody: 'We’ll let you know as soon as it’s ready. Save your result with “Copy my result link” below so you won’t need to retake the test.',
     share: 'Share my archetype',
+    saveCard: 'Save as image (for Stories)',
+    compare: 'Compare with a friend',
+    flashCompare: 'Comparison link copied — send it to a friend',
+    compareNote: 'The comparison link includes only your archetype and six factor scores. Once your friend takes the test, you’ll see both results side by side.',
+    pendingCompare: 'Your friend’s comparison is waiting',
+    pendingCompareCta: 'See the comparison →',
+    flashCardSaved: 'Card image saved',
+    flashCardFail: 'Couldn’t load the image. Please try again in a moment',
     copyLink: 'Copy my result link',
     shareNote: 'Sharing shows only your archetype’s description. Your result link includes your scores, so keep it to yourself.',
     testNo: 'Test ID',
@@ -163,7 +181,17 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
   const [chaptersVisible, setChaptersVisible] = useState(false)
   const [toast, setToast] = useState('')
   const [testId, setTestId] = useState<string | null>(null)
+  const [pendingCompare, setPendingCompare] = useState<string | null>(null)
   const restoreCode = searchParams.get('r')
+
+  // 친구의 비교 링크로 들어와 검사를 마친 경우 — 비교 화면으로 돌아갈 길을 맨 위에 안내
+  useEffect(() => {
+    if (previewId) return
+    try {
+      const code = sessionStorage.getItem(COMPARE_PENDING_KEY)
+      if (decodeCompareCode(code)) setPendingCompare(code)
+    } catch { /* 저장 공간 없음 */ }
+  }, [previewId])
 
   // 개인정보 열람·삭제 요청용 검사 번호 (이 기기에서 직접 본 검사일 때만)
   useEffect(() => {
@@ -224,6 +252,44 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
       await navigator.clipboard?.writeText(url)
       flash(t.flashShare)
     }
+  }
+
+  // 스토리용 세로 카드 — 휴대폰에서는 공유 창(사진 저장·인스타 등), PC에서는 파일로 내려받기
+  async function saveCard(id: string, name: string) {
+    if (!previewId) trackHexaco('hexaco_card_save', { archetype_primary: id }).catch(() => {})
+    try {
+      const res = await fetch(`/archetypes/story/${lang}/${id}.jpg`)
+      if (!res.ok) throw new Error(String(res.status))
+      const blob = await res.blob()
+      const file = new File([blob], `core-trait-${id}.jpg`, { type: 'image/jpeg' })
+      const touch = window.matchMedia('(pointer: coarse)').matches
+      if (touch && navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: t.shareTitle(name) }) } catch { /* 사용자가 공유 창을 닫음 */ }
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = file.name
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+      flash(t.flashCardSaved)
+    } catch {
+      flash(t.flashCardFail)
+    }
+  }
+
+  // 친구와 비교하기 — 원형과 6요인 점수만 담은 링크 (응답 전체는 넣지 않음)
+  async function shareCompareLink(name: string) {
+    const code = result ? encodeCompareCode(result) : null
+    if (!code) { flash(t.flashNoLink); return }
+    if (!previewId) trackHexaco('hexaco_compare_create', { archetype_primary: result!.primary.id }).catch(() => {})
+    const url = `${window.location.origin}${paths.compare}?f=${code}`
+    if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
+      try { await navigator.share({ title: t.shareTitle(name), text: t.shareTitle(name), url }) } catch { /* 사용자가 공유 창을 닫음 */ }
+      return
+    }
+    try { await navigator.clipboard.writeText(url) } catch { window.prompt(t.compare, url); return }
+    flash(t.flashCompare)
   }
 
   async function copyMyResultLink() {
@@ -314,6 +380,16 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
         >
           {t.backToHero}
         </button>
+
+        {pendingCompare && (
+          <Link href={`${paths.compare}?f=${pendingCompare}`} style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '13px 16px', borderRadius: 12, marginBottom: 16, textDecoration: 'none',
+            background: 'rgba(200,168,75,0.12)', border: '1px solid rgba(226,192,100,0.55)',
+          }}>
+            <span style={{ fontSize: 14, color: '#efe6d2' }}>{t.pendingCompare}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#e2c064', flexShrink: 0 }}>{t.pendingCompareCta}</span>
+          </Link>
+        )}
 
         {/* 카드 이미지 + 텍스트 */}
         <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(200,168,75,0.2)', marginBottom: 20 }}>
@@ -532,6 +608,23 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
         </div>
 
         {/* 공유 + 결과 링크 + 다시하기 */}
+        {!previewId && (
+          <>
+            <button
+              onClick={() => shareCompareLink(primaryName)}
+              style={{ width: '100%', padding: '15px', borderRadius: 12, cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, #a8781f 0%, #e2c064 50%, #a8781f 100%)', color: '#1a1206', fontSize: 15.5, fontWeight: 800 }}
+            >
+              {t.compare}
+            </button>
+            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, margin: '8px 2px 14px', textAlign: 'center' }}>{t.compareNote}</p>
+          </>
+        )}
+        <button
+          onClick={() => saveCard(primary.id, primaryName)}
+          style={{ width: '100%', padding: '14px', borderRadius: 12, cursor: 'pointer', marginBottom: 10, background: 'rgba(200,168,75,0.1)', border: '1px solid rgba(200,168,75,0.45)', color: '#e2c064', fontSize: 15, fontWeight: 700 }}
+        >
+          {t.saveCard}
+        </button>
         <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
           <button
             onClick={() => shareArchetype(primary.id, primaryName, primaryDetail?.tagline)}
