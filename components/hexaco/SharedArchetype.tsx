@@ -28,7 +28,8 @@ export function sharedArchetypeMetadata(lang: Lang, id: string): Metadata {
   const d = CONTENT[lang].archetypes[id]
   if (!d) return {}
   const title = T[lang].metaTitle(d.name)
-  const image = `/archetypes/og/${id}.jpg`
+  // 이름·한 줄 문구가 들어간 언어별 미리보기 이미지 (scripts/generate_share_images.py로 생성)
+  const image = `/archetypes/og/${lang}/${id}.jpg`
   return {
     title,
     description: d.tagline,

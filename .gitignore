@@ -45,3 +45,6 @@ next-env.d.ts
 # local data dumps / unused source art
 /backups/
 /public/archetypes/*.png
+
+# generated input for scripts/generate_share_images.py
+/scripts/.archetypes.json
