@@ -154,6 +154,17 @@ const T: Record<Lang, typeof KO> = {
 
 const FACTORS: HexacoFactor[] = ['H', 'E', 'X', 'A', 'C', 'O']
 
+// 복사 — 인스타·카톡 앱 안의 브라우저처럼 복사가 막힌 환경에서는 직접 복사할 수 있게 주소를 보여줌
+async function copyText(text: string, label: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    window.prompt(label, text)
+    return false
+  }
+}
+
 // 결과 리포트 — 한국어(/hexaco-result/report)·영어(/en/result/report) 공용
 export default function ReportBody({ lang }: { lang: Lang }) {
   return (
@@ -249,8 +260,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
     if (navigator.share) {
       try { await navigator.share({ title: t.shareTitle(name), text: tagline ?? name, url }) } catch { /* 사용자가 공유 창을 닫음 */ }
     } else {
-      await navigator.clipboard?.writeText(url)
-      flash(t.flashShare)
+      if (await copyText(url, t.share)) flash(t.flashShare)
     }
   }
 
@@ -288,16 +298,14 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
       try { await navigator.share({ title: t.shareTitle(name), text: t.shareTitle(name), url }) } catch { /* 사용자가 공유 창을 닫음 */ }
       return
     }
-    try { await navigator.clipboard.writeText(url) } catch { window.prompt(t.compare, url); return }
-    flash(t.flashCompare)
+    if (await copyText(url, t.compare)) flash(t.flashCompare)
   }
 
   async function copyMyResultLink() {
     const raw = sessionStorage.getItem(answersKey)
     const code = raw ? encodeHexacoAnswers(JSON.parse(raw)) : null
     if (!code) { flash(t.flashNoLink); return }
-    await navigator.clipboard?.writeText(`${window.location.origin}${paths.report}?r=${code}`)
-    flash(t.flashLink)
+    if (await copyText(`${window.location.origin}${paths.report}?r=${code}`, t.copyLink)) flash(t.flashLink)
   }
 
   useEffect(() => {
@@ -647,7 +655,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
         {testId && (
           <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: 14, lineHeight: 1.6 }}>
             {t.testNo} <button
-              onClick={async () => { await navigator.clipboard?.writeText(testId); flash(t.flashTestNo) }}
+              onClick={async () => { if (await copyText(testId, t.testNo)) flash(t.flashTestNo) }}
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'rgba(226,192,100,0.8)', fontFamily: 'monospace', fontSize: 12.5, textDecoration: 'underline' }}
             >{testId.slice(0, 8)}</button>
             <br />{t.deleteNote(<a href={paths.privacy} style={{ color: 'rgba(226,192,100,0.8)' }}>{t.privacy}</a>)}
