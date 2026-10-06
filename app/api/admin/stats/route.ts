@@ -57,12 +57,12 @@ export async function GET(req: NextRequest) {
   const since14 = new Date(Date.now() - 14 * DAY).toISOString()
 
   const [sessionsRes, testsRes, eventsRes, recentRes, waitlistRes, surveyRes] = await Promise.all([
-    sb.from('sessions').select('device, created_at').gte('created_at', since14),
+    sb.from('sessions').select('id, device, created_at, referrer, utm_source, utm_campaign, landing_path').gte('created_at', since14),
     sb.from('test_sessions')
-      .select('started_at, completed_at, test_version, research_consent, archetype_primary, hexaco_h, hexaco_e, hexaco_x, hexaco_a, hexaco_c, hexaco_o, hexaco_answers')
+      .select('session_id, started_at, completed_at, test_version, research_consent, archetype_primary, hexaco_h, hexaco_e, hexaco_x, hexaco_a, hexaco_c, hexaco_o, hexaco_answers')
       .like('test_version', 'hexaco%'),
     sb.from('events').select('event_type, metadata, created_at')
-      .in('event_type', ['hexaco_result_view', 'hexaco_report_click', 'hexaco_report_view', 'hexaco_unlock_click', 'hexaco_share', 'waitlist_signup', 'free_test_abandon', 'result_scroll_depth'])
+      .in('event_type', ['hexaco_result_view', 'hexaco_report_click', 'hexaco_report_view', 'hexaco_unlock_click', 'hexaco_share', 'hexaco_card_save', 'hexaco_compare_create', 'hexaco_compare_view', 'waitlist_signup', 'free_test_abandon', 'result_scroll_depth'])
       .gte('created_at', since14).limit(10000),
     sb.from('events').select('event_type, metadata, created_at').order('created_at', { ascending: false }).limit(20),
     sb.from('waitlist').select('email', { count: 'exact', head: true }).eq('locale', lang),
@@ -99,6 +99,36 @@ export async function GET(req: NextRequest) {
   }
   const scroll = by('result_scroll_depth').filter(e => (e.metadata as Row)?.page === 'hexaco-report')
   const scroll_depth = Object.fromEntries([25, 50, 75, 100].map(d => [`${d}%`, scroll.filter(e => (e.metadata as Row)?.depth === d).length]))
+
+  // ── 공유 (최근 14일, 검사 1회당 종류별 1번) ──
+  const sharing = {
+    share: by('hexaco_share').length,
+    card_save: by('hexaco_card_save').length,
+    compare_create: by('hexaco_compare_create').length,
+    compare_view: by('hexaco_compare_view').length,
+  }
+
+  // ── 유입 경로별 성과 (최근 14일): 방문 → 검사 시작 → 완료 ──
+  // 광고 링크의 utm_source·utm_campaign 기준. 없으면 들어온 사이트, 그것도 없으면 직접 방문
+  const visits = ((sessionsRes.data ?? []) as Row[]).filter(s => (String(s.landing_path ?? '').startsWith('/en') ? 'en' : 'ko') === lang)
+  const sourceOf = (s: Row) => {
+    if (s.utm_source) return `${s.utm_source}${s.utm_campaign ? ` / ${s.utm_campaign}` : ''}`
+    try {
+      const host = s.referrer ? new URL(String(s.referrer)).hostname.replace(/^www\./, '') : ''
+      return host && !host.endsWith('core-trait.com') ? host : '직접 방문'
+    } catch { return '직접 방문' }
+  }
+  const sourceBySession = new Map(visits.map(s => [String(s.id), sourceOf(s)]))
+  const srcMap: Record<string, { visits: number; started: number; completed: number }> = {}
+  for (const src of sourceBySession.values()) (srcMap[src] ??= { visits: 0, started: 0, completed: 0 }).visits++
+  for (const t of started14) {
+    const src = sourceBySession.get(String(t.session_id))
+    if (!src) continue
+    srcMap[src].started++
+    if (t.completed_at) srcMap[src].completed++
+  }
+  const sources = Object.entries(srcMap).map(([source, v]) => ({ source, ...v })).sort((a, b) => b.visits - a.visits).slice(0, 20)
+  const landing_pages = Object.entries(countBy(visits, s => String(s.landing_path ?? '(기록 전)'))).map(([path, count]) => ({ path, count })).sort((a, b) => b.count - a.count).slice(0, 8)
 
   // ── 일별 (최근 7일) ──
   const daily = Array.from({ length: 7 }, (_, i) => {
@@ -215,7 +245,7 @@ export async function GET(req: NextRequest) {
     health,
     gate: { items: gate, sample: completed14.length, minSample: MIN_SAMPLE },
     career,
-    overview, result_funnel, scroll_depth, daily, abandon_by_bucket,
+    overview, result_funnel, sharing, sources, landing_pages, scroll_depth, daily, abandon_by_bucket,
     archetype_distribution, factor_means, item_stats, reliability,
     device_distribution, survey,
     recent_events: ((recentRes.data ?? []) as Row[]).filter(eventInLang),

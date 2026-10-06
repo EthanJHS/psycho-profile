@@ -7,6 +7,7 @@ const serif = Gowun_Batang({ weight: ['400', '700'], subsets: ['latin'], preload
 import Navbar from '@/components/Navbar'
 import SiteFooter from '@/components/SiteFooter'
 import LangSetter from '@/components/LangSetter'
+import VisitTracker from '@/components/VisitTracker'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://core-trait.com'
 const OG_IMAGE = `${SITE_URL}/og.png`
@@ -36,6 +37,11 @@ export const metadata: Metadata = {
     images: [OG_IMAGE],
   },
   robots: { index: true, follow: true },
+  // 검색 등록 인증 — 구글 서치 콘솔·네이버 서치어드바이저에서 받은 코드를 Vercel 환경변수에 넣으면 적용됨 (docs/launch-checklist.md)
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.NAVER_SITE_VERIFICATION ? { other: { 'naver-site-verification': process.env.NAVER_SITE_VERIFICATION } } : {}),
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -43,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" className={`h-full ${serif.variable}`}>
       <body className="min-h-full flex flex-col antialiased">
         <LangSetter />
+        <VisitTracker />
         <Navbar />
         <div className="flex-1">{children}</div>
         <SiteFooter />

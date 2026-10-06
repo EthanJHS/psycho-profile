@@ -26,6 +26,9 @@ interface Stats {
     completed: number; result_view: number; report_click: number; report_view: number
     unlock_click: number; unlock_by_source: Record<string, number>
   }
+  sharing?: { share: number; card_save: number; compare_create: number; compare_view: number }
+  sources?: { source: string; visits: number; started: number; completed: number }[]
+  landing_pages?: { path: string; count: number }[]
   scroll_depth: Record<string, number>
   daily: { day: string; started: number; completed: number; report_view: number; unlock_click: number }[]
   abandon_by_bucket: { label: string; count: number }[]
@@ -314,6 +317,73 @@ function OverviewSection({ stats }: { stats: Stats }) {
 }
 
 // ── 4. 결과 화면 퍼널 ─────────────────────────────────────────────────────────
+// 유입 경로별 성과 — 광고를 돌릴 때 어느 광고가 완료까지 이어지는지 보는 표
+function SourcesSection({ stats }: { stats: Stats }) {
+  const rows = stats.sources ?? []
+  const sh = stats.sharing
+  const completed = stats.result_funnel.completed
+  const th: React.CSSProperties = { textAlign: 'right', padding: '6px 8px', fontSize: 10.5, color: muted, fontWeight: 600 }
+  const td: React.CSSProperties = { textAlign: 'right', padding: '7px 8px', fontSize: 12, color: '#fff', fontVariantNumeric: 'tabular-nums' }
+  const rate = (a: number, b: number) => (b > 0 ? `${Math.round(a / b * 100)}%` : '–')
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <SectionHeader title="유입과 공유 (14일)" sub="광고 링크에 ?utm_source=instagram&utm_campaign=이름 을 붙이면 경로별로 나뉘어 보여요" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+        <div style={{ ...card, gridColumn: '1 / -1' }}>
+          <CardTitle title="유입 경로별 성과" sub="방문 → 검사 시작 → 완료. 완료율 = 시작 대비" />
+          {rows.length === 0 ? <Empty /> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
+                <thead><tr>
+                  <th style={{ ...th, textAlign: 'left' }}>경로</th><th style={th}>방문</th><th style={th}>시작</th><th style={th}>시작률</th><th style={th}>완료</th><th style={th}>완료율</th>
+                </tr></thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.source} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <td style={{ ...td, textAlign: 'left', color: '#e2c064' }}>{r.source}</td>
+                      <td style={td}>{r.visits}</td><td style={td}>{r.started}</td><td style={{ ...td, color: muted }}>{rate(r.started, r.visits)}</td>
+                      <td style={td}>{r.completed}</td><td style={{ ...td, color: muted }}>{rate(r.completed, r.started)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div style={card}>
+          <CardTitle title="공유 행동" sub="% = 검사 완료 대비 (검사 1회당 1번)" />
+          {!sh ? <Empty /> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {([['원형 링크 공유', sh.share, '#67e8f9'], ['카드 이미지 저장', sh.card_save, '#a78bfa'], ['비교 링크 만들기', sh.compare_create, '#e2c064'], ['비교 결과 보기', sh.compare_view, '#34d399']] as const).map(([label, v, color]) => (
+                <div key={label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{ fontSize: 11, color }}>{label}</span>
+                    <span style={{ fontSize: 11, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{v}명 <span style={{ color: muted }}>({rate(v, completed)})</span></span>
+                  </div>
+                  <MiniBar value={v} max={Math.max(completed, 1)} color={color} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={card}>
+          <CardTitle title="처음 도착한 페이지" sub="방문이 어디로 들어왔나 (상위 8개)" />
+          {(stats.landing_pages ?? []).length === 0 ? <Empty /> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {(stats.landing_pages ?? []).map(l => (
+                <div key={l.path} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                  <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.path}</span>
+                  <span style={{ fontSize: 11.5, color: '#fff', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{l.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function ResultFunnelSection({ stats }: { stats: Stats }) {
   const f = stats.result_funnel
   const steps = [
@@ -771,6 +841,7 @@ export default function AdminPage() {
           <GateSection gate={stats.gate} />
           <OverviewSection stats={stats} />
           {lang === 'ko' && <CareerSection rows={stats.career ?? []} />}
+          <SourcesSection stats={stats} />
           <ResultFunnelSection stats={stats} />
           <ArchetypeDistribution dist={stats.archetype_distribution} />
           <ItemQualitySection stats={stats} />

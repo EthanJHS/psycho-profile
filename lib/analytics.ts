@@ -24,14 +24,27 @@ export function getTestSessionId(): string | null {
   return sessionStorage.getItem('pp_test_session_id')
 }
 
-// ── UTM 파라미터 ─────────────────────────────
-function getUtm() {
+// ── 도착 정보 (광고·공유 링크의 UTM, 처음 도착한 페이지) ─────────────────────
+// 사이트에 처음 들어온 순간의 값을 메모리에만 기억해 둔다. 방문 기록은 나중에(한국어: 바로, 영어: 동의 후)
+// 저장되는데, 그때는 이미 다른 페이지로 이동해 주소의 UTM이 사라져 있기 때문. 브라우저 저장소는 쓰지 않음(동의 전 저장 금지)
+interface Landing { path: string; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null }
+let landing: Landing | null = null
+const clip = (v: string | null) => (v ? v.slice(0, 100) : null)
+
+export function captureLanding() {
+  if (landing || typeof window === 'undefined') return
   const params = new URLSearchParams(window.location.search)
-  return {
-    utm_source: params.get('utm_source') ?? sessionStorage.getItem('pp_utm_source') ?? null,
-    utm_medium: params.get('utm_medium') ?? sessionStorage.getItem('pp_utm_medium') ?? null,
-    utm_campaign: params.get('utm_campaign') ?? sessionStorage.getItem('pp_utm_campaign') ?? null,
+  landing = {
+    path: window.location.pathname.slice(0, 200),
+    utm_source: clip(params.get('utm_source')),
+    utm_medium: clip(params.get('utm_medium')),
+    utm_campaign: clip(params.get('utm_campaign')),
   }
+}
+
+function getLanding(): Landing {
+  captureLanding()
+  return landing!
 }
 
 // ── 디바이스 구분 ─────────────────────────────
@@ -62,7 +75,10 @@ async function insertSession(id: string) {
     id,
     device: getDevice(),
     referrer: document.referrer || null,
-    ...getUtm(),
+    utm_source: getLanding().utm_source,
+    utm_medium: getLanding().utm_medium,
+    utm_campaign: getLanding().utm_campaign,
+    landing_path: getLanding().path,
   })
 
   // 23505 = 이미 저장된 세션 (중복) → 저장된 것으로 간주
