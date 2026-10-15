@@ -3,7 +3,8 @@
 # CORE TRAIT (psycho-profile)
 
 HEXACO 기반 무료 성격검사(48문항·22원형, 한국어 /hexaco-test · 영어 /en/test)와
-관리자 잠금 중인 진로 검사(/career). Next.js 16 App Router + Supabase + Vercel.
+유료 진로 리포트(/career — 2026-10-15 공개, 페이앱 결제 후 추가 질문. 검사 시작은 서버가 결제된 주문인지 확인).
+proxy.ts가 잠그는 경로는 /admin, /api/admin, /career/samples뿐. Next.js 16 App Router + Supabase + Vercel.
 사용자와의 대화는 항상 한국어.
 
 ## 명령
@@ -38,6 +39,7 @@ HEXACO 기반 무료 성격검사(48문항·22원형, 한국어 /hexaco-test · 
 
 ## 승인 없이는 하지 않는 것
 - git commit·push, 배포, Supabase SQL·마이그레이션 실행, 운영 DB 조회·수정
+  - GitHub master에 push하면 Vercel이 운영 사이트(core-trait.com)에 자동 배포한다(2026-10-15 연결). push = 운영 배포로 취급
 - 패키지 설치, 브라우저 바이너리 다운로드
 - lib/scoring-hexaco.ts, 문항 파일, supabase/migrations, proxy.ts matcher, lib/consent.ts 수정
 - core-trait.com(운영)을 대상으로 검사 제출
