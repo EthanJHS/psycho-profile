@@ -223,6 +223,32 @@ export async function GET(req: NextRequest) {
   }
   const career = Object.entries(careerMap).map(([k, v]) => ({ stage: k.split('|')[0], plan: k.split('|')[1], ...v })).sort((a, b) => b.started - a.started)
 
+  // ── 주문·매출 (한국어판 진로 리포트) ──
+  const { data: orderRows } = await sb.from('orders')
+    .select('id, stage, plan, amount, status, provider, created_at, paid_at, cancelled_at, assessment_id')
+    .eq('product', 'career').order('created_at', { ascending: false }).limit(500)
+  const allOrders = (orderRows ?? []) as Row[]
+  const realOrders = allOrders.filter(o => o.provider === 'payapp')
+  const completedIds = new Set<string>()
+  const linked = allOrders.slice(0, 30).map(o => o.assessment_id).filter(Boolean) as string[]   // 화면에 보이는 최근 30건만
+  if (linked.length) {
+    const { data: done } = await sb.from('assessments').select('id, completed_at, first_viewed_at').in('id', linked)
+    for (const a of (done ?? []) as Row[]) if (a.completed_at) completedIds.add(String(a.id))
+  }
+  const paidLike = realOrders.filter(o => o.status === 'paid')
+  const orders = {
+    paid_count: paidLike.length,
+    revenue: paidLike.reduce((s, o) => s + Number(o.amount), 0),
+    refunded_count: realOrders.filter(o => o.status === 'refunded' || o.status === 'partially_refunded').length,
+    pending_count: realOrders.filter(o => o.status === 'pending' || o.status === 'waiting').length,
+    // 결제 화면까지 갔다가(주문 생성) 실제 결제한 비율
+    checkout_rate: realOrders.length ? Math.round(paidLike.length / realOrders.length * 100) : null,
+    recent: allOrders.slice(0, 30).map(o => ({
+      id: o.id, stage: o.stage, plan: o.plan, amount: o.amount, status: o.status, provider: o.provider,
+      created_at: o.created_at, paid_at: o.paid_at, started: !!o.assessment_id, completed: completedIds.has(String(o.assessment_id)),
+    })),
+  }
+
   // ── 관문 지표: 다음 제품(유료 결제·CORE CAREER 공개)으로 넘어갈 조건. 최근 14일 기준 ──
   const pct = (a: number, b: number) => (b > 0 ? Math.round(a / b * 1000) / 10 : null)
   const gate = [
@@ -243,6 +269,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     lang,
     health,
+    orders,
     gate: { items: gate, sample: completed14.length, minSample: MIN_SAMPLE },
     career,
     overview, result_funnel, sharing, sources, landing_pages, scroll_depth, daily, abandon_by_bucket,

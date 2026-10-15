@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { buildScreens, isAnswered, isAvailable, type Screen } from '@/lib/career/flow'
 import type { Answers } from '@/lib/career/score'
 import { readFreeAnswers, freeResultCode } from '@/lib/career/free-link'
-import { rememberReport } from '@/lib/career/my-reports'
+import { rememberReport, forgetOrder } from '@/lib/career/my-reports'
 import { VALUE_CARDS, LIFE_STAGES, type LifeStage, type Plan } from '@/lib/paid-v2/items'
 import { ensureProfile } from '@/lib/profile'
 import { loadConsent } from '@/lib/consent'
@@ -16,20 +16,23 @@ const MUTED = 'rgba(239,230,210,0.62)'
 const SERIF = 'var(--font-serif), serif'
 const KEY = 'ct_career_progress'
 
-interface Progress { stage: LifeStage; plan: Plan; assessmentId: string; answers: Answers; idx: number; freeCode: string | null }
+interface Progress { stage: LifeStage; plan: Plan; orderId: string; assessmentId: string; answers: Answers; idx: number; freeCode: string | null }
 
-// 검사 기록은 서버에서 생성 (익명 사용자는 assessments에 직접 쓸 수 없음)
-async function createAssessment(stage: LifeStage, plan: Plan): Promise<string | null> {
+type Started = { id: string; stage: LifeStage; plan: Plan; completed: boolean } | 'not-paid' | null
+
+// 검사 기록은 서버에서 생성 — 결제가 확정된 주문만, 주문 하나당 하나 (시기·목적도 주문 기준)
+async function createAssessment(orderId: string): Promise<Started> {
   try {
     const res = await fetch('/api/career/start', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        stage, plan, profileId: await ensureProfile(),
+        orderId, profileId: await ensureProfile(),
         hexacoSessionId: sessionStorage.getItem('pp_test_session_id'),
         research: loadConsent()?.research === true,
       }),
     })
-    return res.ok ? ((await res.json()) as { id: string }).id : null
+    if (res.status === 402) return 'not-paid'
+    return res.ok ? ((await res.json()) as Exclude<Started, 'not-paid' | null>) : null
   } catch { return null }
 }
 
@@ -42,6 +45,7 @@ function CareerTest() {
   const params = useSearchParams()
   const stage = params.get('stage') as LifeStage
   const plan = params.get('plan') as Plan
+  const orderId = params.get('order')
   const screens = useMemo(() => (stage && plan ? buildScreens(stage, plan) : []), [stage, plan])
   const [answers, setAnswers] = useState<Answers>({})
   const [idx, setIdx] = useState(0)
@@ -53,28 +57,36 @@ function CareerTest() {
 
   // 시작: 조건 확인 → 이어하기 또는 새 검사 기록 생성
   useEffect(() => {
-    if (!LIFE_STAGES.some(s => s.id === stage) || !isAvailable(stage, plan)) { router.replace('/career'); return }
+    if (!orderId) { router.replace('/career'); return }
+    // 무료 결과·동의가 이 탭에 없으면 주문 화면에서 복원한 뒤 다시 들어오게
+    if (!LIFE_STAGES.some(s => s.id === stage) || !isAvailable(stage, plan)) { router.replace(`/career/order/${orderId}`); return }
     const free = readFreeAnswers()
-    if (!free) { router.replace('/career'); return }
-    const freeCode = freeResultCode(free)
     const consent = loadConsent()
-    if (!consent) { router.replace('/career'); return }
+    if (!free || !consent) { router.replace(`/career/order/${orderId}`); return }
+    const freeCode = freeResultCode(free)
     try {
       const saved = JSON.parse(sessionStorage.getItem(KEY) ?? 'null') as Progress | null
-      // 같은 시기·목적이고, 그 사이 무료 결과가 바뀌지 않았을 때만 이어하기
-      if (saved && saved.stage === stage && saved.plan === plan && saved.freeCode === freeCode) {
+      // 같은 주문이고, 그 사이 무료 결과가 바뀌지 않았을 때만 이어하기
+      if (saved && saved.orderId === orderId && saved.stage === stage && saved.plan === plan && saved.freeCode === freeCode) {
         setAnswers(saved.answers); setIdx(saved.idx); setAssessmentId(saved.assessmentId); setFreeCode(saved.freeCode)
         return
       }
     } catch { /* 새로 시작 */ }
     setFreeCode(freeCode)
-    createAssessment(stage, plan).then(id => { if (id) setAssessmentId(id) })
-  }, [stage, plan, router])
+    createAssessment(orderId).then(r => {
+      if (r === 'not-paid') { router.replace(`/career/order/${orderId}`); return }
+      if (!r) return   // 네트워크 오류 — 마지막 문항에서 다시 시도
+      if (r.completed) { router.replace(`/career/report/${r.id}`); return }
+      // 주소의 시기·목적이 주문과 다르면 주문 기준으로 다시 열기
+      if (r.stage !== stage || r.plan !== plan) { router.replace(`/career/test?stage=${r.stage}&plan=${r.plan}&order=${orderId}`); return }
+      setAssessmentId(r.id)
+    })
+  }, [stage, plan, orderId, router])
 
   useEffect(() => {
-    if (!assessmentId) return
-    sessionStorage.setItem(KEY, JSON.stringify({ stage, plan, assessmentId, answers, idx, freeCode } satisfies Progress))
-  }, [stage, plan, assessmentId, answers, idx, freeCode])
+    if (!assessmentId || !orderId) return
+    sessionStorage.setItem(KEY, JSON.stringify({ stage, plan, orderId, assessmentId, answers, idx, freeCode } satisfies Progress))
+  }, [stage, plan, orderId, assessmentId, answers, idx, freeCode])
 
   const screen: Screen | undefined = screens[idx]
   const total = screens.length
@@ -85,7 +97,12 @@ function CareerTest() {
       const hexAnswers = readFreeAnswers()
       if (!hexAnswers) { router.replace('/career'); return }
       // 시작할 때 기록 생성에 실패했으면 여기서 다시 시도
-      const id = assessmentId ?? await createAssessment(stage, plan)
+      let id = assessmentId
+      if (!id && orderId) {
+        const r = await createAssessment(orderId)
+        if (r === 'not-paid') { router.replace(`/career/order/${orderId}`); return }
+        id = r?.id ?? null
+      }
       if (!id) throw new Error('no assessment')
       setAssessmentId(id)
       // 점수는 서버가 응답과 무료 결과 코드로 다시 계산 (무료 결과와의 연결 고리이기도 함)
@@ -93,15 +110,18 @@ function CareerTest() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: final, freeCode: freeResultCode(hexAnswers) }),
       })
+      // 질문 도중 환불·취소된 주문 — 주문 화면에서 상태를 안내
+      if (res.status === 402 && orderId) { router.replace(`/career/order/${orderId}`); return }
       if (!res.ok) throw new Error(String(res.status))
       rememberReport({ id, stage, plan, at: new Date().toISOString() })
+      if (orderId) forgetOrder(orderId)
       sessionStorage.removeItem(KEY)
       router.push(`/career/report/${id}`)
     } catch {
       setBusy(false)
       setError('결과를 저장하지 못했어요. 네트워크를 확인하고 다시 눌러 주세요.')
     }
-  }, [assessmentId, stage, plan, router])
+  }, [assessmentId, stage, plan, orderId, router])
 
   const next = useCallback((a: Answers) => {
     if (idx >= total - 1) { finish(a); return }

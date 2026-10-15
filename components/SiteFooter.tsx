@@ -21,6 +21,7 @@ export default function SiteFooter() {
         <span>{t.operator}</span>
         <Link href={PATHS[lang].terms} style={{ color: 'rgba(239,230,210,0.6)', textDecoration: 'none' }}>{t.terms}</Link>
         <Link href={PATHS[lang].privacy} style={{ color: 'rgba(239,230,210,0.75)', fontWeight: 600, textDecoration: 'none' }}>{t.privacy}</Link>
+        {lang === 'ko' && <Link href="/refund" style={{ color: 'rgba(239,230,210,0.6)', textDecoration: 'none' }}>환불 정책</Link>}
         <a href={`mailto:${PRIVACY_CONTACT}`} style={{ color: 'rgba(239,230,210,0.55)', textDecoration: 'none' }}>{PRIVACY_CONTACT}</a>
       </div>
     </footer>

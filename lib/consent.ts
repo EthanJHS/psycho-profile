@@ -1,7 +1,7 @@
 import type { Lang } from './i18n'
 
 // 개인정보 처리방침 버전 — 방침 내용을 바꾸면 날짜를 올리고, 새 동의를 받는다
-export const PRIVACY_VERSION = '2026-09-29'
+export const PRIVACY_VERSION = '2026-10-15'   // 2026-10-15 결제 정보·결제대행사 추가
 export const PRIVACY_CONTACT = 'core-trait@naver.com'
 export const OPERATOR = 'CORE TRAIT (개인 운영)'
 // 영어판은 방침 내용(GDPR 등)이 달라 버전도 따로 관리

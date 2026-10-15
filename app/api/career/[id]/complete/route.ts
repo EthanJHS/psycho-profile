@@ -13,23 +13,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!sb) return NextResponse.json({ error: 'not configured' }, { status: 500 })
 
   const { data: row, error: readErr } = await sb.from('assessments')
-    .select('stage, plan, completed_at').eq('id', id).eq('product', 'career').maybeSingle()
+    .select('stage, plan, completed_at, order_id').eq('id', id).eq('product', 'career').maybeSingle()
   if (readErr) return NextResponse.json({ error: 'db error' }, { status: 500 })
   if (!row || !isStage(row.stage) || !isPlan(row.plan)) return NextResponse.json({ error: 'not found' }, { status: 404 })
   // 이미 완료된 검사 — 네트워크 재시도 등으로 두 번 눌린 경우 그대로 성공 처리 (덮어쓰지 않음)
   if (row.completed_at) return NextResponse.json({ ok: true, already: true })
+  // 질문 도중 환불·취소된 주문이면 리포트를 만들지 않음 (주문 없이 만들어진 예전 관리자 검사는 그대로 허용)
+  if (row.order_id) {
+    const { data: order } = await sb.from('orders').select('status').eq('id', row.order_id).maybeSingle()
+    if (order?.status !== 'paid') return NextResponse.json({ error: 'not paid' }, { status: 402 })
+  }
 
   const answers = sanitizeAnswers(row.stage, row.plan, body.answers)
   if (!answers) return NextResponse.json({ error: 'invalid answers' }, { status: 400 })
   const scores = typeof body.freeCode === 'string' ? computeScores(row.stage, row.plan, answers, body.freeCode) : null
   if (!scores) return NextResponse.json({ error: 'invalid free result' }, { status: 400 })
 
-  const { error } = await sb.from('assessments')
+  const { data: updated, error } = await sb.from('assessments')
     .update({ answers, scores, completed_at: new Date().toISOString() })
     .eq('id', id).is('completed_at', null)
+    .select('id')
   if (error) {
     console.error('assessment complete failed', error)
     return NextResponse.json({ error: 'db error' }, { status: 500 })
+  }
+  // 실제로 갱신된 행이 없으면 성공으로 답하지 않음 — 그 사이 다른 요청이 먼저 완료한 경우만 성공(멱등)으로 처리
+  if (!updated?.length) {
+    const { data: now } = await sb.from('assessments').select('completed_at').eq('id', id).maybeSingle()
+    if (now?.completed_at) return NextResponse.json({ ok: true, already: true })
+    return NextResponse.json({ error: 'not saved' }, { status: 409 })
   }
   return NextResponse.json({ ok: true })
 }

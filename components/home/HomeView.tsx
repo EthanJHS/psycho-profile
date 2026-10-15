@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import WaitlistForm from '@/components/WaitlistForm'
+import { PRICES, formatWon } from '@/lib/career/pricing'
 import { ARCHETYPES } from '@/lib/scoring-hexaco'
 import { CONTENT, PATHS, type Lang } from '@/lib/i18n'
 
@@ -137,9 +137,8 @@ function HeroDeck({ lang }: { lang: Lang }) {
   )
 }
 
-// ── CORE CAREER 소개: 시기를 고르면 탐색·향상 리포트가 무엇을 담는지 보여줌 ──
+// ── CORE CAREER 소개: 시기를 고르면 탐색·향상 리포트가 무엇을 담는지 보여줌 (고등학생 버전은 판매하지 않음) ──
 const CAREER_STAGES = [
-  { id: 'high', label: '고등학생', find: '나에게 맞는 계열·학과 TOP 5와 결정이 어려운 이유', do: '나에게 맞는 공부법, 시험 불안과 수행평가 전략' },
   { id: 'college', label: '대학생', find: '전공 이후 잘 맞는 직무 TOP 5, 전공 전환 고민 정리', do: '학업 전략, 팀 프로젝트와 발표에서의 나' },
   { id: 'jobseeker', label: '취준생', find: '지원할 직무 TOP 5와 직무별 AI 변화 전망', do: '자기소개서에 쓸 강점 문장, 면접과 불합격 회복' },
   { id: 'worker', label: '직장인', find: '지금 직장 진단(바꿀까, 조정할까)과 맞는 직무', do: '지금 자리에서의 성과, 잡 크래프팅, 번아웃 신호' },
@@ -152,14 +151,14 @@ function CareerSection() {
     <section aria-labelledby="career-title" style={{ padding: '56px 16px', borderTop: `1px solid ${GOLD_SOFT}` }}>
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Eyebrow>CORE CAREER · 출시 예정</Eyebrow>
+          <Eyebrow>CORE CAREER</Eyebrow>
           <h2 id="career-title" style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: PARCHMENT, marginBottom: 8, lineHeight: 1.4 }}>지금 시기에 맞춘<br />진로 리포트</h2>
           <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.7 }}>
             무료 원형 검사로 성격은 이미 알고 있어요.<br />흥미·가치 질문을 더해 지금 나에게 필요한 답을 드려요.
           </p>
         </div>
 
-        <div role="tablist" aria-label="시기 선택" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 12 }}>
+        <div role="tablist" aria-label="시기 선택" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 12 }}>
           {CAREER_STAGES.map(s => (
             <button key={s.id} role="tab" aria-selected={stage === s.id} onClick={() => setStage(s.id)} style={{
               padding: '10px 0', borderRadius: 999, fontSize: 13.5, cursor: 'pointer', fontWeight: stage === s.id ? 800 : 500,
@@ -188,10 +187,11 @@ function CareerSection() {
         </p>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '18px 2px 14px' }}>
-          <p style={{ fontSize: 13, color: MUTED }}>출시가 <span style={{ fontSize: 12, color: FAINT }}>· 묶음은 할인가로 준비 중</span></p>
-          <p style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: PARCHMENT }}>9,900원</p>
+          <p style={{ fontSize: 13, color: MUTED }}>탐색·향상 각 <span style={{ fontSize: 12, color: FAINT }}>· 묶음 {formatWon(PRICES.both)}</span></p>
+          <p style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: PARCHMENT }}>{formatWon(PRICES.find)}</p>
         </div>
-        <WaitlistForm source="home" />
+        <div style={{ textAlign: 'center' }}><GoldLink href="/career">진로 리포트 받기 →</GoldLink></div>
+        <p style={{ fontSize: 12, color: FAINT, textAlign: 'center', marginTop: 10 }}>무료 원형 검사를 먼저 마친 뒤 이어서 할 수 있어요</p>
       </div>
     </section>
   )

@@ -8,6 +8,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // /career는 결제 연동 전까지 관리자만 미리보기 (공개 시 이 두 줄 제거)
-  matcher: ['/admin/:path*', '/api/admin/:path*', '/career/:path*', '/api/career/:path*'],
+  // 관리자 화면·API, 그리고 품질 검토용 샘플 리포트만 잠금.
+  // 진로 리포트(/career)는 공개 — 검사 시작은 서버에서 결제된 주문인지 확인한다 (/api/career/start)
+  matcher: ['/admin/:path*', '/api/admin/:path*', '/career/samples', '/career/samples/:path*'],
 }

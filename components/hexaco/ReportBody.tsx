@@ -54,8 +54,10 @@ const KO = {
     { rune: '♡', title: '관계 패턴', teaser: `가까워질수록 드러나는 ${name}의 관계 패턴이 있습니다. 가까운 사람일수록 당신은…` },
     { rune: '◎', title: '스트레스와 회복', teaser: shadow ? shadow.slice(0, 28) + '…' : `${name}의 그림자는 스트레스 상황에서 가장 선명하게 드러납니다.` },
   ],
-  stickyLine: (name: string) => `⬡ ${name} 원형을 위한 진로 리포트 · 출시 예정`,
-  stickyCta: '진로 리포트 출시 알림 받기',
+  stickyLine: (name: string) => `⬡ ${name} 원형을 위한 진로 리포트 · 9,900원부터`,
+  stickyCta: '진로 리포트 받기',
+  // 구매 화면 주소 — 있으면 버튼이 그리로 이동, 없으면(영어판) 출시 알림 신청
+  buyHref: '/career' as string | null,
   backToHero: '← 원형 이미지로 돌아가기',
   interpTitle: '원형 해석',
   dailyLabel: (name: string) => `${name}의 흔한 하루`,
@@ -70,8 +72,8 @@ const KO = {
   feedbackTitle: '결과 평가',
   sealedEyebrow: 'CORE CAREER',
   sealedTitle: (name: string) => `${name} 원형을 위한 진로 리포트`,
-  sealedDesc: <>지금 시기(고등학생·대학생·취준생·직장인)를 고르고 추가 질문 46~86개(약 7~12분)에 답하면 만들어지는 리포트예요.<br /><b style={{ color: 'rgba(226,192,100,0.9)' }}>아직 출시 전이라, 아래는 미리보기 예시예요.</b></>,
-  notifyCta: '출시 알림 받기 →',
+  sealedDesc: <>지금 시기(대학생·취준생·직장인)와 알고 싶은 것을 고르고, 결제 후 추가 질문 46~86개(약 7~12분)에 답하면 만들어지는 리포트예요.<br /><b style={{ color: 'rgba(226,192,100,0.9)' }}>아래는 미리보기예요. 탐색·향상 각 9,900원 · 묶음 14,900원</b></>,
+  notifyCta: '진로 리포트 받기 →',
   preparingTitle: '진로 리포트는 출시 준비 중이에요',
   preparingBody: '열리면 가장 먼저 알려드릴게요. 아래 “내 결과 링크 복사”로 지금 결과를 저장해 두면, 출시 후 질문을 처음부터 다시 풀지 않고 이어갈 수 있어요.',
   share: '원형 공유하기',
@@ -116,6 +118,7 @@ const T: Record<Lang, typeof KO> = {
     ],
     stickyLine: (name: string) => `⬡ Your full ${bare(name)} report · Coming soon`,
     stickyCta: 'Get notified at launch',
+    buyHref: null,
     backToHero: '← Back to your archetype card',
     interpTitle: 'Your archetype',
     dailyLabel: (name: string) => `A typical day for ${mid(name)}`,
@@ -356,6 +359,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
           tabIndex={chaptersVisible ? -1 : 0}
           onClick={() => {
             onUnlockClick('sticky')
+            if (t.buyHref) { router.push(t.buyHref); return }
             setUnlocking(true)
             document.getElementById('sealed-chapters')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }}
@@ -593,7 +597,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
 
             {!unlocking ? (
               <button
-                onClick={() => { setUnlocking(true); onUnlockClick('chapter') }}
+                onClick={() => { onUnlockClick('chapter'); if (t.buyHref) router.push(t.buyHref); else setUnlocking(true) }}
                 style={{
                   width: '100%', padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer',
                   background: 'linear-gradient(135deg, #92680a, #c8a030, #92680a)',

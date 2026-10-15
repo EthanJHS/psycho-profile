@@ -21,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...Object.keys(ARCHETYPE_DETAILS).flatMap(id => pair(PATHS.ko.share(id), PATHS.en.share(id), 'monthly', 0.7)),
     { url: `${SITE_URL}${PATHS.ko.privacy}`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${SITE_URL}${PATHS.ko.terms}`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
+    { url: `${SITE_URL}/refund`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${SITE_URL}${PATHS.en.privacy}`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${SITE_URL}${PATHS.en.terms}`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
   ]

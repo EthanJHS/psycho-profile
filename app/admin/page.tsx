@@ -12,6 +12,10 @@ type Factor = 'H' | 'E' | 'X' | 'A' | 'C' | 'O'
 interface GateItem { key: string; label: string; value: number | null; target: number; unit: string; basis: string; met: boolean }
 interface Stats {
   health?: { db_ok: boolean; last_saved_at: string | null }
+  orders?: {
+    paid_count: number; revenue: number; refunded_count: number; pending_count: number; checkout_rate: number | null
+    recent: { id: string; stage: string; plan: string; amount: number; status: string; provider: string; created_at: string; paid_at: string | null; started: boolean; completed: boolean }[]
+  }
   gate:{ items: GateItem[]; sample: number; minSample: number }
   career: { stage: string; plan: string; started: number; completed: number }[]
   overview: {
@@ -317,6 +321,95 @@ function OverviewSection({ stats }: { stats: Stats }) {
 }
 
 // ── 4. 결과 화면 퍼널 ─────────────────────────────────────────────────────────
+// 주문·매출 — 페이앱 결제 주문과 관리자 테스트 주문. 환불은 여기서 페이앱 취소 API로 (STAGE_KO·PLAN_KO는 진로 섹션과 공용)
+const STATUS_KO: Record<string, [string, string]> = {
+  pending: ['결제 전', '#9ca3af'], waiting: ['입금 대기', '#f59e0b'], paid: ['결제 완료', '#34d399'],
+  cancelled: ['취소', '#9ca3af'], refunded: ['환불', '#f87171'], partially_refunded: ['부분 환불', '#f87171'],
+}
+
+function OrdersSection({ orders, onChanged }: { orders: NonNullable<Stats['orders']>; onChanged: () => void }) {
+  const [stage, setStage] = useState('jobseeker')
+  const [plan, setPlan] = useState('find')
+  const [link, setLink] = useState('')
+  const [msg, setMsg] = useState('')
+  async function createTestOrder() {
+    setMsg(''); setLink('')
+    const res = await fetch('/api/admin/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage, plan }) })
+    if (!res.ok) { setMsg('테스트 주문을 만들지 못했어요'); return }
+    const { id } = await res.json()
+    setLink(`${window.location.origin}/career/order/${id}`)
+    onChanged()
+  }
+  async function refund(id: string) {
+    const memo = window.prompt('환불 사유 (고객에게 보이지 않음)', '고객 요청 환불')
+    if (memo === null) return
+    if (!window.confirm('이 주문을 환불할까요? 페이앱 결제가 취소되고 되돌릴 수 없어요.')) return
+    const res = await fetch(`/api/admin/orders/${id}/cancel`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ memo }) })
+    const out = await res.json().catch(() => ({}))
+    setMsg(res.ok ? '환불 처리했어요' : `환불 실패: ${out.error ?? res.status}`)
+    onChanged()
+  }
+  const sel: React.CSSProperties = { padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)', fontSize: 12 }
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <SectionHeader title="주문·매출 (진로 리포트)" sub="매출은 페이앱 결제 완료 기준 · 테스트 주문은 제외" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginBottom: 12 }}>
+        <StatCard label="결제 완료" value={orders.paid_count} sub="건" color="#34d399" />
+        <StatCard label="매출" value={`${orders.revenue.toLocaleString('ko-KR')}원`} color="#e2c064" />
+        <StatCard label="환불" value={orders.refunded_count} sub="건" color="#f87171" />
+        <StatCard label="결제 전환" value={orders.checkout_rate == null ? '–' : `${orders.checkout_rate}%`} sub={`결제 화면 진입 대비 · 대기 ${orders.pending_count}`} color="#67e8f9" />
+      </div>
+      <div style={{ ...card, marginBottom: 12 }}>
+        <CardTitle title="테스트 주문 만들기" sub="결제 없이 '결제 완료' 주문을 만들어 진로 검사·리포트를 직접 검토 (금액 0원, 매출 제외). 같은 브라우저 탭에서 무료 검사를 먼저 마친 뒤 링크를 여세요." />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select aria-label="시기" value={stage} onChange={e => setStage(e.target.value)} style={sel}>
+            {Object.entries(STAGE_KO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select aria-label="목적" value={plan} onChange={e => setPlan(e.target.value)} style={sel}>
+            {Object.entries(PLAN_KO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <button onClick={createTestOrder} style={{ ...sel, cursor: 'pointer', color: '#e2c064', borderColor: 'rgba(200,160,48,0.4)' }}>만들기</button>
+        </div>
+        {link && <p style={{ fontSize: 12, marginTop: 10, wordBreak: 'break-all' }}><a href={link} style={{ color: '#e2c064' }}>{link}</a></p>}
+        {msg && <p style={{ fontSize: 12, marginTop: 8, color: muted }}>{msg}</p>}
+      </div>
+      <div style={card}>
+        <CardTitle title="최근 주문" sub="최신 30건" />
+        {orders.recent.length === 0 ? <Empty /> : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560, fontSize: 12 }}>
+              <thead><tr style={{ color: muted, textAlign: 'left' }}>
+                <th style={{ padding: '6px 8px', fontWeight: 600 }}>주문</th><th style={{ padding: '6px 8px', fontWeight: 600 }}>상품</th>
+                <th style={{ padding: '6px 8px', fontWeight: 600, textAlign: 'right' }}>금액</th><th style={{ padding: '6px 8px', fontWeight: 600 }}>상태</th>
+                <th style={{ padding: '6px 8px', fontWeight: 600 }}>진행</th><th style={{ padding: '6px 8px', fontWeight: 600 }}>일시</th><th />
+              </tr></thead>
+              <tbody>
+                {orders.recent.map(o => {
+                  const [st, color] = STATUS_KO[o.status] ?? [o.status, '#9ca3af']
+                  return (
+                    <tr key={o.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: '#fff' }}>
+                      <td style={{ padding: '7px 8px', fontFamily: 'monospace' }}>{o.id.slice(0, 8)}{o.provider === 'admin' && <span style={{ color: muted }}> (테스트)</span>}</td>
+                      <td style={{ padding: '7px 8px' }}>{STAGE_KO[o.stage] ?? o.stage} · {PLAN_KO[o.plan] ?? o.plan}</td>
+                      <td style={{ padding: '7px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{o.amount.toLocaleString('ko-KR')}</td>
+                      <td style={{ padding: '7px 8px', color }}>{st}</td>
+                      <td style={{ padding: '7px 8px', color: muted }}>{o.completed ? '리포트 완성' : o.started ? '질문 중' : '시작 전'}</td>
+                      <td style={{ padding: '7px 8px', color: muted }}>{new Date(o.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                      <td style={{ padding: '7px 8px', textAlign: 'right' }}>
+                        {o.status === 'paid' && <button onClick={() => refund(o.id)} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', background: 'transparent', color: '#f87171', border: '1px solid rgba(248,113,113,0.4)' }}>{o.provider === 'admin' ? '취소' : '환불'}</button>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p style={{ fontSize: 11, color: muted, marginTop: 10, lineHeight: 1.6 }}>환불 기준: 추가 질문 시작 전(진행 &lsquo;시작 전&rsquo;)이면 7일 이내 전액 환불. 리포트 완성 후에는 단순 변심 환불 불가 — /refund 참고</p>
+      </div>
+    </section>
+  )
+}
+
 // 유입 경로별 성과 — 광고를 돌릴 때 어느 광고가 완료까지 이어지는지 보는 표
 function SourcesSection({ stats }: { stats: Stats }) {
   const rows = stats.sources ?? []
@@ -779,6 +872,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   // 한국어판·영어판 통계는 섞지 않고 따로 봄
   const [lang, setLang] = useState<'ko' | 'en'>('ko')
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     setLoading(true); setError(''); setStats(null)
@@ -787,7 +881,7 @@ export default function AdminPage() {
       .then(setStats)
       .catch(() => setError('통계 데이터를 불러오지 못했습니다.'))
       .finally(() => setLoading(false))
-  }, [lang])
+  }, [lang, reload])
 
   return (
     <main style={{ minHeight: '100vh', maxWidth: 1000, margin: '0 auto', padding: '40px 20px 80px' }}>
@@ -841,6 +935,7 @@ export default function AdminPage() {
           <GateSection gate={stats.gate} />
           <OverviewSection stats={stats} />
           {lang === 'ko' && <CareerSection rows={stats.career ?? []} />}
+          {lang === 'ko' && stats.orders && <OrdersSection orders={stats.orders} onChanged={() => setReload(r => r + 1)} />}
           <SourcesSection stats={stats} />
           <ResultFunnelSection stats={stats} />
           <ArchetypeDistribution dist={stats.archetype_distribution} />
