@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(/.env*)",
+      "Edit(/.env*)",
+      "Bash(vercel:*)",
+      "Bash(npx vercel:*)",
+      "Bash(supabase:*)",
+      "Bash(npx supabase:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(npx playwright install:*)"
+    ]
+  }
+}

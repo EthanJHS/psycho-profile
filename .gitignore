@@ -48,3 +48,6 @@ next-env.d.ts
 
 # generated input for scripts/generate_share_images.py
 /scripts/.archetypes.json
+
+# Claude Code: 이 PC 전용 권한 설정 (MCP 서버 ID 등)
+/.claude/settings.local.json

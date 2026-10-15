@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "qa:oracle": "node --no-warnings --import ./scripts/qa/ts-resolve.mjs scripts/qa/scoring-oracle.ts && node --no-warnings --import ./scripts/qa/ts-resolve.mjs scripts/qa/known-defects.ts",
+    "qa:mutation": "node scripts/qa/mutation-check.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
