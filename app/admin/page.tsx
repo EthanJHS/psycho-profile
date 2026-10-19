@@ -374,7 +374,7 @@ function OrdersSection({ orders, onChanged }: { orders: NonNullable<Stats['order
         {msg && <p style={{ fontSize: 12, marginTop: 8, color: muted }}>{msg}</p>}
       </div>
       <div style={card}>
-        <CardTitle title="최근 주문" sub="최신 30건" />
+        <CardTitle title="최근 주문" sub="최신 30건 · 주문 번호를 누르면 그 주문 화면이 이 탭에서 열려요" />
         {orders.recent.length === 0 ? <Empty /> : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560, fontSize: 12 }}>
@@ -388,7 +388,7 @@ function OrdersSection({ orders, onChanged }: { orders: NonNullable<Stats['order
                   const [st, color] = STATUS_KO[o.status] ?? [o.status, '#9ca3af']
                   return (
                     <tr key={o.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: '#fff' }}>
-                      <td style={{ padding: '7px 8px', fontFamily: 'monospace' }}>{o.id.slice(0, 8)}{o.provider === 'admin' && <span style={{ color: muted }}> (테스트)</span>}</td>
+                      <td style={{ padding: '7px 8px', fontFamily: 'monospace' }}><a href={`/career/order/${o.id}`} style={{ color: '#e2c064' }}>{o.id.slice(0, 8)}</a>{o.provider === 'admin' && <span style={{ color: muted }}> (테스트)</span>}</td>
                       <td style={{ padding: '7px 8px' }}>{STAGE_KO[o.stage] ?? o.stage} · {PLAN_KO[o.plan] ?? o.plan}</td>
                       <td style={{ padding: '7px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{o.amount.toLocaleString('ko-KR')}</td>
                       <td style={{ padding: '7px 8px', color }}>{st}</td>
