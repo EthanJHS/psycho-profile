@@ -84,7 +84,7 @@ export default function CareerStartPage() {
     polling.current = true
     let stop = false
     const tick = async (n: number) => {
-      if (stop || n > 150) return
+      if (stop || n > 300) return // 2초 간격 · 약 10분 (문자 받아 휴대폰으로 결제하는 시간 포함)
       try {
         const res = await fetch(`/api/orders/${payingOrder}`, { cache: 'no-store' })
         if (res.ok && ((await res.json()) as { status: string }).status === 'paid') { router.push(`/career/order/${payingOrder}`); return }
@@ -123,7 +123,7 @@ export default function CareerStartPage() {
       PayApp.setParam('feedbackurl', `${origin}/api/payapp/feedback`)
       PayApp.setParam('returnurl', `${origin}/career/order/${o.id}`)
       PayApp.setParam('skip_cstpage', 'y')
-      PayApp.setParam('smsuse', 'n')
+      // smsuse는 기본값(문자 발송) 그대로 — PC에서는 휴대폰으로 온 결제 요청 문자로 결제하고, 이 화면이 결제 확정을 감지해 넘어감
       setPayingOrder(o.id)
       PayApp.payrequest()
     } catch (e) {
@@ -177,7 +177,7 @@ export default function CareerStartPage() {
         ) : payingOrder ? (
           <div role="status" style={{ border: '1px solid rgba(226,192,100,0.45)', borderRadius: 14, padding: 18, background: 'rgba(200,160,48,0.08)' }}>
             <p style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: TEXT, marginBottom: 6 }}>결제창에서 결제를 마쳐 주세요</p>
-            <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.7, marginBottom: 12 }}>결제가 확인되면 자동으로 다음 단계로 넘어가요. 결제창이 보이지 않으면 팝업 차단을 확인해 주세요.</p>
+            <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.7, marginBottom: 12 }}>결제가 확인되면 자동으로 다음 단계로 넘어가요. 휴대폰으로 온 결제 요청 문자로도 결제할 수 있어요. 결제창이 보이지 않으면 팝업 차단을 확인해 주세요.</p>
             <p style={{ display: 'flex', gap: 16, fontSize: 13.5 }}>
               <Link href={`/career/order/${payingOrder}`} style={{ color: '#e2c064' }}>결제를 마쳤어요 →</Link>
               <button onClick={() => setPayingOrder(null)} style={{ background: 'none', border: 'none', padding: 0, color: FAINT, cursor: 'pointer', fontSize: 13.5, textDecoration: 'underline' }}>다시 고르기</button>
