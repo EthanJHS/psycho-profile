@@ -24,7 +24,7 @@ const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
 const variance = (xs: number[]) => { const m = mean(xs); return xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1) }
 const round = (x: number, d = 2) => Math.round(x * 10 ** d) / 10 ** d
 
-// 무작위 응답 기준 원형 기대 비율 (고정 시드라 호출마다 동일)
+// 가정 모델(요인 평균 3.0 균등 응답) 기준 원형 비율 — 타당도 기준이 아니라 참고용 (고정 시드라 호출마다 동일)
 function expectedDistribution(n = 5000): Record<string, number> {
   let seed = 42
   const rand = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296)

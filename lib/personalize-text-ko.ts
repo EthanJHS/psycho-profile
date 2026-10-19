@@ -139,6 +139,6 @@ export const PERSONALIZE_KO: PersonalizeText = {
 
   secondaryWhy: (hits, name) => {
     if (!hits.length) return `${name}의 특징이 주원형 다음으로 가깝게 나타났어요. 두드러진 요인보다는 전체 균형이 비슷한 경우예요.`
-    return `${hits.map(h => `${h.label}${h.dir === 'high' ? '이 높은' : '이 낮은'} 점`).join(', ')}이 ${name}의 특징과 겹쳐서 부가 성향으로 나타났어요.`
+    return `${hits.map(h => `${h.label}${h.dir === 'high' ? '이 높은' : '이 낮은'} 점`).join(', ')}이 ${name}의 특징과 겹쳐서 두 번째로 가까운 원형으로 나타났어요.`
   },
 }

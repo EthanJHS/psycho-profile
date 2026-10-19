@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { scoreHexaco, HexacoResult, HexacoFactor } from '@/lib/scoring-hexaco'
-import { personalizeResult, PersonalizedResult } from '@/lib/personalize-result'
+import { personalizeResult, PersonalizedResult, isCloseCall } from '@/lib/personalize-result'
 import { CONTENT, PATHS, STORAGE, type Lang } from '@/lib/i18n'
 import { COMPARE_PENDING_KEY, decodeCompareCode, encodeCompareCode } from '@/lib/compare'
 import Link from 'next/link'
@@ -54,7 +54,8 @@ const KO = {
     { rune: '♡', title: '관계 패턴', teaser: `가까워질수록 드러나는 ${name}의 관계 패턴이 있습니다. 가까운 사람일수록 당신은…` },
     { rune: '◎', title: '스트레스와 회복', teaser: shadow ? shadow.slice(0, 28) + '…' : `${name}의 그림자는 스트레스 상황에서 가장 선명하게 드러납니다.` },
   ],
-  stickyLine: (name: string) => `⬡ ${name} 원형을 위한 진로 리포트 · 9,900원부터`,
+  // 다시 하면 바뀔 수 있는 원형 이름을 유료 상품명에 걸지 않음 (심리측정 검토 2026-10-15)
+  stickyLine: (_name: string) => '⬡ 내 6요인 점수로 만드는 진로 리포트 · 9,900원부터',
   stickyCta: '진로 리포트 받기',
   // 구매 화면 주소 — 있으면 버튼이 그리로 이동, 없으면(영어판) 출시 알림 신청
   buyHref: '/career' as string | null,
@@ -65,13 +66,14 @@ const KO = {
   shadow: '그림자의 면',
   whyTitle: '왜 이 원형인가요?',
   distinguishing: '나를 구분하는 특징',
-  secondaryTitle: '부가 성향',
+  secondaryTitle: '두 번째로 가까운 원형',
+  closeNote: (a: string, b: string) => `이번 응답에서 ${w(a, '과/와')} ${b}는 거의 같은 거리였어요. 두 원형 설명을 함께 나를 설명하는 말로 읽어 주세요.`,
   factorsTitle: 'HEXACO 요인 프로파일',
   scoreNote: '점수는 요인별 8문항 응답의 평균(1~5)이에요. 3이 중간이고, 다른 사람과 비교한 순위(백분위)는 아니에요. HEXACO는 학술 연구에서 널리 쓰이는 성격 모델이고, 이 48문항과 22가지 원형은 CORE TRAIT가 그 모델을 바탕으로 직접 만든 것으로 아직 대규모 검증 전이에요. 결과는 나를 이해하는 참고 자료이며 진단이나 중요한 결정의 유일한 근거로 쓰지 말아 주세요.',
   tipTitle: '오늘의 실천 팁',
   feedbackTitle: '결과 평가',
   sealedEyebrow: 'CORE CAREER',
-  sealedTitle: (name: string) => `${name} 원형을 위한 진로 리포트`,
+  sealedTitle: (_name: string) => '내 6요인 점수로 만드는 진로 리포트',
   sealedDesc: <>지금 시기(대학생·취준생·직장인)와 알고 싶은 것을 고르고, 결제 후 추가 질문 46~86개(약 7~12분)에 답하면 만들어지는 리포트예요.<br /><b style={{ color: 'rgba(226,192,100,0.9)' }}>아래는 미리보기예요. 탐색·향상 각 9,900원 · 묶음 14,900원</b></>,
   notifyCta: '진로 리포트 받기 →',
   preparingTitle: '진로 리포트는 출시 준비 중이에요',
@@ -91,6 +93,7 @@ const KO = {
   deleteNote: (privacy: React.ReactNode) => <>저장된 내 응답의 삭제를 원하면 이 번호와 함께 {privacy}의 연락처로 요청해 주세요.</>,
   privacy: '개인정보 처리방침',
   retake: '다시 검사하기',
+  retakeNote: '원형은 6가지 요인 점수에서 가장 가까운 것을 고른 결과예요. 점수가 거의 같아도 다시 검사하면 이웃한 원형이 나올 수 있어요.',
 }
 
 // 영어: 원형 이름("The Sage")을 문장 중간에 쓸 때는 소문자 the, 이름만 쓸 때는 The를 뗌
@@ -126,7 +129,8 @@ const T: Record<Lang, typeof KO> = {
     shadow: 'Shadow side',
     whyTitle: 'Why this archetype?',
     distinguishing: 'What sets you apart',
-    secondaryTitle: 'Secondary tendency',
+    secondaryTitle: 'Your next-closest archetype',
+    closeNote: (a: string, b: string) => `${a} and ${mid(b)} were almost equally close this time. Read both as describing you.`,
     factorsTitle: 'HEXACO factor profile',
     scoreNote: 'Each score is the average (1–5) of your answers to that factor’s 8 questions. 3 is the midpoint — it isn’t a ranking against other people (percentile). HEXACO is a personality model widely used in academic research; these 48 questions and 22 archetypes were created by CORE TRAIT based on that model and haven’t been validated at scale yet. Use your result as a way to understand yourself, not as a diagnosis or the only basis for an important decision.',
     tipTitle: 'Try this today',
@@ -152,6 +156,7 @@ const T: Record<Lang, typeof KO> = {
     deleteNote: (privacy: React.ReactNode) => <>To have your saved answers deleted, send us this ID using the contact in our {privacy}.</>,
     privacy: 'Privacy Policy',
     retake: 'Take the test again',
+    retakeNote: 'Your archetype is the closest match to your six factor scores, so retaking the test can land you on a neighboring archetype even when your scores barely change.',
   },
 }
 
@@ -495,6 +500,12 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
               {personalized.secondaryWhy}
             </p>
           )}
+          {/* 1·2위가 거의 붙어 있으면 두 원형을 함께 읽도록 안내 (미리보기 제외) */}
+          {!previewId && isCloseCall(result) && (
+            <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.65, marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(200,168,75,0.08)', border: '1px solid rgba(200,168,75,0.25)' }}>
+              {t.closeNote(primaryName, secondaryName)}
+            </p>
+          )}
         </Tome>
 
         {/* HEXACO 요인 */}
@@ -677,6 +688,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
             {t.retake}
           </button>
         </div>
+        <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, textAlign: 'center', marginTop: 10 }}>{t.retakeNote}</p>
 
       </div>
     </main>

@@ -559,7 +559,7 @@ function ArchetypeDistribution({ dist }: { dist: Stats['archetype_distribution']
     <section style={{ marginBottom: 32 }}>
       <SectionHeader
         title="원형 분포"
-        sub={`hexaco-v2 완료 ${total}명 · 막대 = 실제, 금색 선 = 무작위 응답 기준 기대 비율. 표본이 30명 미만이면 차이를 해석하지 마세요`}
+        sub={`hexaco-v2 완료 ${total}명 · 막대 = 실제, 금색 선 = 가정 모델(요인 평균 3.0) 기준 비율 — 타당도 기준이 아니라 참고용. 표본이 30명 미만이면 차이를 해석하지 마세요`}
       />
       <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 7 }}>
         {dist.map(a => {

@@ -144,6 +144,11 @@ export function getSecondaryWhy(result: HexacoResult, t: PersonalizeText = PERSO
   return t.secondaryWhy(hits, t.archetypeName(sec))
 }
 
+// ── 1·2위가 거의 붙어 있는지 ── 채점은 그대로 두고 표시만 달리하기 위한 판단 (심리측정 검토 2026-10-15)
+// 0.067 = 답 하나를 한 칸 바꿨을 때 두 원형 사이 거리 차이가 움직일 수 있는 최대 폭
+export const CLOSE_CALL_GAP = 0.067
+export const isCloseCall = (result: HexacoResult) => result.secondaryDistance - result.primaryDistance < CLOSE_CALL_GAP
+
 // ── 통합 export ───────────────────────────────────────────────────────────────
 export interface PersonalizedResult {
   subLabel: string | null        // "탐구적인"

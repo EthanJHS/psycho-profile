@@ -6,11 +6,13 @@ import { scoreHexaco, HexacoResult } from '@/lib/scoring-hexaco'
 import { saveHexacoResult, trackHexaco } from '@/lib/analytics'
 import { decodeHexacoAnswers } from '@/lib/hexaco-encoding'
 import { CONTENT, HEXACO_VERSION_BY_LANG, PATHS, STORAGE, type Lang } from '@/lib/i18n'
+import { isCloseCall } from '@/lib/personalize-result'
 
 // 결과 첫 화면(각성 로딩 → 원형 히어로) — 한국어(/hexaco-result)·영어(/en/result) 공용
 const KO = {
-  loading: ['응답 패턴을 분석하는 중...', '원형과의 거리를 계산하는 중...', '당신의 원형이 깨어나고 있습니다...', '각인이 완성됩니다...'],
-  yourArchetype: '당신의 원형',
+  loading: ['응답 패턴을 분석하는 중...', '원형과의 거리를 계산하는 중...', '당신의 원형이 깨어나고 있습니다...', '가장 가까운 원형을 고르는 중...'],
+  yourArchetype: '나와 가장 가까운 원형',
+  closeTo: (name: string) => `거의 같은 거리에 ${name}도 있어요`,
   cta: '원형에 대해 자세히 알아보기 →',
 }
 
@@ -18,8 +20,9 @@ const KO = {
 const T: Record<Lang, typeof KO> = {
   ko: KO,
   en: {
-    loading: ['Analyzing your answer patterns...', 'Measuring the distance to each archetype...', 'Your archetype is waking up...', 'Sealing the imprint...'],
-    yourArchetype: 'Your archetype',
+    loading: ['Analyzing your answer patterns...', 'Measuring the distance to each archetype...', 'Your archetype is waking up...', 'Picking your closest archetype...'],
+    yourArchetype: 'Your closest archetype',
+    closeTo: (name: string) => `${name} is almost as close`,   // 문장 첫머리라 The 그대로
     cta: 'Explore your archetype →',
   },
 }
@@ -77,8 +80,8 @@ function AwakeningScreen({ onDone, messages }: { onDone: () => void; messages: s
 }
 
 // ── 풀스크린 히어로 ──────────────────────────────────────────────────────────
-function ArchetypeHero({ id, name, nameEn, tagline, eyebrow, cta, onCta }: {
-  id: string; name: string; nameEn?: string; tagline?: string; eyebrow: string; cta: string; onCta: () => void
+function ArchetypeHero({ id, name, nameEn, tagline, eyebrow, cta, onCta, closeNote }: {
+  id: string; name: string; nameEn?: string; tagline?: string; eyebrow: string; cta: string; onCta: () => void; closeNote?: string
 }) {
   const [visible, setVisible] = useState(true)
   return (
@@ -105,7 +108,10 @@ function ArchetypeHero({ id, name, nameEn, tagline, eyebrow, cta, onCta }: {
           <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,168,75,0.55)', letterSpacing: '0.2em', marginBottom: 14 }}>{nameEn}</p>
         )}
         {tagline && (
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic', lineHeight: 1.55, marginBottom: 28, marginTop: nameEn ? 0 : 12 }}>&ldquo;{tagline}&rdquo;</p>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic', lineHeight: 1.55, marginBottom: closeNote ? 10 : 28, marginTop: nameEn ? 0 : 12 }}>&ldquo;{tagline}&rdquo;</p>
+        )}
+        {closeNote && (
+          <p style={{ fontSize: 13.5, color: 'rgba(226,192,100,0.9)', lineHeight: 1.55, marginBottom: 24 }}>{closeNote}</p>
         )}
         <button
           onClick={onCta}
@@ -218,6 +224,8 @@ function ResultHeroInner({ lang }: { lang: Lang }) {
           eyebrow={t.yourArchetype}
           cta={t.cta}
           onCta={goToReport}
+          // 1·2위가 거의 붙어 있으면 두 번째 원형도 함께 알림 (미리보기 제외)
+          closeNote={!previewId && isCloseCall(result) ? t.closeTo(archetypes[result.secondary.id]?.name ?? result.secondary.name) : undefined}
         />
       </main>
     </>

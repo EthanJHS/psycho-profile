@@ -146,6 +146,6 @@ export const PERSONALIZE_EN: PersonalizeText = {
   secondaryWhy: (hits, name) => {
     if (!hits.length) return `${name} came out as your next-closest match — not because of one standout factor, but because your overall balance is similar.`
     const list = andList(hits.map(h => `${h.dir} ${h.label}`))
-    return `Your ${list} ${hits.length > 1 ? 'overlap' : 'overlaps'} with ${mid(name)}, which is why it shows up as your secondary tendency.`
+    return `Your ${list} ${hits.length > 1 ? 'overlap' : 'overlaps'} with ${mid(name)}, which is why it’s your next-closest archetype.`
   },
 }

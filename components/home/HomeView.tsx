@@ -10,7 +10,7 @@ import { CONTENT, PATHS, type Lang } from '@/lib/i18n'
 const KO = {
   heroEyebrow: 'CORE TRAIT · 원형 성격검사',
   heroTitle: <>당신 안에 잠든<br /><span style={{ color: '#e2c064' }}>원형이 깨어납니다</span></>,
-  heroSub: <>성격에는 가장 선명하게 드러나는 하나의 원형이 있습니다.<br />48개의 질문으로 22가지 원형 중 당신의 것을 찾아보세요.</>,
+  heroSub: <>48개의 질문으로 6가지 성격 요인을 재고,<br />22가지 원형 중 가장 가까운 것을 찾아드려요.</>,
   heroCta: '원형 깨우기 →',
   heroNote: '무료 · 로그인 없음 · 약 8분',
   codexTitle: '22가지 원형 도감',
@@ -20,7 +20,7 @@ const KO = {
   steps: [
     { t: '48개의 질문에 답합니다', d: '평소의 나와 가장 가까운 답을 고르면 됩니다. 정답은 없고, 약 8분이면 끝나요.' },
     { t: 'HEXACO 6요인을 측정합니다', d: '정직·겸손, 정서성, 외향성, 원만성, 성실성, 개방성. 학술 연구에서 널리 쓰이는 성격 모델이에요.' },
-    { t: '22가지 중 당신의 원형을 찾습니다', d: '6요인의 조합이 가장 가까운 원형과, 같은 원형 안에서도 당신만 다른 점을 함께 알려드려요.' },
+    { t: '22가지 중 당신의 원형을 찾습니다', d: '6요인의 조합이 가장 가까운 원형과, 내 점수에서 가장 두드러진 요인을 함께 알려드려요.' },
     { t: '원하면 진로 리포트로 이어갑니다', d: '이미 측정한 성격에 흥미·가치 질문을 더해, 지금 시기에 맞는 진로 리포트를 만들어요.' },
   ],
   endTitle: <>당신의 원형은<br />무엇일까요</>,
@@ -35,7 +35,7 @@ const T: Record<Lang, typeof KO> = {
   en: {
     heroEyebrow: 'CORE TRAIT · ARCHETYPE PERSONALITY TEST',
     heroTitle: <>The archetype asleep inside you<br /><span style={{ color: '#e2c064' }}>is waking up</span></>,
-    heroSub: <>Every personality has one archetype that shows through most clearly.<br />Answer 48 questions to find yours among 22.</>,
+    heroSub: <>Answer 48 questions to measure six personality factors<br />and find the closest of 22 archetypes.</>,
     heroCta: 'Wake your archetype →',
     heroNote: 'Free · No sign-up · About 8 minutes',
     codexTitle: 'The 22 Archetypes',
@@ -45,7 +45,7 @@ const T: Record<Lang, typeof KO> = {
     steps: [
       { t: 'Answer 48 questions', d: 'Pick the answer closest to how you usually are. There are no right answers, and it takes about 8 minutes.' },
       { t: 'We measure the six HEXACO factors', d: 'Honesty-Humility, Emotionality, Extraversion, Agreeableness, Conscientiousness, and Openness — a personality model widely used in research.' },
-      { t: 'Find your archetype among 22', d: 'You’ll see the archetype closest to your combination of factors, plus what makes you different from others who share it.' },
+      { t: 'Find your archetype among 22', d: 'You’ll see the archetype closest to your combination of factors, plus the factors that stand out most in your own scores.' },
       { t: 'Share your card', d: 'Send your archetype card to friends and see which archetypes they get.' },
     ],
     endTitle: <>What’s your<br />archetype?</>,

@@ -3,6 +3,13 @@
 직접 올릴 글의 초안. 링크의 `utm_campaign` 값은 글마다 바꿔서 어느 글이 효과 있었는지 구분한다 (`docs/launch-checklist.md` 2번).
 커뮤니티마다 홍보 규칙이 다르니 올리기 전에 규칙을 확인하고, **만든 사람임을 밝히는** 쪽이 반응도 좋고 안전하다.
 
+**문구 원칙 (심리측정 검토 2026-10-15 반영)**
+- 원형은 "당신의 유형"이 아니라 **"가장 가까운 원형"**으로 말한다. 같은 사람이 다시 하면 이웃 원형이 나올 수 있다.
+- **희소성 표현 금지** ("상위 몇 %만 나오는 희귀 유형", "Only 4% are…"). 지금 원형별 비율 차이는 채점 구조가 만든 것이고 실제 데이터 근거가 없다.
+- **"MBTI는 16가지, 이건 22가지"처럼 범주 수로 정밀함을 암시하지 않는다.** 범주가 많을수록 오히려 덜 안정적이다.
+- "같은 원형 안에서 나만 다른 점"은 사실이 아니다(다른 사람과 비교하지 않음). 쓰려면 "내 점수에서 두드러진 요인".
+- "대규모 검증 전 · 재미+참고용" 고지는 유지한다.
+
 ---
 
 ## 한국어
@@ -26,11 +33,8 @@ https://core-trait.com/?utm_source=everytime&utm_medium=post&utm_campaign=feedba
 ### B. 인스타그램·스레드 캡션
 
 **1) 호기심형**
-MBTI는 16가지.
-이건 22가지 원형 중 하나.
-
 48개의 질문, 8분.
-당신 안에 잠든 원형은?
+22가지 원형 중 나와 가장 가까운 건?
 
 🔗 프로필 링크
 
@@ -57,8 +61,8 @@ https://core-trait.com/?utm_source=kakao&utm_medium=dm&utm_campaign=friends
 
 ### D. 광고 문구 (인스타 광고용, 개인 특성 단정 표현 없이)
 
-- 제목: 22가지 원형 중 나는?
-- 본문: 48개의 질문으로 찾는 나의 성격 원형. 무료 · 약 8분 · 로그인 없음
+- 제목: 22가지 원형 중 나와 가장 가까운 건?
+- 본문: 48개의 질문으로 찾는 나와 가장 가까운 성격 원형. 무료 · 약 8분 · 로그인 없음
 - 버튼: 더 알아보기
 - 이미지: 스토리용 원형 카드(`public/archetypes/story/ko/`) 중 색감이 다른 3~4장을 소재로 나눠 테스트
 
@@ -74,7 +78,7 @@ I wanted something other than MBTI, so I built a test on the HEXACO model (six f
 
 - 48 questions, about 8 minutes
 - No sign-up, no email, free
-- You get your archetype, your six factor scores, and what sets you apart from others with the same archetype
+- You get the archetype closest to your scores, your six factor scores, and which of them stand out most
 - You can send a link to a friend and compare your factors side by side
 
 It hasn’t been validated at scale yet, and I say so on the result page — the questions and archetypes are my own work built on the HEXACO model. I’m especially interested in whether the result feels accurate and whether any question reads oddly to a native speaker (it was first written in Korean).
@@ -84,9 +88,8 @@ https://core-trait.com/en?utm_source=reddit&utm_medium=post&utm_campaign=feedbac
 ### B. Short captions (X / Threads / Instagram)
 
 **1)**
-MBTI has 16 types.
-This one has 22 archetypes.
-48 questions. 8 minutes. Which one is asleep inside you?
+48 questions. 8 minutes.
+Which of the 22 archetypes is closest to you?
 
 **2)**
 I got The Sage. My friend got The Charmer.
@@ -101,7 +104,7 @@ Which of the 22 are you?
 
 ### C. Ad copy (no statements about the viewer’s personal traits)
 
-- Headline: Which of the 22 archetypes are you?
+- Headline: Which of the 22 archetypes is closest to you?
 - Text: Find your personality archetype in 48 questions. Free · About 8 minutes · No sign-up
 - Image: story cards from `public/archetypes/story/en/`
 
