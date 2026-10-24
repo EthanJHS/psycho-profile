@@ -10,6 +10,7 @@ proxy.ts가 잠그는 경로는 /admin, /api/admin, /career/samples뿐. Next.js 
 ## 명령
 - 개발 서버: `npm run dev` (Claude 미리보기는 .claude/launch.json)
 - 린트: `npm run lint` · 타입: `npx tsc --noEmit`
+- 통합 QA: `npm run qa` — 아래 채점 오라클 → 변이 테스트를 차례로 실행, 한 단계라도 실패하면 거기서 멈추고 실패 반환. 코드를 고친 뒤 매번 실행
 - 채점 오라클: `npm run qa:oracle` — 두 파일을 차례로 실행
   - scripts/qa/scoring-oracle.ts: 정상 동작 회귀 (문항 구조·채점·원형 판정·링크 코드 골든 값). 언제나 통과해야 함
   - scripts/qa/known-defects.ts: 고쳐야 할 현재 동작(입력 검증 부재)의 기록. 결함을 고치면 실패 → 거부 테스트로 전환
