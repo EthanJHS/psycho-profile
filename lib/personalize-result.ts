@@ -1,4 +1,4 @@
-import { HexacoResult, HexacoFactor, HexacoArchetype, HIGH_THRESHOLD, LOW_THRESHOLD } from './scoring-hexaco'
+import { type HexacoResult, type HexacoFactor, type HexacoArchetype, HIGH_THRESHOLD, LOW_THRESHOLD } from './scoring-hexaco'
 import { PERSONALIZE_KO } from './personalize-text-ko'
 
 // 결과 개인화 — 어떤 문구를 고를지는 여기서 한 번만 정하고, 문구 자체는 언어별 파일에 둔다

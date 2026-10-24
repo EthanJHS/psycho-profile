@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "qa": "npm run qa:oracle && npm run qa:mutation",
+    "qa": "npm run qa:oracle && npm run qa:mutation && npm run qa:report",
     "qa:oracle": "node --no-warnings --import ./scripts/qa/ts-resolve.mjs scripts/qa/scoring-oracle.ts && node --no-warnings --import ./scripts/qa/ts-resolve.mjs scripts/qa/known-defects.ts",
-    "qa:mutation": "node scripts/qa/mutation-check.mjs"
+    "qa:mutation": "node scripts/qa/mutation-check.mjs",
+    "qa:report": "node --no-warnings --import ./scripts/qa/ts-transpile.mjs scripts/qa/report-golden.ts && node scripts/qa/report-mutation.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

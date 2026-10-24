@@ -1,0 +1,18 @@
+{
+  "reportVersion": "report-2026-10-24",
+  "note": "리포트 문장 골든 해시 — scripts/qa/report-golden.ts. 문구를 바꿨으면 REPORT_VERSION을 올린 뒤 QA_UPDATE_GOLDEN=1로 갱신",
+  "hashes": {
+    "high/find": "0203b913012ee5b2",
+    "high/do": "5f91f297e03d67a4",
+    "high/both": "3c4ce09f00b10c05",
+    "college/find": "9a77e7586ee616da",
+    "college/do": "fb51f2535b7a9f9e",
+    "college/both": "5e9941cb101cc9c9",
+    "jobseeker/find": "476e77af6fb8a12f",
+    "jobseeker/do": "fb79ffaedf6b2b2f",
+    "jobseeker/both": "672a31a2dcf4964b",
+    "worker/find": "be33b2aad9ad2c99",
+    "worker/do": "c7104849ba31dbce",
+    "worker/both": "a0fd7b031dec3e33"
+  }
+}
