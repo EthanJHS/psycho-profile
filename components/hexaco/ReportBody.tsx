@@ -49,9 +49,9 @@ const KO = {
   defaultTrait: '나만의 방식',
   // 한국어판은 CORE CAREER(진로 리포트) 미리보기
   teasers: (name: string, trait: string, shadow?: string) => [
-    { rune: '⚔', title: '탐색 — 나에게 맞는 길', teaser: `${w(name, '은/는')} 성격에 흥미와 가치를 더하면, 가장 잘 맞는 직무와 계열 TOP 5가 달라집니다. 1순위는…` },
-    { rune: '✦', title: '향상 — 지금 자리에서 더 잘', teaser: `${w(trait, '을/를')} 무기로 가진 당신에게 맞는 공부법·일하는 방식은 따로 있습니다. 가장 먼저 바꿀 것은…` },
-    { rune: '♡', title: '관계 패턴', teaser: `가까워질수록 드러나는 ${name}의 관계 패턴이 있습니다. 가까운 사람일수록 당신은…` },
+    { rune: '⚔', title: '탐색 — 나에게 맞는 길', teaser: `${name} 성향에 흥미와 가치를 더해, 먼저 살펴볼 직무 후보와 지금 할 탐색 계획을 정리해 드려요. 근거가 부족하면 억지로 순위를 매기지 않아요.` },
+    { rune: '✦', title: '향상 — 지금 자리에서 더 잘', teaser: `공부·취업 준비·일에서 막힌다고 답한 점을 골라, 먼저 해 볼 방법과 직접 채우는 기록 양식을 드려요.` },
+    { rune: '♡', title: '관계 패턴', teaser: `가까운 관계에서 기대는 쪽과 거리를 두는 쪽, 두 가지를 따로 살펴봐요. 뚜렷하지 않다면 그렇다고 알려 드려요.` },
     { rune: '◎', title: '스트레스와 회복', teaser: shadow ? shadow.slice(0, 28) + '…' : `${name}의 그림자는 스트레스 상황에서 가장 선명하게 드러납니다.` },
   ],
   // 다시 하면 바뀔 수 있는 원형 이름을 유료 상품명에 걸지 않음 (심리측정 검토 2026-10-15)
@@ -61,6 +61,8 @@ const KO = {
   buyHref: '/career' as string | null,
   backToHero: '← 원형 이미지로 돌아가기',
   interpTitle: '원형 해석',
+  lowSignalNote: '이번 응답은 여섯 요인이 모두 중간 범위라, 두드러진 개인 특성을 특정하기 어려워요. 아래는 응답 형태와 가장 가까운 원형의 일반 소개이며, 당신의 강점이나 능력을 확인한 결과는 아니에요.',
+  archetypeIntro: (name: string) => `${name} 원형은 이런 모습을 상징해요`,
   dailyLabel: (name: string) => `${name}의 흔한 하루`,
   light: '빛의 면',
   shadow: '그림자의 면',
@@ -68,6 +70,7 @@ const KO = {
   distinguishing: '나를 구분하는 특징',
   secondaryTitle: '두 번째로 가까운 원형',
   closeNote: (a: string, b: string) => `이번 응답에서 ${w(a, '과/와')} ${b}는 거의 같은 거리였어요. 두 원형 설명을 함께 나를 설명하는 말로 읽어 주세요.`,
+  closeNoteLow: (a: string, b: string) => `이번 응답에서 ${w(a, '과/와')} ${b}는 거의 같은 거리였어요. 여섯 요인이 모두 중간이라 어느 쪽도 나를 뚜렷하게 설명한다고 보기는 어려워요.`,
   factorsTitle: 'HEXACO 요인 프로파일',
   scoreNote: '점수는 요인별 8문항 응답의 평균(1~5)이에요. 3이 중간이고, 다른 사람과 비교한 순위(백분위)는 아니에요. HEXACO는 학술 연구에서 널리 쓰이는 성격 모델이고, 이 48문항과 22가지 원형은 CORE TRAIT가 그 모델을 바탕으로 직접 만든 것으로 아직 대규모 검증 전이에요. 결과는 나를 이해하는 참고 자료이며 진단이나 중요한 결정의 유일한 근거로 쓰지 말아 주세요.',
   tipTitle: '오늘의 실천 팁',
@@ -124,6 +127,8 @@ const T: Record<Lang, typeof KO> = {
     buyHref: null,
     backToHero: '← Back to your archetype card',
     interpTitle: 'Your archetype',
+    lowSignalNote: 'All six factors came out in the middle range this time, so no single trait stands out. What follows is a general introduction to the archetype closest to your answers, not a confirmed strength or ability of yours.',
+    archetypeIntro: (name: string) => `What ${mid(name)} archetype stands for`,
     dailyLabel: (name: string) => `A typical day for ${mid(name)}`,
     light: 'Light side',
     shadow: 'Shadow side',
@@ -131,6 +136,7 @@ const T: Record<Lang, typeof KO> = {
     distinguishing: 'What sets you apart',
     secondaryTitle: 'Your next-closest archetype',
     closeNote: (a: string, b: string) => `${a} and ${mid(b)} were almost equally close this time. Read both as describing you.`,
+    closeNoteLow: (a: string, b: string) => `${a} and ${mid(b)} were almost equally close this time. With all six factors in the middle range, neither one clearly describes you.`,
     factorsTitle: 'HEXACO factor profile',
     scoreNote: 'Each score is the average (1–5) of your answers to that factor’s 8 questions. 3 is the midpoint — it isn’t a ranking against other people (percentile). HEXACO is a personality model widely used in academic research; these 48 questions and 22 archetypes were created by CORE TRAIT based on that model and haven’t been validated at scale yet. Use your result as a way to understand yourself, not as a diagnosis or the only basis for an important decision.',
     tipTitle: 'Try this today',
@@ -344,7 +350,8 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
   const previewSuffix = previewId ? `?preview=${previewId}` : ''
 
   // 리포트 맛보기 — 원형 맞춤 첫 줄만 공개, 나머지 blur (한국어: 진로 리포트, 영어: 원형 심화 리포트)
-  const CHAPTER_TEASERS = t.teasers(primaryName, primaryDetail?.traits?.[0] ?? t.defaultTrait, primaryDetail?.shadow)
+  // 여섯 요인 모두 중간이면 원형 특성을 개인 강점처럼 쓰지 않음
+  const CHAPTER_TEASERS = t.teasers(primaryName, personalized?.lowSignal ? t.defaultTrait : (primaryDetail?.traits?.[0] ?? t.defaultTrait), primaryDetail?.shadow)
 
   return (
     <>
@@ -438,14 +445,19 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
 
         {/* 원형 해석 */}
         <Tome label={t.interpTitle} accent="violet">
-          {primaryDetail?.daily && (
+          {personalized?.lowSignal && (
+            <p style={{ fontSize: 13, color: 'rgba(200,168,75,0.75)', lineHeight: 1.7, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(200,168,75,0.25)' }}>{t.lowSignalNote}</p>
+          )}
+          {!personalized?.lowSignal && primaryDetail?.daily && (
             <div style={{ background: 'rgba(200,168,75,0.06)', border: '1px solid rgba(200,168,75,0.18)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,168,75,0.55)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 5 }}>{t.dailyLabel(primaryName)}</p>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, fontStyle: 'italic' }}>{primaryDetail.daily}</p>
             </div>
           )}
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', lineHeight: 1.85, marginBottom: 14 }}>
-            {primaryDetail?.shortDesc ?? primary.note}
+            {personalized?.lowSignal
+              ? <><span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(200,168,75,0.6)', marginBottom: 4 }}>{t.archetypeIntro(primaryName)}</span>{primaryDetail?.tagline ?? primary.note}</>
+              : (primaryDetail?.shortDesc ?? primary.note)}
           </p>
           {primaryDetail?.light && (
             <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.18)', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
@@ -493,7 +505,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
             )}
           </div>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.74)', lineHeight: 1.75 }}>
-            {secondaryDetail?.shortDesc ?? secondary.note}
+            {personalized?.lowSignal ? (secondaryDetail?.tagline ?? secondary.note) : (secondaryDetail?.shortDesc ?? secondary.note)}
           </p>
           {personalized?.secondaryWhy && (
             <p style={{ fontSize: 13.5, color: 'rgba(226,192,100,0.85)', lineHeight: 1.65, marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(200,168,75,0.15)' }}>
@@ -503,7 +515,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
           {/* 1·2위가 거의 붙어 있으면 두 원형을 함께 읽도록 안내 (미리보기 제외) */}
           {!previewId && isCloseCall(result) && (
             <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.65, marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(200,168,75,0.08)', border: '1px solid rgba(200,168,75,0.25)' }}>
-              {t.closeNote(primaryName, secondaryName)}
+              {personalized?.lowSignal ? t.closeNoteLow(primaryName, secondaryName) : t.closeNote(primaryName, secondaryName)}
             </p>
           )}
         </Tome>

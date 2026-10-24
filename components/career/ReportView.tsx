@@ -69,12 +69,31 @@ function RenderBlock({ b }: { b: Block }) {
     case 'steps': return (
       <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {b.items.map((s, i) => (
-          <li key={i} style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 12 }}>
+          <li key={i} style={{ display: 'grid', gridTemplateColumns: '84px 1fr', gap: 12 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{s.when}</span>
             <span style={{ fontSize: 14, color: TEXT, lineHeight: 1.7 }}>{s.what}</span>
           </li>
         ))}
       </ol>
+    )
+    case 'form': return (
+      <div style={{ border: `1px dashed ${GOLD_SOFT}`, borderRadius: 14, padding: '14px 16px' }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: GOLD, marginBottom: 10 }}>직접 채워 보기 · {b.title}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {Array.from({ length: b.rows ?? 1 }, (_, r) => (
+            <div key={r} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: r ? 10 : 0, borderTop: r ? `1px solid ${GOLD_SOFT}` : 'none' }}>
+              {(b.rows ?? 1) > 1 && <span style={{ fontSize: 11, color: FAINT }}>{r + 1}</span>}
+              {b.fields.map(f => (
+                <div key={f} style={{ display: 'grid', gap: 4 }}>
+                  <span style={{ fontSize: 12.5, color: MUTED }}>{f}</span>
+                  <span style={{ height: 22, borderBottom: '1px solid rgba(239,230,210,0.18)' }} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        {b.note && <p style={{ fontSize: 12, color: FAINT, lineHeight: 1.6, marginTop: 10 }}>{b.note}</p>}
+      </div>
     )
     case 'picks': return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

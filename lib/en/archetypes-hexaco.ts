@@ -60,7 +60,7 @@ export const ARCHETYPE_DETAILS_EN: Record<string, ArchetypeDetail> = {
     daily: '"I only fight battles I can win."',
     light: 'An executor who pushes forward with the plan and doesn’t flinch',
     shadow: 'Rushing for results at the cost of fairness can shake the trust you’ve built',
-    shortDesc: 'You move with a cool head and a clear plan, and you don’t back down from competition. You’re exceptional at hitting goals — your biggest risk comes when you overlook the feelings and values of the people beside you.',
+    shortDesc: 'You move toward your goals with a cool head, and you don’t back down from competition. You’re exceptional at hitting goals — your biggest risk comes when you overlook the feelings and values of the people beside you.',
     traits: ['Strategic thinking', 'Emotional control', 'Strong execution', 'Drive to lead'],
   },
 

@@ -19,9 +19,9 @@ export const PERSONALIZE_EN: PersonalizeText = {
       low: 'You tend to interpret rules flexibly when there’s a goal to reach.',
     },
     E: {
-      high: 'You’re sensitive to shifts in emotion and feel anxious easily under stress. Your empathy runs strong.',
-      mid: 'You adjust your emotions to the situation and reach out for support when you need it.',
-      low: 'You’re emotionally steady and stay calm even under pressure.',
+      high: 'You’re sensitive to shifts in emotion and tend to feel anxious under stress. Other people’s feelings move you easily, too.',
+      mid: 'Your worry and emotional ups and downs are about average, and they vary with the situation.',
+      low: 'You tend to feel less worry and fear, and you often handle hard things on your own.',
     },
     X: {
       high: 'You draw energy from being around people and enjoy leading conversations and activities.',
@@ -34,7 +34,7 @@ export const PERSONALIZE_EN: PersonalizeText = {
       low: 'You state your views clearly and hold to your standards rather than bending to others’ expectations.',
     },
     C: {
-      high: 'You make plans, carry them out systematically, and keep your commitments and deadlines.',
+      high: 'You handle your work steadily and carefully, and you take commitments and deadlines seriously.',
       mid: 'You balance structure and flexibility to fit the task at hand.',
       low: 'You act spontaneously and flexibly, going with the flow rather than over-planning.',
     },
@@ -47,7 +47,7 @@ export const PERSONALIZE_EN: PersonalizeText = {
 
   factorModifier: {
     H: { high: 'Principled', low: 'Pragmatic' },
-    E: { high: 'Sensitive', low: 'Unflappable' },
+    E: { high: 'Sensitive', low: 'Undaunted' },
     X: { high: 'Outgoing', low: 'Reserved' },
     A: { high: 'Cooperative', low: 'Independent' },
     C: { high: 'Methodical', low: 'Flexible' },
@@ -61,7 +61,7 @@ export const PERSONALIZE_EN: PersonalizeText = {
     },
     E: {
       high: 'Your high Emotionality adds a strong sensitivity to how other people feel.',
-      low: 'Your low Emotionality gives you a steadiness that doesn’t crack under pressure.',
+      low: 'Your low Emotionality adds a boldness that is less shaken by worry and fear.',
     },
     X: {
       high: 'Your high Extraversion shows up as energy you share with the people around you.',
@@ -72,7 +72,7 @@ export const PERSONALIZE_EN: PersonalizeText = {
       low: 'Your low Agreeableness makes clear standards and independent judgment matter to you.',
     },
     C: {
-      high: 'Your high Conscientiousness has built a planned, responsible way of acting.',
+      high: 'Your high Conscientiousness shows up as handling your work steadily and responsibly.',
       low: 'Your low Conscientiousness adds a spontaneous side that adapts to the moment.',
     },
     O: {
@@ -83,7 +83,7 @@ export const PERSONALIZE_EN: PersonalizeText = {
 
   traitDescriptions: {
     H: { high: 'Would rather take a loss than break a principle', low: 'Looks at results over rules when there’s a goal' },
-    E: { high: 'Easily resonates with other people’s feelings and pain', low: 'Stays unshaken, even in a crisis' },
+    E: { high: 'Easily resonates with other people’s feelings and pain', low: 'Less shaken by worry or fear' },
     X: { high: 'Gets energy from being around people', low: 'Recharges with time alone' },
     A: { high: 'Chooses cooperation over conflict', low: 'Puts honest standards ahead of keeping the peace' },
     C: { high: 'Keeps promises and deadlines to the letter', low: 'Has the flexibility to follow the flow over the plan' },
@@ -97,7 +97,7 @@ export const PERSONALIZE_EN: PersonalizeText = {
     },
     E: {
       high: 'Feeling things deeply can also tire you out quickly. When worry builds up, instead of trying to fix it right away, step back for a moment and write it down.',
-      low: 'Staying calm under pressure is a real strength. When someone around you is struggling, try saying “that sounds really hard” before offering a solution.',
+      low: 'Being less shaken by worry is a real strength. When someone around you is struggling, try saying “that sounds really hard” before offering a solution.',
     },
     X: {
       high: 'Since you get your energy from people, deliberately setting aside time to think on your own will sharpen your decisions.',
@@ -142,6 +142,8 @@ export const PERSONALIZE_EN: PersonalizeText = {
     const mod = modifiers.length > 0 ? ` Beyond that, ${lcFirst(modifiers.join(' '))}` : ''
     return base + mod
   },
+
+  lowSignalTip: 'No factor stood out in your answers this time, so it’s hard to suggest a specific habit. Think of one thing that went well recently and one that was hard, and write down what you did in each. That record is a starting point for finding what works for you.',
 
   secondaryWhy: (hits, name) => {
     if (!hits.length) return `${name} came out as your next-closest match — not because of one standout factor, but because your overall balance is similar.`

@@ -19,6 +19,7 @@ export interface PersonalizeText {
   shadowNotes: Record<ShadowFactor, string>
   why: (defining: string[], modifiers: string[], archetypeName: string) => string
   secondaryWhy: (hits: { label: string; dir: Dir }[], secondaryName: string) => string
+  lowSignalTip: string         // 여섯 요인 모두 중간일 때의 실천 팁 (특정 성향을 전제하지 않음)
 }
 
 // ── 요인 수준 판정 ─────────────────────────────────────────────────────────────
@@ -68,8 +69,12 @@ export function getWhyText(archetype: HexacoArchetype, result: HexacoResult, t: 
   return t.why(defining, modifiers, t.archetypeName(archetype))
 }
 
+// 여섯 요인이 모두 중간 범위 — 원형은 정해지지만 두드러진 개인 특성은 없음 (원형 설명을 개인 사실로 쓰지 않도록)
+export const isLowSignal = (result: HexacoResult) => FACTORS.every(f => level(result.scores.raw[f]) === 'mid')
+
 // ── 나를 구분하는 특징 3개 ───────────────────────────────────────────────────
 export function getDistinguishingTraits(result: HexacoResult, t: PersonalizeText = PERSONALIZE_KO): string[] {
+  if (isLowSignal(result)) return []
   return FACTORS
     .map(f => ({ f, raw: result.scores.raw[f], dev: Math.abs(result.scores.raw[f] - 3.0) }))
     .sort((a, b) => b.dev - a.dev)
@@ -107,6 +112,7 @@ function comboTip(raw: Record<HexacoFactor, number>, t: PersonalizeText): string
 }
 
 export function getPracticalTip(result: HexacoResult, t: PersonalizeText = PERSONALIZE_KO): string {
+  if (isLowSignal(result)) return t.lowSignalTip
   const combo = comboTip(result.scores.raw, t)
   if (combo) return combo
   const top = FACTORS.reduce((best, f) =>
@@ -158,6 +164,7 @@ export interface PersonalizedResult {
   practicalTip: string           // 실천 팁
   shadowNote: string | null      // 그림자 보정 문구
   secondaryWhy: string | null    // 부가 성향이 나온 이유
+  lowSignal: boolean             // 여섯 요인 모두 중간 — 원형 설명은 일반 소개로 안내
 }
 
 export function personalizeResult(result: HexacoResult, t: PersonalizeText = PERSONALIZE_KO): PersonalizedResult {
@@ -170,5 +177,6 @@ export function personalizeResult(result: HexacoResult, t: PersonalizeText = PER
     practicalTip: getPracticalTip(result, t),
     shadowNote: getShadowNote(primary, result, t),
     secondaryWhy: getSecondaryWhy(result, t),
+    lowSignal: isLowSignal(result),
   }
 }

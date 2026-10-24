@@ -23,11 +23,21 @@ const STAGES = LIFE_STAGES.filter(s => SELLABLE_STAGES.includes(s.id))
 
 // 리포트에 들어가는 것 (결제 전 고지)
 const CONTENTS: Record<Plan, string[]> = {
-  find: ['나의 흥미 지도와 중요한 조건', '잘 맞는 직무 TOP 5와 AI 시대 변화 전망', '결정이 어려운 이유와 다음 행동'],
-  do: ['나의 공부·일하는 방식', '지금 시기에 맞춘 실행 전략', '강점을 쓰는 법과 주의할 신호'],
+  find: ['나의 흥미 지도와 중요한 조건', '먼저 살펴볼 직무 후보 (45개 직무 목록 안에서)와 AI 시대 변화 전망', '결정이 어려운 이유와 다음 행동, 직접 채우는 비교표'],
+  do: ['나의 공부·일하는 방식', '지금 시기에 맞춘 실행 과제 (취준생은 서류·면접 준비)', '2주 해 보고 계속할지 정하는 기록 양식'],
   both: ['탐색 리포트 전체', '향상 리포트 전체'],
 }
-const COMMON = ['관계에서의 나', '시기별 스트레스 반응과 회복', '성장 로드맵']
+const COMMON = ['가까운 관계에서의 나', '스트레스 반응과 회복', '이번 리포트의 초점과 성장 로드맵']
+// 결제 전에 보여 주는 범위 안내 — 상품이 약속하는 것과 하지 않는 것 (2026-10-24 시범 판매 기준)
+const SCOPE = [
+  '자체 제작 문항으로 만든 리포트이며, 대규모 검증 전이에요. 원형과 직무 후보는 참고 자료이고 능력·합격·직무 만족을 보장하지 않아요.',
+  '직무 후보는 45개 직무 목록 안에서 비교해요. 응답이 비슷하게 나와 고를 근거가 부족하면 억지로 순위를 매기지 않고, 대신 직접 해 볼 활동을 드려요. 목록에 없는 길이 맞지 않는다는 뜻은 아니에요.',
+  '고민 중인 후보의 이름, 지금 업무의 구체적인 구성, 준비 시간과 비용은 묻지 않아요. 그것까지 비교해 주는 심층 상담은 아니에요.',
+  '탐색은 방향 점검, 향상은 공부·취업 준비·일하는 방식 점검이에요. 향상만 고르면 직무 추천은 들어 있지 않아요.',
+  '양식은 직접 채우는 도구예요. 적은 내용을 다시 분석하거나 전문가가 검토해 주지는 않아요.',
+  '관계·스트레스 결과는 자기점검용이며 의료적 진단이나 치료가 아니에요.',
+  '완성된 리포트는 만들어진 날의 내용으로 보관되고, 이후 서비스가 바뀌어도 자동으로 바뀌지 않아요.',
+]
 
 declare global {
   interface Window { PayApp?: { setDefault: (k: string, v: string) => void; setParam: (k: string, v: string) => void; payrequest: () => void } }
@@ -209,6 +219,14 @@ export default function CareerStartPage() {
               <p style={{ fontSize: 12.5, color: FAINT, marginTop: 8 }}>결제 후 추가 질문 {itemCount(stage, plan)}개 (약 {minutes}분)에 답하면 바로 만들어져요. 리포트는 링크로 언제든 다시 볼 수 있어요.</p>
             </div>
 
+            <div style={{ borderRadius: 14, padding: '14px 16px', border: '1px solid rgba(200,160,48,0.25)', background: 'rgba(21,17,28,0.8)', marginBottom: 14 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 8 }}>구매 전에 꼭 확인해 주세요</p>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: MUTED, lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {SCOPE.map(c => <li key={c}>{c}</li>)}
+                {stage === 'worker' && plan === 'do' && <li>직장인 향상만 고르면 지금 직무 이름은 리포트에 표시되지 않고, 일반적인 일하는 방식을 중심으로 다뤄요.</li>}
+              </ul>
+            </div>
+
             <div style={{ borderRadius: 14, padding: '12px 16px', border: '1px solid rgba(248,180,120,0.35)', background: 'rgba(248,180,120,0.06)', marginBottom: 14 }}>
               <p style={{ fontSize: 13, color: TEXT, lineHeight: 1.7 }}>
                 <b>환불 안내</b> · 추가 질문에 답하기 전이라면 결제일로부터 7일 이내 전액 환불돼요.
@@ -217,7 +235,7 @@ export default function CareerStartPage() {
               </p>
               <label htmlFor="refund-ack" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 10, cursor: 'pointer' }}>
                 <input id="refund-ack" type="checkbox" checked={refundAck} onChange={e => setRefundAck(e.target.checked)} style={{ width: 20, height: 20, marginTop: 1, flexShrink: 0, accentColor: GOLD }} />
-                <span style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.6 }}>[필수] 위 환불 조건과 <Link href="/terms" target="_blank" style={{ color: '#e2c064' }}>이용약관</Link>을 확인했고 결제에 동의합니다</span>
+                <span style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.6 }}>[필수] 위 범위 안내와 환불 조건, <Link href="/terms" target="_blank" style={{ color: '#e2c064' }}>이용약관</Link>을 확인했고 결제에 동의합니다</span>
               </label>
             </div>
 

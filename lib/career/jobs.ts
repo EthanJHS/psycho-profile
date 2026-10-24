@@ -18,6 +18,7 @@ export interface CareerJob {
   values: Partial<Record<WorkValue, number>>          // -1..1, 없으면 0 (이 직무 환경이 채워주는 정도)
   mismatch?: { factor: Exclude<HexacoFactor, 'H' | 'E'>; when: 'low' | 'high'; note: string }[]
   emerging?: boolean
+  entry?: string                                      // 학위·자격·시험처럼 따로 확인해야 하는 진입 요건
   ai: { automates: string; rises: string }            // AI가 빠르게 바꾸는 일 / 더 중요해지는 일
 }
 
@@ -150,6 +151,7 @@ export const CAREER_JOBS: CareerJob[] = [
   { id: 'legal', name: '법무·컴플라이언스', group: '경영지원', desc: '계약서를 검토하고 회사가 법과 규정을 지키도록 관리한다',
     code: ['C', 'E', 'I'], tags: ['사무·행정', '사회과학·철학'], values: { 안정: 0.6, 인정: 0.3, 기여: 0.2 },
     mismatch: [{ factor: 'C', when: 'low', note: '문구 하나까지 검토하는 정밀함이 필요해요' }],
+    entry: '변호사는 법학전문대학원과 변호사시험이 필요해요. 기업 법무·컴플라이언스 실무는 자격 없이 시작하는 경우도 있어요',
     ai: { automates: '계약서 1차 검토, 판례 검색', rises: 'AI 규제 대응, 최종 법적 판단' } },
   { id: 'ops', name: '경영관리·운영', group: '경영지원', desc: '예산·구매·일정 등 회사가 굴러가게 하는 운영을 관리한다',
     code: ['C', 'E', 'S'], tags: ['사무·행정', '자료 관리'], values: { 안정: 0.7, 균형: 0.4, 동료: 0.3 },
@@ -178,19 +180,24 @@ export const CAREER_JOBS: CareerJob[] = [
   // ── 공공·교육·보건 ──
   { id: 'public-admin', name: '공무원·공공기관 행정', group: '공공·교육·보건', desc: '공공 서비스와 정책을 정해진 절차에 따라 집행한다',
     code: ['C', 'S', 'E'], tags: ['사무·행정'], values: { 안정: 0.9, 균형: 0.6, 기여: 0.4, 보상: -0.3, 자율: -0.3 },
+    entry: '공무원은 공개경쟁 시험, 공공기관은 기관별 채용 절차(필기·면접)를 거쳐요',
     ai: { automates: '민원 1차 응대, 문서 작성', rises: '복잡한 민원 판단, 정책 조율' } },
   { id: 'teacher', name: '교사·교육 전문가', group: '공공·교육·보건', desc: '학생을 가르치고 성장을 돕는 수업과 활동을 설계한다',
     code: ['S', 'A', 'E'], tags: ['교육'], values: { 기여: 0.8, 안정: 0.6, 균형: 0.3, 보상: -0.2 },
     mismatch: [{ factor: 'X', when: 'low', note: '매일 많은 사람 앞에서 말하고 이끄는 일이에요' }],
+    entry: '교원자격증이 필요하고, 공립학교는 임용시험을 거쳐요. 교육 기업·강사 등은 요건이 다를 수 있어요',
     ai: { automates: '수업 자료·문항 초안, 채점 보조', rises: '학생 개인 맞춤 지도, 관계와 동기 부여' } },
   { id: 'counselor', name: '상담·임상심리', group: '공공·교육·보건', desc: '고민이 있는 사람과 대화하며 심리적 어려움을 함께 해결한다',
     code: ['S', 'I', 'A'], tags: ['상담', '사회과학·철학'], values: { 기여: 0.9, 자율: 0.3, 보상: -0.3 },
+    entry: '상담심리사·임상심리사는 대부분 관련 대학원 과정과 수련이 필요해요. 학부 졸업만으로 바로 하기 어려운 경우가 많아요',
     ai: { automates: '상담 기록 정리, 심리검사 채점', rises: '관계 형성, 위기 판단' } },
   { id: 'social-worker', name: '사회복지', group: '공공·교육·보건', desc: '도움이 필요한 사람을 찾아 필요한 지원과 서비스를 연결한다',
     code: ['S', 'E', 'C'], tags: ['돌봄', '상담'], values: { 기여: 0.9, 동료: 0.5, 보상: -0.4 },
+    entry: '사회복지사 자격(관련 학과 이수 또는 양성 과정)이 필요한 자리가 대부분이에요',
     ai: { automates: '대상자 서류 처리, 자원 검색', rises: '현장 판단, 사람과의 신뢰' } },
   { id: 'nurse', name: '간호·보건의료', group: '공공·교육·보건', desc: '환자를 돌보고 치료 과정을 곁에서 관리한다',
     code: ['S', 'I', 'R'], tags: ['돌봄', '자연과학·데이터'], values: { 기여: 0.8, 안정: 0.7, 보상: 0.3, 균형: -0.4 },
     mismatch: [{ factor: 'C', when: 'low', note: '투약·기록의 정확성이 환자 안전과 직결돼요' }],
+    entry: '간호학과를 졸업하고 간호사 국가시험에 합격해야 해요',
     ai: { automates: '간호 기록 작성, 모니터링 알림', rises: '환자 상태 판단, 돌봄과 소통' } },
 ]

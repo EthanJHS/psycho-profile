@@ -17,6 +17,7 @@ export default function CareerReportPage({ params }: { params: Promise<{ id: str
   const [freeCode, setFreeCode] = useState<string | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading')
   const [copied, setCopied] = useState(false)
+  const [issued, setIssued] = useState<{ at: string; version: string } | null>(null)
 
   async function copyLink() {
     try { await navigator.clipboard.writeText(window.location.href) }
@@ -25,12 +26,14 @@ export default function CareerReportPage({ params }: { params: Promise<{ id: str
   }
 
   useEffect(() => {
-    fetch(`/api/career/${id}`).then(r => (r.ok ? r.json() : Promise.reject(r.status))).then((d: { stage: LifeStage; plan: Plan; scores: Stored; completed_at: string }) => {
+    fetch(`/api/career/${id}`).then(r => (r.ok ? r.json() : Promise.reject(r.status))).then((d: { stage: LifeStage; plan: Plan; scores: Stored; completed_at: string; report: CareerReport | null; report_version: string | null; report_built_at: string | null }) => {
       // 링크로 연 리포트도 이 기기의 "내 리포트" 목록에 남김
       rememberReport({ id, stage: d.stage, plan: d.plan, at: d.completed_at })
       setArchetype(d.scores.archetype)
       setFreeCode(d.scores.freeResultCode ?? null)
-      setReport(buildCareerReport(d.scores, d.scores.archetype.name))
+      // 발급 때 저장한 본문을 그대로 보여 줌 (저장본이 없을 때만 지금 만들기 — 서버가 첫 열람에 저장하므로 예외적인 경우)
+      setReport(d.report ?? buildCareerReport(d.scores, d.scores.archetype.name))
+      if (d.report_built_at && d.report_version) setIssued({ at: d.report_built_at, version: d.report_version })
       setState('ready')
     }).catch(() => setState('missing'))
   }, [id])
@@ -65,6 +68,7 @@ export default function CareerReportPage({ params }: { params: Promise<{ id: str
           }}>{copied ? '리포트 링크를 복사했어요' : '이 리포트 링크 복사하기'}</button>
           <p style={{ fontSize: 12, color: FAINT, textAlign: 'center', lineHeight: 1.6 }}>
             이 링크로 언제든 리포트를 다시 볼 수 있어요. 내 점수가 담겨 있으니 본인만 보관하세요.<br />
+            {issued && <>{new Date(issued.at).toLocaleDateString('ko-KR')} 발급 · 분석 버전 {issued.version}. 이 리포트는 발급 당시 내용으로 보관되며, 이후 서비스가 바뀌어도 자동으로 바뀌지 않아요.<br /></>}
             검사 번호 <span style={{ fontFamily: 'monospace' }}>{id.slice(0, 8)}</span> · 삭제 요청은 <Link href="/privacy" style={{ color: '#e2c064' }}>개인정보 처리방침</Link>의 연락처로
           </p>
         </footer>

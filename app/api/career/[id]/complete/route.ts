@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { serviceClient, sanitizeAnswers, isStage, isPlan, UUID } from '@/lib/career/server'
 import { computeScores } from '@/lib/career/compute'
+import { buildCareerReport, REPORT_VERSION } from '@/lib/career/report-content'
 
 // 진로 검사 완료 — 응답만 받아 서버에서 채점 (시기·목적은 기록 생성 때 저장한 값을 사용)
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,8 +30,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const scores = typeof body.freeCode === 'string' ? computeScores(row.stage, row.plan, answers, body.freeCode) : null
   if (!scores) return NextResponse.json({ error: 'invalid free result' }, { status: 400 })
 
+  // 리포트 고정: 완성된 본문을 이 순간 한 번 만들어 저장 — 이후 열람은 저장본만 읽고, DB 트리거가 덮어쓰기를 막음
+  const now = new Date().toISOString()
+  const report = buildCareerReport(scores, scores.archetype.name)
   const { data: updated, error } = await sb.from('assessments')
-    .update({ answers, scores, completed_at: new Date().toISOString() })
+    .update({ answers, scores, completed_at: now, report, report_version: REPORT_VERSION, report_built_at: now })
     .eq('id', id).is('completed_at', null)
     .select('id')
   if (error) {
