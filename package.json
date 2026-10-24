@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "qa": "npm run qa:oracle && npm run qa:mutation",
     "qa:oracle": "node --no-warnings --import ./scripts/qa/ts-resolve.mjs scripts/qa/scoring-oracle.ts && node --no-warnings --import ./scripts/qa/ts-resolve.mjs scripts/qa/known-defects.ts",
     "qa:mutation": "node scripts/qa/mutation-check.mjs"
   },
