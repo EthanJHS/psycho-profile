@@ -72,14 +72,15 @@ export function getWhyText(archetype: HexacoArchetype, result: HexacoResult, t: 
 // 여섯 요인이 모두 중간 범위 — 원형은 정해지지만 두드러진 개인 특성은 없음 (원형 설명을 개인 사실로 쓰지 않도록)
 export const isLowSignal = (result: HexacoResult) => FACTORS.every(f => level(result.scores.raw[f]) === 'mid')
 
-// ── 나를 구분하는 특징 3개 ───────────────────────────────────────────────────
+// ── 나를 구분하는 특징 (최대 3개) ─────────────────────────────────────────────
+// 높음·낮음 범위에 든 요인만 쓴다. 중간 요인(예: 3.1)에 "~하는 편" 특징을 붙이지 않는다 (2026-10-25)
 export function getDistinguishingTraits(result: HexacoResult, t: PersonalizeText = PERSONALIZE_KO): string[] {
-  if (isLowSignal(result)) return []
   return FACTORS
-    .map(f => ({ f, raw: result.scores.raw[f], dev: Math.abs(result.scores.raw[f] - 3.0) }))
+    .map(f => ({ f, lv: level(result.scores.raw[f]), dev: Math.abs(result.scores.raw[f] - 3.0) }))
+    .filter(x => x.lv !== 'mid')
     .sort((a, b) => b.dev - a.dev)
     .slice(0, 3)
-    .map(({ f, raw }) => t.traitDescriptions[f][raw >= 3.0 ? 'high' : 'low'])
+    .map(({ f, lv }) => t.traitDescriptions[f][lv === 'high' ? 'high' : 'low'])
 }
 
 // ── 6요인 각각 한 줄 해석 ────────────────────────────────────────────────────
@@ -159,7 +160,7 @@ export const isCloseCall = (result: HexacoResult) => result.secondaryDistance - 
 export interface PersonalizedResult {
   subLabel: string | null        // "탐구적인"
   whyText: string                // "왜 이 원형인가"
-  distinguishingTraits: string[] // 나를 구분하는 특징 3개
+  distinguishingTraits: string[] // 나를 구분하는 특징 (높음·낮음 요인만, 최대 3개)
   factorLines: Record<HexacoFactor, string> // 요인별 한 줄 해석
   practicalTip: string           // 실천 팁
   shadowNote: string | null      // 그림자 보정 문구
