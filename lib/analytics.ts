@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 import { privacyVersion, type TestConsent } from './consent'
 import { ensureProfile } from './profile'
 import { langFromPath, isEnVersion } from './i18n'
+import { QUESTIONS, scoreHexaco } from './scoring-hexaco'
 
 // 모든 이벤트에 언어를 남김 — 관리자 통계를 언어별로 나눠 보기 위해
 const currentLang = () => (typeof window === 'undefined' ? 'ko' : langFromPath(window.location.pathname))
@@ -189,42 +190,69 @@ export function initScrollDepthTracking(page: 'free-result' | 'paid-result' | 'h
 }
 
 // ── HEXACO 검사 결과 저장 ──────────────────────
+const HEXACO_IDS = QUESTIONS.map(q => q.id)
+
+// 48문항 모두 1~5 정수인지. 아니면 저장하지 않는다
+// (sessionStorage 값이 손상·조작돼 문자열 "3", 소수, 누락이 섞이면 채점이 틀어진 채로 DB에 들어가므로)
+export function isValidHexacoAnswers(a: unknown): a is Record<string, number> {
+  if (!a || typeof a !== 'object' || Array.isArray(a)) return false
+  const obj = a as Record<string, unknown>
+  if (Object.keys(obj).length !== HEXACO_IDS.length) return false
+  return HEXACO_IDS.every(id => {
+    const v = obj[id]
+    return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 5
+  })
+}
+
+const _savingHexaco = new Set<string>() // 같은 검사를 동시에 두 번 보내지 않도록 (개발 모드 이중 실행 등)
+
 export async function saveHexacoResult(
-  rawScores: Record<string, number>,   // hexaco_h ~ hexaco_o (1–5 평균)
-  archetypePrimary: string,
-  archetypeSecondary: string,
-  primaryDist: number,
   answers: Record<string, number>,
   version: string = HEXACO_VERSION,
 ) {
   const testSessionId = getTestSessionId()
   if (!testSessionId || !supabase || isAdminSim()) return
-  // 결과 페이지 새로고침 시 완료 이벤트 중복 방지
-  if (sessionStorage.getItem('pp_hexaco_saved') === testSessionId) return
-  sessionStorage.setItem('pp_hexaco_saved', testSessionId)
+  // 결과 페이지 새로고침 시 중복 저장 방지 — 표시는 저장이 성공한 뒤에만 남긴다 (실패하면 다음 방문 때 다시 시도)
+  if (sessionStorage.getItem('pp_hexaco_saved') === testSessionId || _savingHexaco.has(testSessionId)) return
+  if (!isValidHexacoAnswers(answers)) {
+    console.error('hexaco answers invalid — not saved')
+    return
+  }
+  // 점수·원형은 넘겨받지 않고 검증한 응답으로 다시 계산 — 저장되는 응답과 점수가 항상 일치
+  const r = scoreHexaco(answers)
+  const raw = r.scores.raw
+  _savingHexaco.add(testSessionId)
+  try {
+    // anon은 test_sessions를 직접 수정할 수 없음 — 미완료 행 1개만 완료 처리하는 RPC 사용
+    const params = {
+      p_id:        testSessionId,
+      p_version:   version,
+      p_answers:   answers,
+      p_h: raw.H, p_e: raw.E, p_x: raw.X, p_a: raw.A, p_c: raw.C, p_o: raw.O,
+      p_primary:   r.primary.id,
+      p_secondary: r.secondary.id,
+      p_dist:      r.primaryDistance,
+    }
+    let { error } = await supabase.rpc('complete_hexaco_session', params)
+    if (error) {
+      // 일시적 네트워크 오류 대비 1번만 다시 시도 (RPC는 미완료 행만 갱신하므로 두 번 가도 안전)
+      await new Promise(res => setTimeout(res, 1500))
+      ;({ error } = await supabase.rpc('complete_hexaco_session', params))
+    }
+    if (error) {
+      console.error('complete_hexaco_session failed', error)
+      return
+    }
+    sessionStorage.setItem('pp_hexaco_saved', testSessionId)
 
-  // anon은 test_sessions를 직접 수정할 수 없음 — 미완료 행 1개만 완료 처리하는 RPC 사용
-  const { error } = await supabase.rpc('complete_hexaco_session', {
-    p_id:        testSessionId,
-    p_version:   version,
-    p_answers:   answers,
-    p_h:         rawScores['H'] ?? null,
-    p_e:         rawScores['E'] ?? null,
-    p_x:         rawScores['X'] ?? null,
-    p_a:         rawScores['A'] ?? null,
-    p_c:         rawScores['C'] ?? null,
-    p_o:         rawScores['O'] ?? null,
-    p_primary:   archetypePrimary,
-    p_secondary: archetypeSecondary,
-    p_dist:      primaryDist,
-  })
-  if (error) console.error('complete_hexaco_session failed', error)
-
-  await trackEvent('hexaco_complete', {
-    test_version:        version,
-    archetype_primary:   archetypePrimary,
-    archetype_secondary: archetypeSecondary,
-  })
+    await trackEvent('hexaco_complete', {
+      test_version:        version,
+      archetype_primary:   r.primary.id,
+      archetype_secondary: r.secondary.id,
+    })
+  } finally {
+    _savingHexaco.delete(testSessionId)
+  }
 }
 
 // ── HEXACO 결과 화면 행동 (미리보기·시뮬레이션 제외) ──

@@ -186,7 +186,7 @@ function ResultHeroInner({ lang }: { lang: Lang }) {
       setResult(r)
       if (!saved) {
         setSaved(true)
-        saveHexacoResult(r.scores.raw, r.primary.id, r.secondary.id, r.primaryDistance, answers, HEXACO_VERSION_BY_LANG[lang])
+        saveHexacoResult(answers, HEXACO_VERSION_BY_LANG[lang])
           .then(() => trackHexaco('hexaco_result_view', { archetype_primary: r.primary.id }))
           .catch(() => {})
       }
