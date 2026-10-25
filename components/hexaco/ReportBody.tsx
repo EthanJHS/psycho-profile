@@ -66,6 +66,9 @@ const KO = {
   dailyLabel: (name: string) => `${name}의 흔한 하루`,
   light: '빛의 면',
   shadow: '그림자의 면',
+  lightGeneral: '이 원형의 빛 (일반 소개)',
+  shadowGeneral: '이 원형의 그림자 (일반 소개)',
+  stressTeaserLow: '스트레스가 쌓였을 때 나는 더 매달리는 쪽일까, 피하는 쪽일까. 네 가지 반응을 따로 살펴봐요.',
   whyTitle: '왜 이 원형인가요?',
   distinguishing: '나를 구분하는 특징',
   secondaryTitle: '두 번째로 가까운 원형',
@@ -132,6 +135,9 @@ const T: Record<Lang, typeof KO> = {
     dailyLabel: (name: string) => `A typical day for ${mid(name)}`,
     light: 'Light side',
     shadow: 'Shadow side',
+    lightGeneral: 'This archetype’s light side (general)',
+    shadowGeneral: 'This archetype’s shadow side (general)',
+    stressTeaserLow: 'Under stress, do you push harder or pull away? We look at four reactions separately.',
     whyTitle: 'Why this archetype?',
     distinguishing: 'What sets you apart',
     secondaryTitle: 'Your next-closest archetype',
@@ -351,7 +357,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
 
   // 리포트 맛보기 — 원형 맞춤 첫 줄만 공개, 나머지 blur (한국어: 진로 리포트, 영어: 원형 심화 리포트)
   // 여섯 요인 모두 중간이면 원형 특성을 개인 강점처럼 쓰지 않음
-  const CHAPTER_TEASERS = t.teasers(primaryName, personalized?.lowSignal ? t.defaultTrait : (primaryDetail?.traits?.[0] ?? t.defaultTrait), primaryDetail?.shadow)
+  const CHAPTER_TEASERS = t.teasers(primaryName, personalized?.lowSignal ? t.defaultTrait : (primaryDetail?.traits?.[0] ?? t.defaultTrait), personalized?.lowSignal ? t.stressTeaserLow : primaryDetail?.shadow)
 
   return (
     <>
@@ -461,13 +467,13 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
           </p>
           {primaryDetail?.light && (
             <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.18)', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.1em', marginBottom: 5 }}>{t.light}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(167,139,250,0.7)', letterSpacing: '0.1em', marginBottom: 5 }}>{personalized?.lowSignal ? t.lightGeneral : t.light}</p>
               <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.65 }}>{primaryDetail.light}</p>
             </div>
           )}
           {primaryDetail?.shadow && (
             <div style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 10, padding: '10px 14px' }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(239,68,68,0.6)', letterSpacing: '0.1em', marginBottom: 5 }}>{t.shadow}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(239,68,68,0.6)', letterSpacing: '0.1em', marginBottom: 5 }}>{personalized?.lowSignal ? t.shadowGeneral : t.shadow}</p>
               <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.74)', lineHeight: 1.65 }}>{primaryDetail.shadow}</p>
               {personalized?.shadowNote && (
                 <p style={{ fontSize: 12.5, color: 'rgba(200,168,75,0.55)', lineHeight: 1.6, marginTop: 8, fontStyle: 'italic', borderTop: '1px solid rgba(239,68,68,0.12)', paddingTop: 8 }}>{personalized.shadowNote}</p>

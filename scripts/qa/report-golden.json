@@ -1,5 +1,5 @@
 {
-  "reportVersion": "report-2026-10-24",
+  "reportVersion": "report-2026-10-25",
   "note": "리포트 문장 골든 해시 — scripts/qa/report-golden.ts. 문구를 바꿨으면 REPORT_VERSION을 올린 뒤 QA_UPDATE_GOLDEN=1로 갱신",
   "hashes": {
     "high/find": "0203b913012ee5b2",
@@ -10,7 +10,7 @@
     "college/both": "5e9941cb101cc9c9",
     "jobseeker/find": "476e77af6fb8a12f",
     "jobseeker/do": "fb79ffaedf6b2b2f",
-    "jobseeker/both": "672a31a2dcf4964b",
+    "jobseeker/both": "56dec40c59836b1d",
     "worker/find": "be33b2aad9ad2c99",
     "worker/do": "c7104849ba31dbce",
     "worker/both": "a0fd7b031dec3e33"

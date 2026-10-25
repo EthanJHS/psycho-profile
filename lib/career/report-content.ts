@@ -995,7 +995,7 @@ function archetypeLine(s: CareerScores, archetypeName: string): string {
 const RELATED_GROUP: Record<string, string> = { 'data-eng': '데이터', 'ml-eng': '데이터' }
 
 // 발급한 리포트에 함께 저장하는 문장 엔진 버전 — 문구·규칙을 바꾸면 올린다 (이미 발급된 리포트는 저장본 그대로)
-export const REPORT_VERSION = 'report-2026-10-24'
+export const REPORT_VERSION = 'report-2026-10-25'
 
 export function buildCareerReport(s: CareerScores, archetypeName: string): CareerReport {
   const stage = s.stage
@@ -1033,7 +1033,10 @@ export function buildCareerReport(s: CareerScores, archetypeName: string): Caree
       if (stage === 'jobseeker') {
         // 지원하려는 직무군과 추천 후보의 관계를 사실만 보여 줌 — 일부 겹침을 "적합 확인"으로 포장하지 않음
         const tg = s.modules.do?.choices?.targetGroup
-        if (Array.isArray(tg) && tg.length) {
+        if (Array.isArray(tg) && tg.length && noBasis) {
+          // 추천을 보류했으면 순위 비교를 하지 않음 — 고른 직무군은 응답 그대로 두고, 확인 방법으로만 연결
+          blocks.push({ type: 'callout', tone: 'plain', title: `지원하려는 직무군: ${(tg as string[]).join(', ')}`, text: `이 직무군을 고른 건 그대로 두었어요. 이번 응답으로는 직무 순위를 매기지 않아서, 이 직무군 안에서 어느 직무가 더 맞는지도 말하지 않아요. 이 직무군의 공고 두세 개에서 실제로 하는 일을 확인하고, 위 체험 예시처럼 작게 해 본 뒤 끌림을 비교해 보세요.` })
+        } else if (Array.isArray(tg) && tg.length) {
           const groups = tg as string[]
           const ranked = (s.jobs ?? []).map((m, i) => ({ job: CAREER_JOBS.find(j => j.id === m.id)!, rank: i + 1 }))
           const inGroup = (j: (typeof CAREER_JOBS)[number]) => groups.includes(j.group) || groups.includes(RELATED_GROUP[j.id] ?? '')

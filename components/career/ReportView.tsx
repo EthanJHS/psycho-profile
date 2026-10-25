@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import type { Block, CareerReport } from '@/lib/career/report-content'
 
 // 진로 리포트 본문 — 실제 리포트와 품질 검토용 샘플이 같은 화면을 씀
@@ -22,6 +23,55 @@ function Box({ tone, children }: { tone: 'gold' | 'plain' | 'warn'; children: Re
   )
 }
 const H3 = ({ children }: { children: React.ReactNode }) => <h3 style={{ fontSize: 14, fontWeight: 700, color: GOLD, letterSpacing: '0.04em', marginBottom: 8 }}>{children}</h3>
+
+// 직접 채워 쓰는 양식 — 화면에는 칸만 보여 주고, 실제 작성은 메모 앱에서 하도록 복사 경로를 줌 (저장·재분석 없음)
+type FormB = Extract<Block, { type: 'form' }>
+function formText(b: FormB): string {
+  const rows = b.rows ?? 1
+  const body = Array.from({ length: rows }, (_, r) => [rows > 1 ? `[${r + 1}]` : '', ...b.fields.map(f => `${f}: `)].filter(Boolean).join('\n')).join('\n\n')
+  return [`■ ${b.title}`, body, b.note ? `※ ${b.note}` : ''].filter(Boolean).join('\n\n')
+}
+function FormBlock({ b }: { b: FormB }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  async function copy() {
+    try { await navigator.clipboard.writeText(formText(b)); setState('copied'); setTimeout(() => setState('idle'), 2500) }
+    catch { setState('failed') }
+  }
+  return (
+    <div style={{ border: `1px dashed ${GOLD_SOFT}`, borderRadius: 14, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>직접 채워 보기 · {b.title}</p>
+        <button type="button" onClick={copy} style={{ padding: '6px 12px', borderRadius: 999, border: `1px solid ${GOLD_SOFT}`, background: 'transparent', color: '#e2c064', cursor: 'pointer', fontSize: 12.5 }}>
+          {state === 'copied' ? '복사했어요' : '양식 복사'}
+        </button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {Array.from({ length: b.rows ?? 1 }, (_, r) => (
+          <div key={r} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: r ? 10 : 0, borderTop: r ? `1px solid ${GOLD_SOFT}` : 'none' }}>
+            {(b.rows ?? 1) > 1 && <span style={{ fontSize: 11, color: FAINT }}>{r + 1}</span>}
+            {b.fields.map(f => (
+              <div key={f} style={{ display: 'grid', gap: 4 }}>
+                <span style={{ fontSize: 12.5, color: MUTED }}>{f}</span>
+                <span style={{ height: 22, borderBottom: '1px solid rgba(239,230,210,0.18)' }} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      {b.note && <p style={{ fontSize: 12, color: FAINT, lineHeight: 1.6, marginTop: 10 }}>{b.note}</p>}
+      <p role="status" style={{ fontSize: 12, color: FAINT, lineHeight: 1.6, marginTop: 8 }}>
+        {state === 'copied' ? '메모 앱 등에 붙여 넣어 채워 보세요.' : '"양식 복사"를 누른 뒤 메모 앱 등에 붙여 넣어 채워 보세요. 여기 적은 내용은 저장되지 않아요.'}
+      </p>
+      {state === 'failed' && (
+        <div style={{ marginTop: 8 }}>
+          <label htmlFor={`form-${b.title}`} style={{ fontSize: 12, color: '#f0b27a', display: 'block', marginBottom: 4 }}>자동 복사가 막혔어요. 아래 글을 길게 눌러(또는 Ctrl+A) 직접 복사해 주세요.</label>
+          <textarea id={`form-${b.title}`} readOnly value={formText(b)} rows={6} onFocus={e => e.currentTarget.select()}
+            style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, color: TEXT, background: 'rgba(255,255,255,0.04)', border: `1px solid ${GOLD_SOFT}`, borderRadius: 8, padding: 8 }} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 function RenderBlock({ b }: { b: Block }) {
   switch (b.type) {
@@ -76,25 +126,7 @@ function RenderBlock({ b }: { b: Block }) {
         ))}
       </ol>
     )
-    case 'form': return (
-      <div style={{ border: `1px dashed ${GOLD_SOFT}`, borderRadius: 14, padding: '14px 16px' }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: GOLD, marginBottom: 10 }}>직접 채워 보기 · {b.title}</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {Array.from({ length: b.rows ?? 1 }, (_, r) => (
-            <div key={r} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: r ? 10 : 0, borderTop: r ? `1px solid ${GOLD_SOFT}` : 'none' }}>
-              {(b.rows ?? 1) > 1 && <span style={{ fontSize: 11, color: FAINT }}>{r + 1}</span>}
-              {b.fields.map(f => (
-                <div key={f} style={{ display: 'grid', gap: 4 }}>
-                  <span style={{ fontSize: 12.5, color: MUTED }}>{f}</span>
-                  <span style={{ height: 22, borderBottom: '1px solid rgba(239,230,210,0.18)' }} />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-        {b.note && <p style={{ fontSize: 12, color: FAINT, lineHeight: 1.6, marginTop: 10 }}>{b.note}</p>}
-      </div>
-    )
+    case 'form': return <FormBlock b={b} />
     case 'picks': return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {b.items.map(pk => (

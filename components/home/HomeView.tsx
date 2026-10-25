@@ -139,8 +139,8 @@ function HeroDeck({ lang }: { lang: Lang }) {
 
 // ── CORE CAREER 소개: 시기를 고르면 탐색·향상 리포트가 무엇을 담는지 보여줌 (고등학생 버전은 판매하지 않음) ──
 const CAREER_STAGES = [
-  { id: 'college', label: '대학생', find: '전공 이후 잘 맞는 직무 TOP 5, 전공 전환 고민 정리', do: '학업 전략, 팀 프로젝트와 발표에서의 나' },
-  { id: 'jobseeker', label: '취준생', find: '지원할 직무 TOP 5와 직무별 AI 변화 전망', do: '자기소개서에 쓸 강점 문장, 면접과 불합격 회복' },
+  { id: 'college', label: '대학생', find: '전공 이후 먼저 살펴볼 직무 후보, 전공 전환 고민 정리', do: '학업 전략, 팀 프로젝트와 발표에서의 나' },
+  { id: 'jobseeker', label: '취준생', find: '먼저 살펴볼 직무 후보와 직무별 AI 변화 전망', do: '자기소개서에 쓸 강점 문장, 면접과 불합격 회복' },
   { id: 'worker', label: '직장인', find: '지금 직장 진단(바꿀까, 조정할까)과 맞는 직무', do: '지금 자리에서의 성과, 잡 크래프팅, 번아웃 신호' },
 ] as const
 

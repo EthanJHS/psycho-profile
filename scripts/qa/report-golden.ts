@@ -11,7 +11,10 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { QUESTIONS } from '../../lib/scoring-hexaco'
+import { QUESTIONS, scoreHexaco } from '../../lib/scoring-hexaco'
+import { personalizeResult, isLowSignal } from '../../lib/personalize-result'
+import { PERSONALIZE_KO } from '../../lib/personalize-text-ko'
+import { PERSONALIZE_EN } from '../../lib/en/personalize-text'
 import { encodeHexacoAnswers } from '../../lib/hexaco-encoding'
 import { buildScreens } from '../../lib/career/flow'
 import { computeScores } from '../../lib/career/compute'
@@ -174,6 +177,26 @@ test('L-5 직장인 묶음: 초점이 "회복 먼저"면 같은 리포트에 전
 test('V-1 중간 점수(외향성·원만성 3.0)를 성향으로 단정하지 않음', () => {
   assert.ok(!t('jobseeker', 'do', {}).includes('차분한 인상을 주는 편'), '취준생 면접')
   assert.ok(!t('worker', 'do', { track: '팀을 이끄는 관리자' }).includes('소모가 클 수 있어요'), '직장인 관리자 트랙')
+})
+
+// 주간 제품 검토 2026-10-25 Q02: 추천을 보류했으면 지원 직무군 안내에서 순위를 말하지 않음
+test('추천 보류인 취준생 묶음: 지원 직무군 안내에 "N위"·"상위 5개" 같은 순위 문장이 없음', () => {
+  for (const v of [3, 5]) {
+    const rep = report('jobseeker', 'both', { ...baseAnswers('jobseeker', 'both'), ...Object.fromEntries(INTEREST_ITEMS.map(i => [i.id, v])), targetGroup: ['개발'] }, freeAll(3)).rep
+    assert.ok(rep.chapters.some(c => c.title.includes('보류')), `흥미 전부 ${v}점: 추천 보류여야 함 (전제 확인)`)
+    const boxes = rep.chapters.flatMap(c => c.blocks).filter(b => b.type === 'callout' && (b.title ?? '').startsWith('지원하려는 직무군'))
+    for (const b of boxes) assert.doesNotMatch(blockText(b).join(' '), /\d+위|상위 5개/, `흥미 전부 ${v}점: 직무군 안내`)
+  }
+})
+
+// 주간 제품 검토 2026-10-25: 여섯 요인이 모두 중간인 무료 결과는 능력·모집단 비교 표현을 쓰지 않음
+test('무료 결과 — 여섯 요인 모두 중간(lowSignal)이면 요인 한 줄 해석에 "평균·균형 있게·유연하게·조율" 같은 표현이 없음', () => {
+  const r = scoreHexaco(Object.fromEntries(QUESTIONS.map(q => [q.id, 3])))
+  assert.ok(isLowSignal(r), '전부 3점은 lowSignal (전제 확인)')
+  const ko = Object.values(personalizeResult(r, PERSONALIZE_KO).factorLines).join(' ')
+  assert.doesNotMatch(ko, /평균|균형 있게|유연하게|조율/, '한국어')
+  const en = Object.values(personalizeResult(r, PERSONALIZE_EN).factorLines).join(' ')
+  assert.doesNotMatch(en, /average|balanced|flexib|adapt/i, '영어')
 })
 
 // ── 5. 물어본 문항은 리포트에 영향 ───────────────────────────────────────────

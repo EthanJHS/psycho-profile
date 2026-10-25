@@ -15,32 +15,32 @@ export const PERSONALIZE_EN: PersonalizeText = {
   factorInterp: {
     H: {
       high: 'You stick to your principles and act without deception. Even when it would pay off, you won’t take an unfair route.',
-      mid: 'You balance principle and practicality depending on the situation.',
+      mid: 'Your answers didn’t lean strongly toward either principle or advantage.',
       low: 'You tend to interpret rules flexibly when there’s a goal to reach.',
     },
     E: {
       high: 'You’re sensitive to shifts in emotion and tend to feel anxious under stress. Other people’s feelings move you easily, too.',
-      mid: 'Your worry and emotional ups and downs are about average, and they vary with the situation.',
+      mid: 'You answered in the middle on items about worry, fear, and wanting to lean on others.',
       low: 'You tend to feel less worry and fear, and you often handle hard things on your own.',
     },
     X: {
       high: 'You draw energy from being around people and enjoy leading conversations and activities.',
-      mid: 'Depending on the situation, you choose between socializing and time on your own.',
+      mid: 'How much energy you get from being around people didn’t lean strongly either way.',
       low: 'You’re most comfortable alone or with a few people, and you recharge quietly.',
     },
     A: {
       high: 'You avoid conflict, value cooperation, and put energy into keeping relationships intact.',
-      mid: 'You read the situation and move flexibly between cooperating and standing your ground.',
+      mid: 'Your answers didn’t lean strongly toward either accommodating others or holding to your own standards.',
       low: 'You state your views clearly and hold to your standards rather than bending to others’ expectations.',
     },
     C: {
       high: 'You handle your work steadily and carefully, and you take commitments and deadlines seriously.',
-      mid: 'You balance structure and flexibility to fit the task at hand.',
+      mid: 'You answered in the middle on items about organization, diligence, and care.',
       low: 'You act spontaneously and flexibly, going with the flow rather than over-planning.',
     },
     O: {
       high: 'You’re strongly curious about new ideas and experiences, and you question the usual way of doing things.',
-      mid: 'You’re selectively curious, moving between the familiar and the new.',
+      mid: 'Your curiosity about new things didn’t lean strongly either way.',
       low: 'You prefer proven methods and stable surroundings, and you avoid change for its own sake.',
     },
   },

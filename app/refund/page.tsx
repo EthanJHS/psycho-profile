@@ -41,7 +41,7 @@ export default function RefundPage() {
           <ul style={{ margin: 0, paddingLeft: 20 }}>
             <li>결제 후 <b style={{ color: TEXT }}>추가 질문에 답하기 전</b>이라면, 결제일로부터 7일 이내 전액 환불해 드려요.</li>
             <li>결제는 됐는데 <b style={{ color: TEXT }}>리포트가 만들어지지 않거나 열리지 않는 경우</b>, 기간과 관계없이 전액 환불해 드려요.</li>
-            <li>리포트 내용이 <b style={{ color: TEXT }}>결제 전 안내와 현저히 다른 경우</b>, 그 사실을 안 날부터 3개월 이내(늦어도 결제일부터 30일 이내) 전액 환불해 드려요.</li>
+            <li>리포트 내용이 <b style={{ color: TEXT }}>결제 전 안내(표시·광고)나 약속한 내용과 다르게 제공된 경우</b>, 리포트를 받은 날부터 3개월 이내, 그 사실을 안 날 또는 알 수 있었던 날부터 30일 이내에 전액 환불해 드려요(전자상거래법 제17조 제3항).</li>
           </ul>
         </Section>
 

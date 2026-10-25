@@ -16,7 +16,8 @@ const RC = 'lib/career/report-content.ts'
 const MUTANTS = [
   { name: '취준생 서류 장 빠짐 (1.5단계 회귀 재현)', file: RC, edits: [["chapters.push({ title: '서류: 나를 보여주는 법', blocks: doc })", '']], expect: 'L-1' },
   { name: '문구만 바꾸고 REPORT_VERSION 그대로', file: RC, edits: [['혼자 버티기 어렵다면 전문가와 이야기해 보는 것도 좋은 방법이에요', '혼자 버티기 어렵다면 전문가와 상의해 보세요']], expect: 'REPORT_VERSION' },
-  { name: '문구 변경 없이 REPORT_VERSION만 올림', file: RC, edits: [["REPORT_VERSION = 'report-2026-10-24'", "REPORT_VERSION = 'report-2026-10-25'"]], expect: 'REPORT_VERSION' },
+  // 버전 값은 바뀌므로 파일에서 현재 값을 읽어 뒤에 '-x'를 붙인다 (하드코딩하면 버전을 올릴 때마다 "건너뜀")
+  { name: '문구 변경 없이 REPORT_VERSION만 올림', file: RC, edits: src => { const m = src.match(/REPORT_VERSION = '([^']+)'/); return m ? [[m[0], `REPORT_VERSION = '${m[1]}-x'`]] : [["REPORT_VERSION = '", "REPORT_VERSION = '"]] }, expect: 'REPORT_VERSION' },
   { name: '직장인 "본인은 안 맞다고 느낌" 진단 제거 (L-3 회귀)', file: RC, edits: [["if (hi(d.misfit)) return 'feltMisfit'", '']], expect: 'L-3' },
   { name: '강점 인식(WS12) 응답을 리포트에서 안 씀', file: RC, edits: [['if (lo(st.strengthClarity))', 'if (false && lo(st.strengthClarity))']], expect: '물어본 문항' },
   { name: '화면이 form 블록을 못 그림', file: 'components/career/ReportView.tsx', edits: [["case 'form':", "case 'form-old':"]], expect: '화면이 그릴 수 있는 블록' },
@@ -44,9 +45,10 @@ try {
       const path = join(dir, m.file)
       const orig = readFileSync(path, 'utf8')
       let src = orig
-      const bad = m.edits.find(([from]) => src.split(from).length - 1 !== 1)
+      const edits = typeof m.edits === 'function' ? m.edits(orig) : m.edits
+      const bad = edits.find(([from, to]) => src.split(from).length - 1 !== 1 || from === to)
       if (bad) { console.log(`⚠ 건너뜀   ${m.name} — 대상 문자열이 ${m.file}에 정확히 한 번 있지 않음 (코드가 바뀌었으면 변이 목록 갱신)`); continue }
-      for (const [from, to] of m.edits) src = src.replace(from, to)
+      for (const [from, to] of edits) src = src.replace(from, to)
       writeFileSync(path, src)
       const r = run(dir)
       writeFileSync(path, orig)

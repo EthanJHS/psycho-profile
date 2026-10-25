@@ -6,12 +6,13 @@ import { scoreHexaco, HexacoResult } from '@/lib/scoring-hexaco'
 import { saveHexacoResult, trackHexaco } from '@/lib/analytics'
 import { decodeHexacoAnswers } from '@/lib/hexaco-encoding'
 import { CONTENT, HEXACO_VERSION_BY_LANG, PATHS, STORAGE, type Lang } from '@/lib/i18n'
-import { isCloseCall } from '@/lib/personalize-result'
+import { isCloseCall, isLowSignal } from '@/lib/personalize-result'
 
 // 결과 첫 화면(각성 로딩 → 원형 히어로) — 한국어(/hexaco-result)·영어(/en/result) 공용
 const KO = {
   loading: ['응답 패턴을 분석하는 중...', '원형과의 거리를 계산하는 중...', '당신의 원형이 깨어나고 있습니다...', '가장 가까운 원형을 고르는 중...'],
   yourArchetype: '나와 가장 가까운 원형',
+  yourArchetypeLow: '응답과 가장 가까운 원형 · 여섯 요인 모두 중간',
   closeTo: (name: string) => `거의 같은 거리에 ${name}도 있어요`,
   cta: '원형에 대해 자세히 알아보기 →',
 }
@@ -22,6 +23,7 @@ const T: Record<Lang, typeof KO> = {
   en: {
     loading: ['Analyzing your answer patterns...', 'Measuring the distance to each archetype...', 'Your archetype is waking up...', 'Picking your closest archetype...'],
     yourArchetype: 'Your closest archetype',
+    yourArchetypeLow: 'Closest to your answers · all six factors mid-range',
     closeTo: (name: string) => `${name} is almost as close`,   // 문장 첫머리라 The 그대로
     cta: 'Explore your archetype →',
   },
@@ -221,7 +223,7 @@ function ResultHeroInner({ lang }: { lang: Lang }) {
           // 영어판은 이름 자체가 영문이라 보조 표기를 생략
           nameEn={lang === 'ko' ? detail?.nameEn : undefined}
           tagline={detail?.tagline}
-          eyebrow={t.yourArchetype}
+          eyebrow={isLowSignal(result) ? t.yourArchetypeLow : t.yourArchetype}
           cta={t.cta}
           onCta={goToReport}
           // 1·2위가 거의 붙어 있으면 두 번째 원형도 함께 알림 (미리보기 제외)
