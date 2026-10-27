@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { ARCHETYPE_DETAILS } from '@/lib/archetypes-hexaco'
 import { ARCHETYPES } from '@/lib/scoring-hexaco'
 import { HEXACO_QUESTIONS } from '@/lib/questions-hexaco'
-import { ADMIN_SIM_KEY } from '@/lib/analytics'
+import { ADMIN_SIM_KEY, TEST_DEVICE_KEY, isTestDevice } from '@/lib/analytics'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 type Factor = 'H' | 'E' | 'X' | 'A' | 'C' | 'O'
@@ -25,6 +25,7 @@ interface Stats {
     completion_rate_14d: number
     by_version: Record<string, number>
     waitlist: number
+    excluded_test?: { sessions_14d: number; tests: number; events_14d: number }
   }
   result_funnel: {
     completed: number; result_view: number; report_click: number; report_view: number
@@ -303,7 +304,7 @@ function OverviewSection({ stats }: { stats: Stats }) {
   const versions = Object.entries(o.by_version).map(([v, n]) => `${v} ${n}`).join(' · ')
   return (
     <section style={{ marginBottom: 32 }}>
-      <SectionHeader title="주요 지표" sub="HEXACO 검사 기준 (구버전 /test 제외)" />
+      <SectionHeader title="주요 지표" sub={`HEXACO 검사 기준 (구버전 /test 제외)${o.excluded_test ? ` · 테스트 기기 기록 제외: 검사 ${o.excluded_test.tests}건, 방문 ${o.excluded_test.sessions_14d}건(14일)` : ''}`} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
         <StatCard label="방문 (14일)" value={o.visits_14d.toLocaleString()} />
         <StatCard label="검사 시작 (누적)" value={o.started_total.toLocaleString()} color="#818cf8" />
@@ -865,6 +866,45 @@ function HealthBanner({ health }: { health: NonNullable<Stats['health']> }) {
   )
 }
 
+// ── 테스트 기기 표시 ─────────────────────────────────────────────────────────
+// 이 브라우저에서 생기는 방문·무료 검사·화면 기록에 is_test 표시를 붙여 통계에서 뺀다 (lib/analytics.ts)
+const TEST_DEVICE_EVENT = 'pp-test-device'
+function subscribeTestDevice(cb: () => void) {
+  window.addEventListener('storage', cb)
+  window.addEventListener(TEST_DEVICE_EVENT, cb)
+  return () => { window.removeEventListener('storage', cb); window.removeEventListener(TEST_DEVICE_EVENT, cb) }
+}
+
+function TestDeviceToggle() {
+  const on = useSyncExternalStore(subscribeTestDevice, isTestDevice, () => false)
+  function toggle() {
+    try {
+      if (on) localStorage.removeItem(TEST_DEVICE_KEY)
+      else localStorage.setItem(TEST_DEVICE_KEY, '1')
+    } catch { /* 저장소를 쓸 수 없는 브라우저 */ }
+    window.dispatchEvent(new Event(TEST_DEVICE_EVENT))
+  }
+  return (
+    <section style={{ marginBottom: 32, padding: '16px 18px', borderRadius: 14, border: `1px solid ${on ? 'rgba(52,211,153,0.35)' : 'rgba(255,255,255,0.1)'}`, background: on ? 'rgba(52,211,153,0.06)' : 'rgba(255,255,255,0.02)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+            이 브라우저를 테스트 기기로 표시{' '}
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, marginLeft: 4, color: on ? '#34d399' : 'rgba(255,255,255,0.45)', border: `1px solid ${on ? 'rgba(52,211,153,0.4)' : 'rgba(255,255,255,0.15)'}` }}>{on ? '켜짐' : '꺼짐'}</span>
+          </p>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 6, lineHeight: 1.6 }}>
+            켜 두면 이 브라우저에서 한 방문·무료 검사·화면 기록에 테스트 표시가 붙고, 아래 통계에서 빠져요.<br />
+            켜기 전에 남긴 기록에는 붙지 않아요. 휴대폰 등 다른 기기는 그 기기에서 이 화면을 열어 따로 켜야 하고, 브라우저 데이터를 지우면 꺼져요.
+          </p>
+        </div>
+        <button onClick={toggle} style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(200,160,48,0.4)', background: 'rgba(200,160,48,0.12)', color: '#e2c064' }}>
+          {on ? '표시 끄기' : '표시 켜기'}
+        </button>
+      </div>
+    </section>
+  )
+}
+
 // ── 메인 ─────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -913,6 +953,8 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      <TestDeviceToggle />
 
       {/* 원형 미리보기 그리드 (항상 표시) */}
       <ArchetypePreviewGrid />

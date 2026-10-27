@@ -57,9 +57,9 @@ export async function GET(req: NextRequest) {
   const since14 = new Date(Date.now() - 14 * DAY).toISOString()
 
   const [sessionsRes, testsRes, eventsRes, recentRes, waitlistRes, surveyRes] = await Promise.all([
-    sb.from('sessions').select('id, device, created_at, referrer, utm_source, utm_campaign, landing_path').gte('created_at', since14),
+    sb.from('sessions').select('id, device, created_at, referrer, utm_source, utm_campaign, landing_path, is_test').gte('created_at', since14),
     sb.from('test_sessions')
-      .select('session_id, started_at, completed_at, test_version, research_consent, archetype_primary, hexaco_h, hexaco_e, hexaco_x, hexaco_a, hexaco_c, hexaco_o, hexaco_answers')
+      .select('session_id, started_at, completed_at, test_version, research_consent, archetype_primary, hexaco_h, hexaco_e, hexaco_x, hexaco_a, hexaco_c, hexaco_o, hexaco_answers, is_test')
       .like('test_version', 'hexaco%'),
     sb.from('events').select('event_type, metadata, created_at')
       .in('event_type', ['hexaco_result_view', 'hexaco_report_click', 'hexaco_report_view', 'hexaco_unlock_click', 'hexaco_share', 'hexaco_card_save', 'hexaco_compare_create', 'hexaco_compare_view', 'waitlist_signup', 'free_test_abandon', 'result_scroll_depth'])
@@ -69,8 +69,19 @@ export async function GET(req: NextRequest) {
     sb.from('survey_responses').select('rating, opinion, result_type, test_version, created_at').eq('result_type', 'hexaco').order('created_at', { ascending: false }).limit(500),
   ])
 
-  const tests = ((testsRes.data ?? []) as Row[]).filter(t => inLang(t.test_version))
-  const events = ((eventsRes.data ?? []) as Row[]).filter(eventInLang)
+  // 테스트 기기 기록(is_test)은 통계에서 뺀다 — 관리자 화면에서 "테스트 기기로 표시"를 켠 브라우저의 기록
+  const isTestEvent = (e: Row) => (e.metadata as Row)?.is_test === true
+  const allTests = ((testsRes.data ?? []) as Row[]).filter(t => inLang(t.test_version))
+  const allSessions = (sessionsRes.data ?? []) as Row[]
+  const allEvents = ((eventsRes.data ?? []) as Row[]).filter(eventInLang)
+  const tests = allTests.filter(t => t.is_test !== true)
+  const realSessions = allSessions.filter(s => s.is_test !== true)
+  const events = allEvents.filter(e => !isTestEvent(e))
+  const excluded_test = {
+    sessions_14d: allSessions.length - realSessions.length,
+    tests: allTests.length - tests.length,
+    events_14d: allEvents.length - events.length,
+  }
   const completed = tests.filter(t => t.completed_at)
   const answered = completed.filter(t => t.hexaco_answers && typeof t.hexaco_answers === 'object') as (Row & { hexaco_answers: Record<string, number> })[]
 
@@ -79,12 +90,13 @@ export async function GET(req: NextRequest) {
   const started14 = tests.filter(t => String(t.started_at) >= since14)
   const completed14 = started14.filter(t => t.completed_at)
   const overview = {
-    visits_14d: sessionsRes.data?.length ?? 0,
+    visits_14d: realSessions.length,
     started_total: tests.length,
     completed_total: completed.length,
     completion_rate_14d: started14.length ? Math.round(completed14.length / started14.length * 100) : 0,
     by_version: countBy(completed, t => String(t.test_version)),
     waitlist: waitlistRes.count ?? 0,
+    excluded_test,
   }
 
   // ── 결과 화면 퍼널 (최근 14일, 검사 1회당 1번씩 기록됨) ──
@@ -110,7 +122,7 @@ export async function GET(req: NextRequest) {
 
   // ── 유입 경로별 성과 (최근 14일): 방문 → 검사 시작 → 완료 ──
   // 광고 링크의 utm_source·utm_campaign 기준. 없으면 들어온 사이트, 그것도 없으면 직접 방문
-  const visits = ((sessionsRes.data ?? []) as Row[]).filter(s => (String(s.landing_path ?? '').startsWith('/en') ? 'en' : 'ko') === lang)
+  const visits = realSessions.filter(s => (String(s.landing_path ?? '').startsWith('/en') ? 'en' : 'ko') === lang)
   const sourceOf = (s: Row) => {
     if (s.utm_source) return `${s.utm_source}${s.utm_campaign ? ` / ${s.utm_campaign}` : ''}`
     try {
@@ -201,7 +213,7 @@ export async function GET(req: NextRequest) {
   }))
 
   // ── 디바이스 (최근 14일 방문) ──
-  const device_distribution = countBy((sessionsRes.data ?? []) as Row[], s => (s.device as string) ?? 'unknown')
+  const device_distribution = countBy(realSessions, s => (s.device as string) ?? 'unknown')
 
   // ── 설문 ──
   const surveys = ((surveyRes.data ?? []) as Row[]).filter(s => inLang(s.test_version))

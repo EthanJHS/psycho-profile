@@ -48,6 +48,16 @@ function getLanding(): Landing {
   return landing!
 }
 
+// ── 테스트 기기 표시 ──────────────────────────
+// 관리자 화면에서 켜면 이 브라우저(localStorage)에 남는다. 켜져 있으면 방문·검사·이벤트 기록에 is_test 표시를 붙여
+// 관리자 통계에서 빼고 센다. 표시는 테스트 기기에서만 보낸다 — 일반 사용자 저장 내용은 바뀌지 않음
+export const TEST_DEVICE_KEY = 'pp_test_device'
+export function isTestDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  try { return localStorage.getItem(TEST_DEVICE_KEY) === '1' } catch { return false }
+}
+const testMark = (): { is_test?: true } => (isTestDevice() ? { is_test: true } : {})
+
 // ── 디바이스 구분 ─────────────────────────────
 function getDevice(): string {
   const ua = navigator.userAgent
@@ -80,6 +90,7 @@ async function insertSession(id: string) {
     utm_medium: getLanding().utm_medium,
     utm_campaign: getLanding().utm_campaign,
     landing_path: getLanding().path,
+    ...testMark(),
   })
 
   // 23505 = 이미 저장된 세션 (중복) → 저장된 것으로 간주
@@ -100,7 +111,7 @@ export async function trackEvent(
     session_id: sessionId || null,
     test_session_id: testSessionId || null,
     event_type: eventType,
-    metadata: { lang: currentLang(), ...metadata },
+    metadata: { lang: currentLang(), ...metadata, ...testMark() },
   })
 }
 
@@ -131,6 +142,7 @@ export async function startTestSession(testVersion?: string, consent?: TestConse
     is_sample: true,
     device_profile_id: profileId,
     test_version: testVersion ?? null,
+    ...testMark(),
     ...(consent ? { consent_version: privacyVersion(isEnVersion(testVersion) ? 'en' : 'ko'), research_consent: consent.research, consented_at: new Date().toISOString() } : {}),
   })
 
@@ -154,7 +166,7 @@ export function sendAbandonBeacon(questionIndex: number, total: number, source: 
   const body = JSON.stringify({
     session_id: sessionId,
     event_type: `${source}_test_abandon`,
-    metadata: { question_index: questionIndex, total, pct: Math.round(questionIndex / total * 100), source, lang: currentLang() },
+    metadata: { question_index: questionIndex, total, pct: Math.round(questionIndex / total * 100), source, lang: currentLang(), ...testMark() },
   })
   fetch(url, {
     method: 'POST',
