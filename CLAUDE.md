@@ -80,4 +80,5 @@ proxy.ts가 잠그는 경로는 /admin, /api/admin, /career/samples뿐. Next.js 
   이 값은 저장 성공 뒤에만 기록된다(실패 시 1.5초 뒤 1회 재시도, 그래도 실패면 다음 결과 열람 때 재시도).
   무료 결과는 48문항이 모두 1~5 정수일 때만 저장한다(lib/analytics.ts saveHexacoResult).
 - 미해결(DB 변경 필요): 저장 RPC는 브라우저가 계산해 보낸 점수를 그대로 저장한다(서버 재채점 없음).
-  익명 사용자의 test_sessions 임의 insert가 열려 있다는 보고가 있다(2026-10-27, 미확인).
+  익명 사용자(anon)가 test_sessions·sessions·events에 임의 insert 가능(with check true, 확인됨: 2026-10-27 정책 조회).
+  검사 시작 insert 때문에 열어 둔 것으로, 닫으려면 검사 시작을 서버 라우트로 옮겨야 한다(DB 변경, 미착수).
