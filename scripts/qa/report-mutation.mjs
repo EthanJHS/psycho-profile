@@ -21,6 +21,10 @@ const MUTANTS = [
   { name: '직장인 "본인은 안 맞다고 느낌" 진단 제거 (L-3 회귀)', file: RC, edits: [["if (hi(d.misfit)) return 'feltMisfit'", '']], expect: 'L-3' },
   { name: '강점 인식(WS12) 응답을 리포트에서 안 씀', file: RC, edits: [['if (lo(st.strengthClarity))', 'if (false && lo(st.strengthClarity))']], expect: '물어본 문항' },
   { name: '화면이 form 블록을 못 그림', file: 'components/career/ReportView.tsx', edits: [["case 'form':", "case 'form-old':"]], expect: '화면이 그릴 수 있는 블록' },
+  { name: '무료 문구에 단정 표현 추가', file: 'lib/personalize-text-ko.ts', edits: [["mid: '두려움, 걱정, 기대고 싶은 마음", "mid: '반드시 두려움, 걱정, 기대고 싶은 마음"]], expect: '단정·보장 표현' },
+  { name: '구분 특징에 중간 요인도 포함 (감사 A-2 회귀)', file: 'lib/personalize-result.ts', edits: [[".filter(x => x.lv !== 'mid')", '']], expect: '나를 구분하는 특징' },
+  { name: '무료 응답 검증 범위 0~5로 느슨해짐', file: 'lib/analytics.ts', edits: [['v >= 1 && v <= 5', 'v >= 0 && v <= 5']], expect: 'isValidHexacoAnswers' },
+  { name: '저장 전 응답 검증 건너뜀 (감사 A-3 회귀)', file: 'lib/analytics.ts', edits: [['if (!isValidHexacoAnswers(answers)) {', 'if (false) {']], expect: '저장 순서' },
   { name: '열람할 때마다 다시 조립 (저장본 무시)', file: 'app/api/career/[id]/route.ts', edits: [['if (!data.report && data.scores)', 'if (data.scores)']], expect: '발급 리포트 고정' },
 ]
 
