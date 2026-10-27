@@ -46,8 +46,13 @@ proxy.ts가 잠그는 경로는 /admin, /api/admin, /career/samples뿐. Next.js 
 - core-trait.com(운영)을 대상으로 검사 제출
 
 ## 데이터 격리 (테스트)
-- 테스트 데이터를 DB에서 구분할 표시가 없다(pp_admin_sim은 검사 화면이 지우고, 검사 시작 insert는 막지 못함).
-  그러니 E2E는 localhost에서만, 브라우저의 외부 요청과 /api/*는 전부 가로채 목 응답으로 처리하고,
+- 테스트 기기 표시(2026-10-26): /admin 맨 위 "이 브라우저를 테스트 기기로 표시"를 켜면
+  그 브라우저(localStorage pp_test_device='1')의 기록에 표시가 붙는다 —
+  sessions·test_sessions는 is_test=true, events·이탈 비콘은 metadata.is_test=true.
+  관리자 통계는 이 기록을 빼고 센다. 유료 테스트 주문은 orders.provider='admin'.
+  - 한계: 켜기 전 기록, 켜지 않은 브라우저·기기의 기록에는 표시가 없다.
+- 사람이 손으로 하는 테스트는 테스트 기기 표시를 켠 브라우저에서 한다.
+- E2E는 그래도 localhost에서만, 브라우저의 외부 요청과 /api/*는 전부 가로채 목 응답으로 처리하고,
   실제 Supabase 도달 0건을 테스트에서 확인한다.
 - .env* 파일은 읽거나 출력하지 않는다. 키 값을 대화·로그에 남기지 않는다.
 - 공개 저장소다. 비밀·실제 응답 데이터·내부 사업 정보를 커밋하지 않는다.
@@ -72,3 +77,7 @@ proxy.ts가 잠그는 경로는 /admin, /api/admin, /career/samples뿐. Next.js 
 ## 알려진 운영 함정
 - Supabase 무료 플랜 자동 일시정지 → 저장이 조용히 실패. 데이터가 비면 상태부터 확인.
 - 결과 화면 새로고침 시 중복 저장 방지는 sessionStorage(pp_hexaco_saved)에 의존.
+  이 값은 저장 성공 뒤에만 기록된다(실패 시 1.5초 뒤 1회 재시도, 그래도 실패면 다음 결과 열람 때 재시도).
+  무료 결과는 48문항이 모두 1~5 정수일 때만 저장한다(lib/analytics.ts saveHexacoResult).
+- 미해결(DB 변경 필요): 저장 RPC는 브라우저가 계산해 보낸 점수를 그대로 저장한다(서버 재채점 없음).
+  익명 사용자의 test_sessions 임의 insert가 열려 있다는 보고가 있다(2026-10-27, 미확인).
