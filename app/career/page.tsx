@@ -148,7 +148,6 @@ export default function CareerStartPage() {
   if (askConsent) return <ConsentSheet onAgree={c => { saveConsent(c); setAskConsent(false); buy() }} />
 
   const price = PRICES[plan]
-  const minutes = Math.ceil(itemCount(stage, plan) * 8 / 60)
   const canBuy = !!hasHexaco && refundAck && !busy
 
   return (
@@ -216,7 +215,7 @@ export default function CareerStartPage() {
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: MUTED, lineHeight: 1.75 }}>
                 {[...CONTENTS[plan], ...COMMON].map(c => <li key={c}>{c}</li>)}
               </ul>
-              <p style={{ fontSize: 12.5, color: FAINT, marginTop: 8 }}>결제 후 추가 질문 {itemCount(stage, plan)}개 (약 {minutes}분)에 답하면 바로 만들어져요. 리포트는 링크로 언제든 다시 볼 수 있어요.</p>
+              <p style={{ fontSize: 12.5, color: FAINT, marginTop: 8 }}>결제 후 추가 질문 {itemCount(stage, plan)}개에 답하면 바로 만들어져요. 리포트는 링크로 언제든 다시 볼 수 있어요.</p>
             </div>
 
             <div style={{ borderRadius: 14, padding: '14px 16px', border: '1px solid rgba(200,160,48,0.25)', background: 'rgba(21,17,28,0.8)', marginBottom: 14 }}>
