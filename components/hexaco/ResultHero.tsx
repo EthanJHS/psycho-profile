@@ -6,7 +6,7 @@ import { scoreHexaco, HexacoResult } from '@/lib/scoring-hexaco'
 import { saveHexacoResult, trackHexaco } from '@/lib/analytics'
 import { decodeHexacoAnswers } from '@/lib/hexaco-encoding'
 import { CONTENT, HEXACO_VERSION_BY_LANG, PATHS, STORAGE, type Lang } from '@/lib/i18n'
-import { isCloseCall, isLowSignal } from '@/lib/personalize-result'
+import { isCloseCall, isExactTie, isLowSignal } from '@/lib/personalize-result'
 
 // 결과 첫 화면(각성 로딩 → 원형 히어로) — 한국어(/hexaco-result)·영어(/en/result) 공용
 const KO = {
@@ -14,6 +14,7 @@ const KO = {
   yourArchetype: '나와 가장 가까운 원형',
   yourArchetypeLow: '응답과 가장 가까운 원형 · 여섯 요인 모두 중간',
   closeTo: (name: string) => `거의 같은 거리에 ${name}도 있어요`,
+  tieWith: (name: string) => `${name}도 똑같은 거리예요 · 같은 거리의 원형이 더 있을 수 있어요`,
   cta: '원형에 대해 자세히 알아보기 →',
 }
 
@@ -25,6 +26,7 @@ const T: Record<Lang, typeof KO> = {
     yourArchetype: 'Your closest archetype',
     yourArchetypeLow: 'Closest to your answers · all six factors mid-range',
     closeTo: (name: string) => `${name} is almost as close`,   // 문장 첫머리라 The 그대로
+    tieWith: (name: string) => `${name} is exactly as close · other archetypes may be too`,
     cta: 'Explore your archetype →',
   },
 }
@@ -227,7 +229,7 @@ function ResultHeroInner({ lang }: { lang: Lang }) {
           cta={t.cta}
           onCta={goToReport}
           // 1·2위가 거의 붙어 있으면 두 번째 원형도 함께 알림 (미리보기 제외)
-          closeNote={!previewId && isCloseCall(result) ? t.closeTo(archetypes[result.secondary.id]?.name ?? result.secondary.name) : undefined}
+          closeNote={!previewId && isCloseCall(result) ? (isExactTie(result) ? t.tieWith : t.closeTo)(archetypes[result.secondary.id]?.name ?? result.secondary.name) : undefined}
         />
       </main>
     </>

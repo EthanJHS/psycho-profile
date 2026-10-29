@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { scoreHexaco, HexacoResult, HexacoFactor } from '@/lib/scoring-hexaco'
-import { personalizeResult, PersonalizedResult, isCloseCall } from '@/lib/personalize-result'
+import { personalizeResult, PersonalizedResult, isCloseCall, isExactTie } from '@/lib/personalize-result'
 import { CONTENT, PATHS, STORAGE, type Lang } from '@/lib/i18n'
 import { COMPARE_PENDING_KEY, decodeCompareCode, encodeCompareCode } from '@/lib/compare'
 import Link from 'next/link'
@@ -61,20 +61,24 @@ const KO = {
   // 구매 화면 주소 — 있으면 버튼이 그리로 이동, 없으면(영어판) 출시 알림 신청
   buyHref: '/career' as string | null,
   backToHero: '← 원형 이미지로 돌아가기',
-  interpTitle: '원형 해석',
-  lowSignalNote: '이번 응답은 여섯 요인이 모두 중간 범위라, 두드러진 개인 특성을 특정하기 어려워요. 아래는 응답 형태와 가장 가까운 원형의 일반 소개이며, 당신의 강점이나 능력을 확인한 결과는 아니에요.',
+  interpTitle: '원형 소개',
+  archetypeCommonNote: '같은 원형이 나온 모든 사람에게 똑같이 보이는 일반 소개예요. 내 응답에서 나온 이야기는 위 “왜 이 원형인가요?”와 아래 6요인을 봐 주세요.',
+  skewNote: '48문항 대부분에 같은 답을 골랐어요. 같은 답이 많으면 응답 습관이 점수에 크게 반영돼, 여섯 요인이 함께 높거나 낮게 나올 수 있어요. 결과가 나와 다르게 느껴지면 문항마다 평소의 나를 떠올리며 다시 해 보세요.',
+  lowSignalNote: '이번 응답은 여섯 요인이 모두 중간 범위라, 두드러진 개인 특성을 특정하기 어려워요. 아래 “원형 소개”는 응답과 가장 가까운 원형의 일반 소개이며, 강점이나 능력을 확인한 결과는 아니에요.',
   archetypeIntro: (name: string) => `${name} 원형은 이런 모습을 상징해요`,
   dailyLabel: (name: string) => `${name}의 흔한 하루`,
   light: '빛의 면',
   shadow: '그림자의 면',
+  shadowNoteLabel: '내 응답 기준 · ',
   lightGeneral: '이 원형의 빛 (일반 소개)',
   shadowGeneral: '이 원형의 그림자 (일반 소개)',
   stressTeaserLow: '스트레스가 쌓였을 때 나는 더 매달리는 쪽일까, 피하는 쪽일까. 네 가지 반응을 따로 살펴봐요.',
   whyTitle: '왜 이 원형인가요?',
   distinguishing: '나를 구분하는 특징',
   secondaryTitle: '두 번째로 가까운 원형',
-  closeNote: (a: string, b: string) => `이번 응답에서 ${w(a, '과/와')} ${b}는 거의 같은 거리였어요. 두 원형 설명을 함께 나를 설명하는 말로 읽어 주세요.`,
+  closeNote: (a: string, b: string) => `이번 응답에서 ${w(a, '과/와')} ${b}는 거의 같은 거리였어요. 어느 한쪽으로 정하기보다 두 원형 소개를 함께 참고해 주세요.`,
   closeNoteLow: (a: string, b: string) => `이번 응답에서 ${w(a, '과/와')} ${b}는 거의 같은 거리였어요. 여섯 요인이 모두 중간이라 어느 쪽도 나를 뚜렷하게 설명한다고 보기는 어려워요.`,
+  tieNote: (a: string, b: string) => `이번 응답에서 ${w(a, '과/와')} ${b}는 똑같은 거리였어요. 같은 거리의 원형이 더 있을 수도 있어서, 맨 위 이름은 미리 정해 둔 규칙(조건이 더 많은 원형 우선, 같으면 목록 순서)으로 하나를 보여 준 거예요. 원형 이름보다 아래 6요인 점수를 중심으로 읽어 주세요.`,
   factorsTitle: 'HEXACO 요인 프로파일',
   scoreNote: '점수는 요인별 8문항 응답의 평균(1~5)이에요. 3이 중간이고, 다른 사람과 비교한 순위(백분위)는 아니에요. HEXACO는 학술 연구에서 널리 쓰이는 성격 모델이고, 이 48문항과 22가지 원형은 CORE TRAIT가 그 모델을 바탕으로 직접 만든 것으로 아직 대규모 검증 전이에요. 결과는 나를 이해하는 참고 자료이며 진단이나 중요한 결정의 유일한 근거로 쓰지 말아 주세요.',
   tipTitle: '오늘의 실천 팁',
@@ -96,7 +100,8 @@ const KO = {
   flashCardSaved: '카드 이미지를 저장했습니다',
   flashCardFail: '이미지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요',
   copyLink: '내 결과 링크 복사',
-  shareNote: '원형 공유는 원형 소개만 보여줍니다. 내 결과 링크에는 내 점수가 담겨 있으니 본인만 보관하세요.',
+  // 결과 링크(?r=)는 48개 응답 전체를 담는다 (lib/hexaco-encoding.ts, 암호화 아님)
+  shareNote: '원형 공유는 원형 소개만 보여줍니다. 내 결과 링크에는 48개 문항에 대한 내 응답이 모두 담겨 있어, 링크를 가진 사람은 누구나 내 결과를 그대로 볼 수 있어요. 본인만 보관하세요.',
   testNo: '검사 번호',
   deleteNote: (privacy: React.ReactNode) => <>저장된 내 응답의 삭제를 원하면 이 번호와 함께 {privacy}의 연락처로 요청해 주세요.</>,
   privacy: '개인정보 처리방침',
@@ -131,20 +136,24 @@ const T: Record<Lang, typeof KO> = {
     stickyCta: 'Get notified at launch',
     buyHref: null,
     backToHero: '← Back to your archetype card',
-    interpTitle: 'Your archetype',
-    lowSignalNote: 'All six factors came out in the middle range this time, so no single trait stands out. What follows is a general introduction to the archetype closest to your answers, not a confirmed strength or ability of yours.',
+    interpTitle: 'About this archetype',
+    archetypeCommonNote: 'This is a general introduction that everyone with this archetype sees. For what came from your own answers, see “Why this archetype?” above and the six factors below.',
+    skewNote: 'You chose the same answer for most of the 48 questions. When that happens, answering habits can shape the scores a lot, so all six factors may come out high or low together. If the result doesn’t feel like you, try again, thinking about how you usually are for each question.',
+    lowSignalNote: 'All six factors came out in the middle range this time, so no single trait stands out. The “About this archetype” section below is a general introduction to the archetype closest to your answers, not a confirmed strength or ability of yours.',
     archetypeIntro: (name: string) => `What ${mid(name)} archetype stands for`,
     dailyLabel: (name: string) => `A typical day for ${mid(name)}`,
     light: 'Light side',
     shadow: 'Shadow side',
+    shadowNoteLabel: 'Based on your answers · ',
     lightGeneral: 'This archetype’s light side (general)',
     shadowGeneral: 'This archetype’s shadow side (general)',
     stressTeaserLow: 'Under stress, do you push harder or pull away? We look at four reactions separately.',
     whyTitle: 'Why this archetype?',
     distinguishing: 'What sets you apart',
     secondaryTitle: 'Your next-closest archetype',
-    closeNote: (a: string, b: string) => `${a} and ${mid(b)} were almost equally close this time. Read both as describing you.`,
+    closeNote: (a: string, b: string) => `${a} and ${mid(b)} were almost equally close this time. Rather than picking one, read both introductions together.`,
     closeNoteLow: (a: string, b: string) => `${a} and ${mid(b)} were almost equally close this time. With all six factors in the middle range, neither one clearly describes you.`,
+    tieNote: (a: string, b: string) => `${a} and ${mid(b)} were exactly as close this time. Other archetypes may be just as close, so the name at the top was picked by a fixed rule (more defining factors first, then list order). Read the six factor scores below rather than the archetype name.`,
     factorsTitle: 'HEXACO factor profile',
     scoreNote: 'Each score is the average (1–5) of your answers to that factor’s 8 questions. 3 is the midpoint — it isn’t a ranking against other people (percentile). HEXACO is a personality model widely used in academic research; these 48 questions and 22 archetypes were created by CORE TRAIT based on that model and haven’t been validated at scale yet. Use your result as a way to understand yourself, not as a diagnosis or the only basis for an important decision.',
     tipTitle: 'Try this today',
@@ -165,7 +174,7 @@ const T: Record<Lang, typeof KO> = {
     flashCardSaved: 'Card image saved',
     flashCardFail: 'Couldn’t load the image. Please try again in a moment',
     copyLink: 'Copy my result link',
-    shareNote: 'Sharing shows only your archetype’s description. Your result link includes your scores, so keep it to yourself.',
+    shareNote: 'Sharing shows only your archetype’s description. Your result link contains all your answers to the 48 questions, so anyone with the link can see your full result. Keep it to yourself.',
     testNo: 'Test ID',
     deleteNote: (privacy: React.ReactNode) => <>To have your saved answers deleted, send us this ID using the contact in our {privacy}.</>,
     privacy: 'Privacy Policy',
@@ -255,7 +264,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
       if (restored) sessionStorage.setItem(answersKey, raw)
       const r = scoreHexaco(answers)
       setResult(r)
-      setPersonalized(personalizeResult(r, texts))
+      setPersonalized(personalizeResult(r, texts, answers))
       if (!restored) trackHexaco('hexaco_report_view', { archetype_primary: r.primary.id }).catch(() => {})
     } catch {
       router.replace(paths.test)
@@ -451,11 +460,36 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
       {/* 보고서 본문 */}
       <div className="w-full px-4" style={{ maxWidth: 480 }}>
 
-        {/* 원형 해석 */}
+        {/* 왜 이 원형인가 + 구분하는 특징 — 내 응답에서 나온 이야기를 원형 공통 소개보다 먼저 (2026-10-29) */}
+        {personalized && (
+          <Tome label={t.whyTitle} accent="gold">
+            {/* 48문항 대부분 같은 답 — 응답 습관 영향 안내 (모두 중간이면 아래 lowSignal 안내가 대신함) */}
+            {personalized.answerSkew && !personalized.lowSignal && (
+              <p style={{ fontSize: 13, color: 'rgba(200,168,75,0.8)', lineHeight: 1.7, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(200,168,75,0.25)' }}>{t.skewNote}</p>
+            )}
+            {personalized?.lowSignal && (
+              <p style={{ fontSize: 13, color: 'rgba(200,168,75,0.75)', lineHeight: 1.7, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(200,168,75,0.25)' }}>{t.lowSignalNote}</p>
+            )}
+            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.85, marginBottom: 14 }}>
+              {personalized.whyText}
+            </p>
+            {personalized.distinguishingTraits.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,168,75,0.55)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>{t.distinguishing}</p>
+                {personalized.distinguishingTraits.map((trait, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: 'rgba(200,168,75,0.5)', marginTop: 2, flexShrink: 0 }}>⬡</span>
+                    <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.65 }}>{trait}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Tome>
+        )}
+
+        {/* 원형 소개 — 같은 원형이면 누구에게나 같은 공통 문구 (개인 결과와 구분) */}
         <Tome label={t.interpTitle} accent="violet">
-          {personalized?.lowSignal && (
-            <p style={{ fontSize: 13, color: 'rgba(200,168,75,0.75)', lineHeight: 1.7, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(200,168,75,0.25)' }}>{t.lowSignalNote}</p>
-          )}
+          <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 12 }}>{t.archetypeCommonNote}</p>
           {!personalized?.lowSignal && primaryDetail?.daily && (
             <div style={{ background: 'rgba(200,168,75,0.06)', border: '1px solid rgba(200,168,75,0.18)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,168,75,0.55)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 5 }}>{t.dailyLabel(primaryName)}</p>
@@ -478,31 +512,11 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
               <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(239,68,68,0.6)', letterSpacing: '0.1em', marginBottom: 5 }}>{personalized?.lowSignal ? t.shadowGeneral : t.shadow}</p>
               <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.74)', lineHeight: 1.65 }}>{primaryDetail.shadow}</p>
               {personalized?.shadowNote && (
-                <p style={{ fontSize: 12.5, color: 'rgba(200,168,75,0.55)', lineHeight: 1.6, marginTop: 8, fontStyle: 'italic', borderTop: '1px solid rgba(239,68,68,0.12)', paddingTop: 8 }}>{personalized.shadowNote}</p>
+                <p style={{ fontSize: 12.5, color: 'rgba(200,168,75,0.55)', lineHeight: 1.6, marginTop: 8, fontStyle: 'italic', borderTop: '1px solid rgba(239,68,68,0.12)', paddingTop: 8 }}>{t.shadowNoteLabel}{personalized.shadowNote}</p>
               )}
             </div>
           )}
         </Tome>
-
-        {/* 왜 이 원형인가 + 구분하는 특징 */}
-        {personalized && (
-          <Tome label={t.whyTitle} accent="gold">
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.85, marginBottom: 14 }}>
-              {personalized.whyText}
-            </p>
-            {personalized.distinguishingTraits.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,168,75,0.55)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>{t.distinguishing}</p>
-                {personalized.distinguishingTraits.map((trait, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: 'rgba(200,168,75,0.5)', marginTop: 2, flexShrink: 0 }}>⬡</span>
-                    <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.65 }}>{trait}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Tome>
-        )}
 
         {/* 부가 성향 */}
         <Tome label={t.secondaryTitle} accent="gold">
@@ -523,7 +537,7 @@ function HexacoReportInner({ lang }: { lang: Lang }) {
           {/* 1·2위가 거의 붙어 있으면 두 원형을 함께 읽도록 안내 (미리보기 제외) */}
           {!previewId && isCloseCall(result) && (
             <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.65, marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(200,168,75,0.08)', border: '1px solid rgba(200,168,75,0.25)' }}>
-              {personalized?.lowSignal ? t.closeNoteLow(primaryName, secondaryName) : t.closeNote(primaryName, secondaryName)}
+              {isExactTie(result) ? t.tieNote(primaryName, secondaryName) : personalized?.lowSignal ? t.closeNoteLow(primaryName, secondaryName) : t.closeNote(primaryName, secondaryName)}
             </p>
           )}
         </Tome>

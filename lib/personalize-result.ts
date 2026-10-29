@@ -155,6 +155,21 @@ export function getSecondaryWhy(result: HexacoResult, t: PersonalizeText = PERSO
 // 0.067 = 답 하나를 한 칸 바꿨을 때 두 원형 사이 거리 차이가 움직일 수 있는 최대 폭
 export const CLOSE_CALL_GAP = 0.067
 export const isCloseCall = (result: HexacoResult) => result.secondaryDistance - result.primaryDistance < CLOSE_CALL_GAP
+// 1·2위가 똑같은 거리 — 같은 거리의 원형이 더 있을 수 있고, 맨 위 이름은 scoreHexaco의 동률 규칙(조건 요인 수가 많은 원형 우선, 같으면 ARCHETYPES 배열 순서)으로 정해진 것
+// (예: 48문항 전부 3이면 여러 원형 동률, 전부 4면 수호자·동반자·조율자·현자 4개 동률)
+export const isExactTie = (result: HexacoResult) => result.secondaryDistance - result.primaryDistance < 1e-9
+
+// 48문항 대부분에 같은 답을 골랐는지. 요인마다 정채점 6·역채점 2라, 같은 답이 많으면 응답 습관이 점수를 크게 움직인다
+// (예: 전부 4 → 여섯 요인 모두 3.5 = 모두 "높음"). 불성실·거짓으로 단정하지 않고 다시 해 볼 수 있다고만 안내한다 (2026-10-29)
+export const SKEW_SHARE = 0.85
+export function isSkewedAnswers(answers?: Record<string, number>): boolean {
+  if (!answers) return false
+  const vals = Object.values(answers)
+  if (vals.length < 40) return false
+  const counts = new Map<number, number>()
+  for (const v of vals) counts.set(v, (counts.get(v) ?? 0) + 1)
+  return Math.max(...counts.values()) / vals.length >= SKEW_SHARE
+}
 
 // ── 통합 export ───────────────────────────────────────────────────────────────
 export interface PersonalizedResult {
@@ -166,9 +181,10 @@ export interface PersonalizedResult {
   shadowNote: string | null      // 그림자 보정 문구
   secondaryWhy: string | null    // 부가 성향이 나온 이유
   lowSignal: boolean             // 여섯 요인 모두 중간 — 원형 설명은 일반 소개로 안내
+  answerSkew: boolean            // 48문항 대부분 같은 답 — 응답 습관 영향 안내 (응답을 넘겨받은 경우만)
 }
 
-export function personalizeResult(result: HexacoResult, t: PersonalizeText = PERSONALIZE_KO): PersonalizedResult {
+export function personalizeResult(result: HexacoResult, t: PersonalizeText = PERSONALIZE_KO, answers?: Record<string, number>): PersonalizedResult {
   const { primary } = result
   return {
     subLabel: getSubLabel(primary, result, t),
@@ -179,5 +195,6 @@ export function personalizeResult(result: HexacoResult, t: PersonalizeText = PER
     shadowNote: getShadowNote(primary, result, t),
     secondaryWhy: getSecondaryWhy(result, t),
     lowSignal: isLowSignal(result),
+    answerSkew: isSkewedAnswers(answers),
   }
 }
