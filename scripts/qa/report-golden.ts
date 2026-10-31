@@ -23,6 +23,7 @@ import { buildCareerReport, REPORT_VERSION, type Block, type CareerReport } from
 import { VALUE_CARDS, INTEREST_ITEMS } from '../../lib/paid-v2/items'
 // 무료 결과 문구·저장 검증 검사도 같은 실행에서 돈다 (npm run qa:report)
 import './free-result'
+import './archetype-trust'
 
 type Stage = 'high' | 'college' | 'jobseeker' | 'worker'
 type Plan = 'find' | 'do' | 'both'

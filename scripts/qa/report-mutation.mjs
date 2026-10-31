@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
 const ROOT = process.cwd()
-const COPY = ['lib', 'app/api/career', 'app/career/report', 'components/career', 'supabase/migrations', 'scripts/qa']
+const COPY = ['lib', 'app/api/career', 'app/career/report', 'components/career', 'components/hexaco', 'supabase/migrations', 'scripts/qa']
 const RC = 'lib/career/report-content.ts'
 
 // 찾을 문자열에는 줄바꿈을 넣지 않는다 (파일이 CRLF·LF 어느 쪽이어도 맞도록)
@@ -25,6 +25,12 @@ const MUTANTS = [
   { name: '구분 특징에 중간 요인도 포함 (감사 A-2 회귀)', file: 'lib/personalize-result.ts', edits: [[".filter(x => x.lv !== 'mid')", '']], expect: '나를 구분하는 특징' },
   { name: '무료 응답 검증 범위 0~5로 느슨해짐', file: 'lib/analytics.ts', edits: [['v >= 1 && v <= 5', 'v >= 0 && v <= 5']], expect: 'isValidHexacoAnswers' },
   { name: '저장 전 응답 검증 건너뜀 (감사 A-3 회귀)', file: 'lib/analytics.ts', edits: [['if (!isValidHexacoAnswers(answers)) {', 'if (false) {']], expect: '저장 순서' },
+  { name: '원형 소개를 "당신은"으로 (개인 사실처럼)', file: 'lib/archetypes-hexaco.ts', edits: [["shortDesc: '이 원형은 약속을 지키고", "shortDesc: '당신은 약속을 지키고"]], expect: '"당신" 0건' },
+  { name: '영어 원형 소개에 you', file: 'lib/en/archetypes-hexaco.ts', edits: [["shortDesc: 'This archetype pictures someone who lives by keeping their word", "shortDesc: 'You live by keeping your word"]], expect: '"당신" 0건' },
+  { name: '원형 빛의 면에 능력 장담', file: 'lib/archetypes-hexaco.ts', edits: [["light: '원칙과 책임감으로 주변을 지탱하려는", "light: '탁월한 원칙과 책임감으로 주변을 지탱하려는"]], expect: '능력·탁월함' },
+  { name: '같은 답 몰림 기준 0.85 → 0.8', file: 'lib/personalize-result.ts', edits: [['SKEW_SHARE = 0.85', 'SKEW_SHARE = 0.8']], expect: '같은 답 몰림' },
+  { name: '동률 판정을 근접 수준(0.05)으로 느슨하게', file: 'lib/personalize-result.ts', edits: [['result.primaryDistance < 1e-9', 'result.primaryDistance < 0.05']], expect: '동률' },
+  { name: '여섯 요인 모두 중간이어도 몰림 안내 표시', file: 'components/hexaco/ReportBody.tsx', edits: [['personalized.answerSkew && !personalized.lowSignal', 'personalized.answerSkew']], expect: '몰림 안내' },
   { name: '열람할 때마다 다시 조립 (저장본 무시)', file: 'app/api/career/[id]/route.ts', edits: [['if (!data.report && data.scores)', 'if (data.scores)']], expect: '발급 리포트 고정' },
 ]
 
